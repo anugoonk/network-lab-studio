@@ -11,7 +11,7 @@ import { allowsVlan, l3Interfaces, ping, portLine } from '../network';
 import type { Device, Iface, Lab } from '../types';
 import { cmd, curTarget, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 
-const SW = ['aruba-switch'] as const;
+const SW = ['aruba-switch', 'l3-switch'] as const;
 const DT = [...SW];
 
 const physIface = (c: Ctx): Iface | undefined => (c.dev.cli.ctxIface ? getIface(c.dev, c.dev.cli.ctxIface) : undefined);

@@ -1,4 +1,5 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
+import { interVlanGuide, officeGuide } from './sampleGuides';
 import type { Device, Lab } from './types';
 
 export const SAMPLE_NAME = 'Small Office – Cisco & Aruba';
@@ -80,7 +81,7 @@ export function buildSampleLab(): Lab {
     link(pcs[n - 1].id, 'Ethernet0', sw1.id, SAMPLE_PORTS.sw1PcPort(n));
     link(pcs[n + 4].id, 'Ethernet0', sw2.id, SAMPLE_PORTS.sw2PcPort(n));
   }
-  lab = { ...lab, counters: { ...lab.counters, __id: id, R: 1, SW: 2, 'PC-': 10 } };
+  lab = { ...lab, counters: { ...lab.counters, __id: id, R: 1, SW: 2, 'PC-': 10 }, guide: officeGuide() };
   return lab;
 }
 
@@ -168,6 +169,6 @@ export function buildInterVlanLab(): Lab {
   link(pcB.id, 'Ethernet0', sw1.id, 'FastEthernet0/2');
   link(pcC.id, 'Ethernet0', sw2.id, '1/1/1');
   link(pcD.id, 'Ethernet0', sw2.id, '1/1/2');
-  lab = { ...lab, counters: { ...lab.counters, __id: id, R: 2, SW: 2, 'PC-': 5 } };
+  lab = { ...lab, counters: { ...lab.counters, __id: id, R: 2, SW: 2, 'PC-': 5 }, guide: interVlanGuide() };
   return lab;
 }

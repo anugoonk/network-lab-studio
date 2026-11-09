@@ -1,4 +1,4 @@
-import { PROFILES, makeIface } from './profiles';
+import { PROFILES, isAruba, makeIface } from './profiles';
 import type { CliMode, Device, DeviceKind, Endpoint, Iface, Lab, Link } from './types';
 
 export const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,23}$/;
@@ -8,8 +8,9 @@ export function emptyLab(name = 'Untitled Lab'): Lab {
 }
 
 export function initialMode(kind: DeviceKind): CliMode {
-  if (kind === 'pc') return 'pc';
-  return kind === 'cisco-router' || kind === 'cisco-switch' ? 'user' : 'priv';
+  const p = PROFILES[kind];
+  if (p.isHost) return 'pc';
+  return p.vendor === 'cisco' ? 'user' : 'priv';
 }
 
 export function createDevice(kind: DeviceKind, id: string, name: string, x: number, y: number): Device {
@@ -21,7 +22,7 @@ export function createDevice(kind: DeviceKind, id: string, name: string, x: numb
     x,
     y,
     ifaces: p.portNames.map((n) => makeIface(kind, n)),
-    vlans: p.isSwitch ? [{ id: 1, name: kind === 'aruba-switch' ? 'DEFAULT_VLAN_1' : 'default' }] : [],
+    vlans: p.isSwitch ? [{ id: 1, name: isAruba(kind) ? 'DEFAULT_VLAN_1' : 'default' }] : [],
     subifs: [],
     svis: [],
     routes: [],
@@ -34,11 +35,11 @@ export function createDevice(kind: DeviceKind, id: string, name: string, x: numb
 /** Adds a device with an auto name; returns the new lab. */
 export function addDevice(lab: Lab, kind: DeviceKind, x: number, y: number): { lab: Lab; device: Device } {
   const p = PROFILES[kind];
-  const key = kind === 'cisco-switch' || kind === 'aruba-switch' ? 'SW' : p.prefix;
+  const key = p.nameKey;
   const counters = { ...lab.counters };
   let n = (counters[key] ?? 0) + 1;
   const taken = new Set(lab.devices.map((d) => d.name.toLowerCase()));
-  const fmt = (i: number) => (kind === 'pc' ? `PC-${String(i).padStart(2, '0')}` : `${key}${i}`);
+  const fmt = (i: number) => (p.prefix.endsWith('-') ? `${p.prefix}${String(i).padStart(2, '0')}` : `${p.prefix}${i}`);
   while (taken.has(fmt(n).toLowerCase())) n++;
   counters[key] = n;
   const idCount = (counters.__id ?? 0) + 1;
@@ -131,6 +132,7 @@ export function contentSignature(lab: Lab): string {
     n: lab.name,
     d: lab.devices.map((d) => ({ ...d, cli: undefined })),
     l: lab.links,
+    g: lab.guide,
   });
 }
 

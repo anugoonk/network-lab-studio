@@ -33,7 +33,7 @@ describe('export / import', () => {
     ['future schema', mutate((j) => (j.schemaVersion = 99)), /schema version/],
     ['missing lab', mutate((j) => delete j.lab), /โครงสร้าง/],
     ['wrong type (name is a number)', mutate((j) => (j.lab.devices[0].name = 5)), /โครงสร้าง/],
-    ['bad device kind', mutate((j) => (j.lab.devices[0].kind = 'firewall')), /โครงสร้าง/],
+    ['bad device kind', mutate((j) => (j.lab.devices[0].kind = 'toaster')), /โครงสร้าง/],
     ['bad IP', mutate((j) => (j.lab.devices[3].ifaces[0].ip = '300.1.1.1')), /IPv4/],
     ['bad mask', mutate((j) => (j.lab.devices[3].ifaces[0].mask = '255.0.255.0')), /mask/],
     ['link to unknown device', mutate((j) => (j.lab.links[0].a.deviceId = 'nope')), /อุปกรณ์ที่ไม่มีอยู่/],

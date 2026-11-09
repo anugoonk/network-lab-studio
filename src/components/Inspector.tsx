@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { getDevice } from '../core/lab';
 import { allAddresses, l3Interfaces, linkStatus, type PingResult } from '../core/network';
 import { shortPort } from '../core/profiles';
-import { SAMPLE_PORTS } from '../core/sample';
 import { parseIp } from '../core/ip';
 import { useStore } from '../store';
 
@@ -54,8 +53,6 @@ export function Inspector() {
     runPing(srcId, dst.trim());
   };
 
-  const isSample = lab.name.startsWith('Small Office');
-  const isInterVlan = lab.name.startsWith('Inter-VLAN');
 
   return (
     <>
@@ -124,41 +121,6 @@ export function Inspector() {
         </div>
       </section>
 
-      {isInterVlan && (
-        <section className="card" data-testid="exercise-intervlan">
-          <h4>โจทย์ฝึก: Trunk, Router-on-a-stick และ Static Route</h4>
-          <ol className="small">
-            <li>PC-A (VLAN 10) ping PC-C (VLAN 10 บน SW2) ได้ผ่าน trunk <code>Gi0/2</code> ↔ <code>1/1/24</code> และ ping PC-B (VLAN 20) ได้ผ่าน R1 sub-interface <code>Gi0/0.10 / Gi0/0.20</code></li>
-            <li>PC-A ping <code>172.16.0.10</code> (PC-E) ได้ผ่าน static route บน R1 และ default route บน R2</li>
-            <li>
-              ทำให้เสีย: SW1 <code>interface gi0/2</code> → <code>switchport trunk allowed vlan remove 20</code> แล้ว PC-B ping PC-D ไม่ผ่าน (ดูเหตุผลใน Inspector) กู้คืนด้วย <code>switchport trunk allowed vlan add 20</code>
-            </li>
-            <li>ทำให้เสีย: R2 <code>no ip route 0.0.0.0 0.0.0.0 10.0.0.1</code> → ขาไปถึง PC-E แต่ขากลับไม่ได้ กู้คืนด้วย <code>ip route 0.0.0.0 0.0.0.0 10.0.0.1</code></li>
-            <li>ลองให้ SW2 (Aruba) เป็น gateway: <code>interface vlan 10</code> → <code>ip address 192.168.10.254/24</code> แล้วตั้ง gateway ของ PC-C เป็น 192.168.10.254</li>
-          </ol>
-        </section>
-      )}
-
-      {isSample && (
-        <section className="card" data-testid="exercise">
-          <h4>โจทย์ฝึก: ทำให้ลิงก์ระหว่าง switch หยุด แล้วกู้คืนด้วย CLI</h4>
-          <ol className="small">
-            <li>เปิด Terminal ของ <b>PC-01</b> แล้ว <code>ping 192.168.1.110</code> (ต้องสำเร็จ)</li>
-            <li>
-              เปิด Console ของ <b>SW2</b> (Aruba) ลิงก์ระหว่าง switch คือพอร์ต <code>{SAMPLE_PORTS.sw1ToSw2.sw2}</code> ฝั่ง SW2
-              (ฝั่ง SW1 คือ <code>{SAMPLE_PORTS.sw1ToSw2.sw1}</code>)
-            </li>
-            <li>
-              พิมพ์ <code>configure terminal</code> → <code>interface {SAMPLE_PORTS.sw1ToSw2.sw2}</code> → <code>shutdown</code>
-            </li>
-            <li>ping 192.168.1.110 อีกครั้ง (ต้องไม่ผ่าน) แต่ <code>ping 192.168.1.1</code> ยังผ่าน เพราะ R1 ต่อกับ SW1 อยู่ — ดูเหตุผลใน Inspector</li>
-            <li>กู้คืน: <code>no shutdown</code> แล้ว ping 192.168.1.110 ใหม่</li>
-          </ol>
-          <p className="muted small">
-            พอร์ตจริงของ lab: R1 {SAMPLE_PORTS.r1ToSw1.r1} ↔ SW1 {SAMPLE_PORTS.r1ToSw1.sw1} · SW1 {SAMPLE_PORTS.sw1ToSw2.sw1} ↔ SW2 {SAMPLE_PORTS.sw1ToSw2.sw2} · PC-01..05 ↔ SW1 Fa0/1..5 · PC-06..10 ↔ SW2 1/1/1..5
-          </p>
-        </section>
-      )}
     </>
   );
 }

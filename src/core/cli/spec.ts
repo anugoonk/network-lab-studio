@@ -1,6 +1,7 @@
 /** Shared types and helpers for the command registry. One registry feeds the parser, `?` help, the Command Library and the tests. */
 import { isValidMask, parseIp } from '../ip';
 import { parseVlanList, subName } from '../lab';
+import { PROFILES } from '../profiles';
 import type { CliMode, Device, DeviceKind, Lab, Vendor } from '../types';
 
 export type PType = 'vlan' | 'vlanlist' | 'iface' | 'word' | 'text' | 'ip' | 'mask' | 'rmask' | 'cidr';
@@ -127,7 +128,7 @@ export function resolveIface(dev: Device, tok: string, vendor: Vendor): string |
   if (!dev.ifaces.some((i) => i.name === base)) return null;
   if (m[3] === undefined) return base;
   const id = Number(m[3]);
-  if (dev.kind !== 'cisco-router' || id < 1 || id > 4094) return null;
+  if (!PROFILES[dev.kind].isRouter || id < 1 || id > 4094) return null;
   return `${base}.${id}`;
 }
 
@@ -184,6 +185,7 @@ export const TOKEN_HELP: Record<string, string> = {
 };
 
 export const MODE_LABEL: Record<Vendor, Partial<Record<CliMode, string>>> = {
+  generic: {},
   cisco: {
     user: 'User EXEC (R1>)',
     priv: 'Privileged EXEC (R1#)',
@@ -205,6 +207,7 @@ export const MODE_LABEL: Record<Vendor, Partial<Record<CliMode, string>>> = {
 
 /** How a learner reaches a mode from power-on. */
 export const MODE_PATH: Record<Vendor, Partial<Record<CliMode, string>>> = {
+  generic: {},
   cisco: {
     user: 'โหมดเริ่มต้นหลังเปิดอุปกรณ์ (prompt ลงท้ายด้วย >)',
     priv: 'enable',

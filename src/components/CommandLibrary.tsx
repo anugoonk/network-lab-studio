@@ -5,8 +5,8 @@ import { PROFILES } from '../core/profiles';
 import type { CliMode, DeviceKind, Device, Vendor } from '../core/types';
 import { useStore } from '../store';
 
-const VENDOR_NAME: Record<Vendor, string> = { cisco: 'Cisco IOS', aruba: 'Aruba AOS-CX', pc: 'PC' };
-const KINDS: DeviceKind[] = ['cisco-router', 'cisco-switch', 'aruba-switch', 'pc'];
+const VENDOR_NAME: Record<Vendor, string> = { cisco: 'Cisco IOS', aruba: 'Aruba AOS-CX', pc: 'PC', generic: 'ไม่มี CLI' };
+const KINDS = (Object.keys(PROFILES) as DeviceKind[]).filter((k) => PROFILES[k].hasCli);
 const MODES: CliMode[] = ['user', 'priv', 'config', 'config-if', 'config-vlan', 'pc'];
 
 /** Why a command cannot be inserted into this device's console right now (null = fine). */
@@ -100,7 +100,7 @@ export function CommandLibrary() {
       <div className="lib-target">
         <label>ใส่คำสั่งลง Console ของ:</label>
         <select value={targetId} onChange={(e) => setTarget(e.target.value)} data-testid="lib-target">
-          {lab.devices.map((d) => (
+          {lab.devices.filter((d) => PROFILES[d.kind].hasCli).map((d) => (
             <option key={d.id} value={d.id}>{d.name} — {PROFILES[d.kind].label}</option>
           ))}
         </select>

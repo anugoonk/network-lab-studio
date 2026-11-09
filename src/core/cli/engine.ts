@@ -284,6 +284,9 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
   const dev0 = getDevice(lab, deviceId);
   if (!dev0) return { lab, output: ['Device not found'], ok: false, prompt: '' };
   const prompt = promptFor(dev0);
+  if (!PROFILES[dev0.kind].hasCli) {
+    return { lab, output: [`${PROFILES[dev0.kind].label} ไม่มี Console ในโปรแกรมนี้ (วาดและต่อสายเท่านั้น)`], ok: false, prompt };
+  }
   const line = rawLine.trim();
   if (line === '') return { lab, output: [], ok: true, prompt };
 

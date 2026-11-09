@@ -205,7 +205,7 @@ describe('help (?) and history', () => {
 });
 
 describe('registry consistency: every "runnable" example really runs', () => {
-  const kinds: DeviceKind[] = ['cisco-router', 'cisco-switch', 'aruba-switch', 'pc'];
+  const kinds = (Object.keys(PROFILES) as DeviceKind[]).filter((k) => PROFILES[k].hasCli);
   it('has unique ids and valid syntax', () => {
     expect(new Set(SPECS.map((s) => s.id)).size).toBe(SPECS.length);
   });
@@ -223,7 +223,7 @@ describe('registry consistency: every "runnable" example really runs', () => {
         if (mode === 'config-if') {
           const first = d.ifaces[0];
           d.cli.ctxIface = first.name;
-          if (kind === 'aruba-switch') first.routed = false;
+          if (PROFILES[kind].vendor === 'aruba') first.routed = false;
         }
         if (mode === 'config-vlan') d.cli.ctxVlan = 10;
         if (mode === 'config-subif') {

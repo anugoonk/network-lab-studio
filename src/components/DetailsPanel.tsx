@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { maskToPrefix, networkOf } from '../core/ip';
 import { formatVlanList, getDevice, linkAt, peerOf, subName } from '../core/lab';
 import { PORT_LINE_TH, l3Interfaces, linkStatus, portLine } from '../core/network';
-import { PROFILES, shortPort } from '../core/profiles';
+import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import type { Device } from '../core/types';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
@@ -161,14 +161,22 @@ function DeviceDetails({ id }: { id: string }) {
         />
         {err && <div className="error-box" role="alert">{err}</div>}
         <div className="row">
-          <button className="primary" onClick={() => openConsole(id)} data-testid="open-console">
-            เปิด {p.isHost ? 'Terminal' : 'Console'}
-          </button>
+          {p.hasCli && (
+            <button className="primary" onClick={() => openConsole(id)} data-testid="open-console">
+              เปิด {p.isHost ? 'Terminal' : 'Console'}
+            </button>
+          )}
           <button className="danger" onClick={del} data-testid="delete-device">
             ลบอุปกรณ์
           </button>
         </div>
       </section>
+
+      {!p.hasCli && (
+        <p className="muted small" data-testid="no-cli-note">
+          อุปกรณ์ชนิดนี้ใช้วาดและต่อสายเท่านั้น — ยังไม่มี CLI, ping, routing หรือ policy ในโปรแกรมนี้
+        </p>
+      )}
 
       {p.isHost && <PcConfig device={device} />}
 
@@ -218,7 +226,7 @@ function DeviceDetails({ id }: { id: string }) {
                     {!p.isSwitch && <td>{i.ip ? `${i.ip}/${i.mask}` : '–'}</td>}
                     {p.isSwitch && (
                       <td title={i.trunk ? `allowed: ${formatVlanList(i.trunkAllowed)}` : undefined}>
-                        {device.kind === 'aruba-switch' && i.routed
+                        {isAruba(device.kind) && i.routed
                           ? i.ip
                             ? `routed ${i.ip}/${maskToPrefix(i.mask!)}`
                             : 'routed'
@@ -274,17 +282,38 @@ function LinkDetails({ id }: { id: string }) {
   );
 }
 
-export function DetailsPanel() {
-  const sel = useStore((s) => s.selection);
+function LabDetails() {
   const lab = useStore((s) => s.lab);
+  const renameLab = useStore((s) => s.renameLab);
   const openConnect = useStore((s) => s.openConnect);
-  if (sel?.type === 'device') return <DeviceDetails id={sel.id} />;
-  if (sel?.type === 'link') return <LinkDetails id={sel.id} />;
+  const [name, setName] = useState(lab.name);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    setName(lab.name);
+    setErr(null);
+  }, [lab.name]);
+  const commit = () => {
+    if (name.trim() === lab.name) return;
+    const e = renameLab(name);
+    setErr(e);
+    if (e) setName(lab.name);
+  };
   return (
-    <section className="card">
-      <h4>{lab.name}</h4>
+    <section className="card" data-testid="lab-details">
+      <h4>Lab details</h4>
+      <label htmlFor="lab-name-input">ชื่อ Lab</label>
+      <input
+        id="lab-name-input"
+        value={name}
+        maxLength={120}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur(), undefined)}
+        data-testid="lab-name-input"
+      />
+      {err && <div className="error-box" role="alert">{err}</div>}
       <p className="small">
-        อุปกรณ์ {lab.devices.length} · สาย {lab.links.length}
+        อุปกรณ์ {lab.devices.length} · สาย {lab.links.length} · Guide {lab.guide ? `${lab.guide.sections.length} ขั้นตอน` : 'ไม่มี'}
       </p>
       <p className="muted small">คลิกอุปกรณ์หรือสายเพื่อดูรายละเอียด ดับเบิลคลิกอุปกรณ์เพื่อเปิด Console</p>
       <button onClick={() => openConnect()} data-testid="open-connect">
@@ -292,4 +321,11 @@ export function DetailsPanel() {
       </button>
     </section>
   );
+}
+
+export function DetailsPanel() {
+  const sel = useStore((s) => s.selection);
+  if (sel?.type === 'device') return <DeviceDetails id={sel.id} />;
+  if (sel?.type === 'link') return <LinkDetails id={sel.id} />;
+  return <LabDetails />;
 }

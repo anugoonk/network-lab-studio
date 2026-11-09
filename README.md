@@ -26,13 +26,33 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
 
 ## วิธีใช้งานโดยย่อ
 
-1. เปิดแอป — ระบบโหลด **Sample Lab “Small Office – Cisco & Aruba”** ให้ทันที (ปุ่ม “Sample: Inter-VLAN” เปิดแล็บ trunk/router-on-a-stick/static route) (ครั้งต่อไปจะเปิดงานล่าสุดที่ auto-save ไว้)
-2. คลิกอุปกรณ์เพื่อดูรายละเอียด (ชื่อ รุ่นจำลอง พอร์ต IP VLAN) · **ดับเบิลคลิก** เพื่อเปิด Console/Terminal
-3. เพิ่มอุปกรณ์: ลากจาก Palette ซ้ายลง canvas (หรือคลิกที่รายการ)
+1. เปิดแอป — ระบบเปิดงานล่าสุด (ครั้งแรกคือ **Sample Lab “Small Office – Cisco & Aruba”**) พร้อมแผง **Lab Guide** ทางซ้าย
+2. คลิกอุปกรณ์เพื่อดูรายละเอียด (ชื่อ รุ่นจำลอง พอร์ต IP VLAN) · **ดับเบิลคลิก** เพื่อเปิด Console/Terminal · คลิกพื้นที่ว่างเพื่อดู **Lab details** (เปลี่ยนชื่อ Lab ได้)
+3. **เมนูซ้าย**: แถบไอคอน กดปุ่ม ☰ เพื่อขยายเป็นเมนูที่มีชื่อ — Add an object (ลากอุปกรณ์ลง canvas หรือกดที่รายการ), Nodes (รายการอุปกรณ์ กดเพื่อโฟกัส ดับเบิลคลิกเพื่อเปิด Console), Lab Guide, Lab details, Lab Manager, Command Library, เชื่อมสาย, Fit view, ซ่อนป้ายพอร์ต/สถานะ, Fullscreen, Close lab (กลับไป Lab Manager) — เมนูกับ Guide ใช้พื้นที่ซ้ายร่วมกัน (เปิดอย่างใดอย่างหนึ่ง)
 4. ต่อสาย: ลากจุดกลมด้านขวาของอุปกรณ์ไปยังอุปกรณ์อื่น (หรือปุ่ม **เชื่อมสาย**) แล้วเลือกพอร์ตต้นทาง/ปลายทาง — พอร์ตที่มีสายแล้วเลือกซ้ำไม่ได้
 5. แผงขวามี 3 แท็บ: **รายละเอียด** · **Console** · **Lab Inspector** (อธิบายเหตุผลผล ping ให้ผู้เรียน แยกจาก output ใน terminal)
-6. ปุ่ม “ซ่อน Palette” / “ซ่อนแผงขวา” ขยายพื้นที่วาด · **Fit view** ปรับมุมมอง · ล้อเมาส์ = zoom, ลากพื้นหลัง = pan
+6. ปุ่ม “ย่อแผงซ้าย” / “ซ่อนแผงขวา” ขยายพื้นที่วาด · **Fit view** ปรับมุมมอง · ล้อเมาส์ = zoom, ลากพื้นหลัง = pan
 7. แท็บ **Command Library** ค้นหา/กรองคำสั่ง และกด “ใส่ใน Console” (ไม่รันให้ — ผู้ใช้กด Enter เอง)
+8. แท็บ **Lab Manager** รายการ Lab ทั้งหมดที่บันทึกในเบราว์เซอร์ (ดูด้านล่าง)
+
+### Lab Guide (ผู้สอนแก้ไขได้)
+
+แผงคำแนะนำข้างพื้นที่วาด (เหมือนหน้าคู่มือของแล็บบน emulator): **Objective**, **ขั้นตอน** (หลายหัวข้อ) และ **Resources** (ลิงก์)
+
+- ทุก Lab ตัวอย่างมี Guide สำเร็จรูป (โจทย์ฝึกย้ายมาอยู่ที่นี่แล้ว)
+- กด **แก้ไข** เพื่อแก้ชื่อ Guide, Objective, เพิ่ม/ลบ/เลื่อนขั้นตอน, เพิ่ม/ลบลิงก์ — บันทึกอัตโนมัติพร้อม Lab และรวมอยู่ในไฟล์ Export
+- Lab ที่ไม่มี Guide (เช่น Lab ว่าง) กด “สร้าง Guide” ได้; “ลบ Guide” ต้องยืนยัน
+- รูปแบบข้อความ: บรรทัด `- ` = bullet, `1. ` = ลำดับเลข, `` `โค้ด` `` = ตัวอักษรโค้ด, `**หนา**`; ข้อความทั้งหมดแสดงเป็น React element (ไม่ใช้ HTML ดิบ) และลิงก์ต้องขึ้นต้น `http://` หรือ `https://` เท่านั้น (อย่างอื่น เช่น `javascript:` จะไม่แสดงเป็นลิงก์ และไฟล์ที่นำเข้าที่มีลิงก์แบบนี้จะถูกปฏิเสธ)
+- ข้อจำกัด: ไม่เกิน 50 ขั้นตอน/30 ลิงก์ต่อ Lab, Objective/เนื้อหาไม่เกิน 4,000 ตัวอักษร
+
+### Lab Manager (รายการ Lab)
+
+ตารางแบบ file manager: ค้นหาชื่อ, เลือกหลายรายการ, ชื่อ/จำนวนอุปกรณ์และสาย/แก้ไขล่าสุด, ปุ่ม **เปิด · ทำสำเนา · Export · ลบ**
+
+- **Lab ใหม่ / Sample / นำเข้า JSON** จากหน้านี้ = เพิ่ม Lab ใหม่ **ในรายการ** (ไม่แทนที่งานที่เปิดอยู่) การสลับ Lab ไม่ทำให้งานเดิมหาย — ทุก Lab บันทึกอัตโนมัติแยกกัน
+- ปุ่ม New Lab / Open Sample Lab / Import บนแถบบนยังทำงานแบบเดิม คือ **แทนที่ Lab ที่เปิดอยู่** (มีหน้าต่างยืนยันเมื่อมีงานที่ยังไม่ได้ Export)
+- การลบถามยืนยันและกู้คืนไม่ได้ (ให้ Export ก่อน); ลบ Lab ที่เปิดอยู่ = เปิด Lab ล่าสุดที่เหลือ หรือสร้าง Lab ว่างถ้าไม่เหลือ
+- ข้อมูลอยู่ใน `localStorage` ของเบราว์เซอร์นี้เท่านั้น (ข้อมูลของเวอร์ชันก่อนที่เก็บ Lab เดียวถูกย้ายเข้ารายการอัตโนมัติ); ยังไม่มีโฟลเดอร์ย่อย
 
 ### การแสดงสถานะลิงก์ (ไม่พึ่งสีอย่างเดียว)
 
@@ -55,7 +75,7 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
 
 พอร์ตที่ใช้งานทั้งหมดบน SW1/SW2 เป็น access VLAN 10 (รวมลิงก์ SW1↔SW2 ทั้งสองฝั่ง และลิงก์ไป R1 แบบ untagged) VLAN 20 (GUEST) ถูกสร้างไว้แล้วบน switch ทั้งสองสำหรับโจทย์ฝึก
 
-**โจทย์ฝึก — ทำให้ลิงก์ระหว่าง switch หยุด แล้วกู้คืนด้วย CLI** (มีในแท็บ Lab Inspector):
+**โจทย์ฝึก — ทำให้ลิงก์ระหว่าง switch หยุด แล้วกู้คืนด้วย CLI** (มีใน Lab Guide ของ Lab นี้):
 
 ```
 PC-01> ping 192.168.1.110            → Reply (สำเร็จ)
@@ -78,7 +98,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | SW2 (Aruba) | `1/1/24` trunk (allowed 10,20); `1/1/1` = VLAN 10 (PC-C), `1/1/2` = VLAN 20 (PC-D) |
 | PC | PC-A .10.11, PC-B .20.11, PC-C .10.12, PC-D .20.12, PC-E 172.16.0.10 |
 
-โจทย์ฝึกอยู่ในแท็บ Lab Inspector (ตัด VLAN ออกจาก allowed list, ลบ default route แล้วดูขากลับล้ม, ตั้ง SVI บน SW2 ให้เป็น gateway)
+โจทย์ฝึกอยู่ใน Lab Guide ของ Lab นี้ (ตัด VLAN ออกจาก allowed list, ลบ default route แล้วดูขากลับล้ม, ตั้ง SVI บน SW2 ให้เป็น gateway)
 
 ## ขอบเขต
 
@@ -91,7 +111,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - การทดสอบ reachability ด้วย ICMP echo (`ping`) — คำนวณใหม่จาก topology + config ปัจจุบันทุกครั้ง: ตรวจสาย, admin state ของพอร์ตทั้งสองฝั่ง, VLAN/trunk/allowed/native ของแต่ละ switch (การ tag/untag ระหว่างลิงก์), sub-interface, SVI, routing table (connected + static) และเส้นทางขากลับ; ป้องกัน loop ด้วย visited set (และจำกัดจำนวน hop ของ routing)
 - PC ใน subnet เดียวกันสื่อสารกันโดยตรง; ปลายทางนอก subnet ต้องผ่าน default gateway ที่เป็นอุปกรณ์ L3 (router หรือ Aruba switch) บนลิงก์ที่เข้าถึงได้; อุปกรณ์ที่ไม่ใช่ L3 (PC, Cisco L2 switch) ไม่ส่งต่อแพ็กเก็ต
 - CLI แยกตามระบบปฏิบัติการ (Cisco IOS / Aruba AOS-CX / PC) ต่อ device ละ config, CLI mode และ command history; ย่อคำสั่งได้ (`conf t`, `int gi0/1`); `?` แสดงคำสั่งใน mode ปัจจุบัน; `do show ...` ใน config mode
-- Auto-save ลง `localStorage`, Export/Import JSON (มี `schemaVersion`, ตรวจชนิดข้อมูล พอร์ต trunk/sub-interface/SVI/route และการอ้างอิงอุปกรณ์ก่อนนำเข้า; ไฟล์เก่าก่อนมี trunk/SVI ยังนำเข้าได้)
+- Auto-save ลง `localStorage` (หลาย Lab ใน Lab Manager), Export/Import JSON (มี `schemaVersion`, ตรวจชนิดข้อมูล พอร์ต trunk/sub-interface/SVI/route และการอ้างอิงอุปกรณ์ก่อนนำเข้า; ไฟล์เก่าก่อนมี trunk/SVI ยังนำเข้าได้)
 
 **ยังไม่รองรับ (ตั้งใจตัดออก)**
 
@@ -258,9 +278,11 @@ src/core/            # logic ล้วน (ไม่พึ่ง React) — ท�
   cli/pc.ts          # ipconfig / ping
   cli/registry.ts    # รวมทะเบียน — แหล่งเดียวสำหรับ parser, ?, Command Library, README, tests
   cli/engine.ts      # parser/matcher (ย่อคำสั่ง, ambiguity), help, execute (ไม่เปลี่ยน config เมื่อ error)
-  persist.ts         # zod schema + ตรวจอ้างอิงข้าม + localStorage + export/import
+  persist.ts         # zod schema (รวม Guide) + ตรวจอ้างอิงข้าม + workspace หลาย Lab ใน localStorage + export/import
+  guide.ts           # ตัวช่วย Guide (parser ข้อความ, ตรวจลิงก์, เลื่อนรายการ)
+  sampleGuides.ts    # Guide ของ Lab ตัวอย่าง
   sample.ts          # Sample Lab (Small Office, Inter-VLAN)
-src/components/      # React UI (canvas = @xyflow/react)
+src/components/      # React UI (canvas = @xyflow/react): LeftDock (เมนู/Guide), GuidePanel, FileManager, Canvas, Console, ...
 src/store.ts         # Zustand store — แหล่งข้อมูลเดียวที่ canvas, CLI, ping และ Inspector ใช้ร่วมกัน
 tests/               # Vitest        e2e/  # Playwright
 ```
@@ -271,9 +293,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 5 ไฟล์) | **217/217 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์ (config ไม่เปลี่ยน), ทุกตัวอย่างในทะเบียนคำสั่งรันได้จริง, ping/VLAN/gateway/loop, trunk (allowed/native/access-vs-trunk mismatch), router-on-a-stick, SVI (Aruba routing, Cisco L2 mgmt), static/default route (ขาไป/ขากลับ/next hop ใช้ไม่ได้), import ผิดรูปแบบและไฟล์เก่า, README ตรงกับทะเบียน |
+| `npm test` (Vitest, 6 ไฟล์) | **236/236 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์ (config ไม่เปลี่ยน), ทุกตัวอย่างในทะเบียนคำสั่งรันได้จริง, ping/VLAN/trunk/router-on-a-stick/SVI/static route, import ผิดรูปแบบและไฟล์เก่า, Guide (parser, ลิงก์ปลอดภัย, schema), workspace หลาย Lab (migrate, ข้ามข้อมูลเสีย), การทำงานของ Lab Manager, README ตรงกับทะเบียน |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 17 flow) | **17/17 ผ่าน** — 12 flow เดิม (Sample Lab → ping → shutdown uplink → no shutdown, VLAN 20, gateway ผิด, เพิ่ม PC, drag, CLI ผิด mode/vendor, reload, export/import, ย่อแผง, Command Library) + 5 flow ใหม่ (Inter-VLAN lab ทำงานทันที, trunk allowed-vlan ผิด + Inspector อธิบาย + แก้, ลบ default route → ขากลับล้ม → กู้คืน, SVI บน Aruba เป็น gateway + Cisco L2 ปฏิเสธ static route, sub-interface ต้องมี encapsulation ก่อน IP) |
+| `npm run e2e` (Playwright + Chromium, 28 flow) | **28/28 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก 17 flow + Lab Guide (แสดง, แก้ไขและคงอยู่หลัง reload/Export, ลิงก์ `javascript:` ไม่เป็นลิงก์, ลบ/สร้างใหม่), เมนูซ้าย (ขยาย, Nodes, ซ่อนป้าย, Lab details, เปลี่ยนชื่อ Lab, Close lab), Lab Manager (สลับ Lab โดยงานไม่หาย, ค้นหา, ทำสำเนา, ลบพร้อมยืนยัน, ลบ Lab ที่เปิดอยู่, นำเข้า/ไฟล์เสีย/reload) |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 
@@ -284,3 +306,5 @@ tests/               # Vitest        e2e/  # Playwright
 - SVI บน Aruba เริ่มต้นเป็น up (ยังไม่ยืนยันกับของจริง)
 - ทดสอบ UI เฉพาะ desktop; ไม่ได้ปรับสำหรับมือถือ
 - bundle ใหญ่ ~600 kB (ยังไม่ได้ code-split)
+- Lab Manager เก็บใน `localStorage` ของเบราว์เซอร์เดียว (ไม่ sync ข้ามเครื่อง, ไม่มีโฟลเดอร์ย่อย) และ `localStorage` มีขีดจำกัดขนาดประมาณ 5 MB — ถ้าเต็ม การบันทึกอัตโนมัติจะล้มเงียบ ๆ ให้ Export ไฟล์ไว้เป็นระยะ
+- Guide ไม่รองรับรูปภาพ/ตาราง (ข้อความ bullet/ลำดับเลข/โค้ดเท่านั้น)

@@ -3,7 +3,7 @@ import { ping, portLine } from '../network';
 import { parseIp } from '../ip';
 import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
 
-const PC = ['pc'] as const;
+const PC = ['pc', 'laptop', 'server'] as const;
 
 function ipconfig(c: Ctx): RunResult {
   const nic = c.dev.ifaces[0];

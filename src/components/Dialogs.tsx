@@ -124,3 +124,35 @@ export function ConfirmDialog() {
     </div>
   );
 }
+
+export function ConfirmDeleteDialog() {
+  const ids = useStore((s) => s.confirmDelete);
+  const summaries = useStore((s) => s.summaries);
+  const ok = useStore((s) => s.confirmDeleteLabs);
+  const cancel = useStore((s) => s.cancelDelete);
+  if (!ids) return null;
+  const names = summaries()
+    .filter((r) => ids.includes(r.id))
+    .map((r) => r.name);
+  return (
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label="ยืนยันการลบ">
+      <div className="modal">
+        <h3>ลบ {ids.length} Lab?</h3>
+        <ul className="small" data-testid="delete-names">
+          {names.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
+        </ul>
+        <p>การลบไม่สามารถกู้คืนได้ (ถ้าต้องการเก็บไว้ ให้ Export ก่อน)</p>
+        <div className="modal-actions">
+          <button onClick={cancel} data-testid="confirm-delete-cancel">
+            ยกเลิก
+          </button>
+          <button className="danger" onClick={ok} data-testid="confirm-delete-ok">
+            ลบ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

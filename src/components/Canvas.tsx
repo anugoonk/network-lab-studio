@@ -22,7 +22,7 @@ import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
 import { getDevice, getIface } from '../core/lab';
 import { linkStatus } from '../core/network';
-import { PROFILES, shortPort } from '../core/profiles';
+import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
 import { DRAG_MIME } from './Palette';
@@ -34,7 +34,7 @@ function DeviceNode({ id, selected }: NodeProps) {
   if (!d) return null;
   const p = PROFILES[d.kind];
   const ip = d.ifaces.find((i) => i.ip && (p.isHost || i.adminUp))?.ip;
-  const sub = p.isHost ? (ip ?? 'ยังไม่ตั้ง IP') : p.isRouter ? (ip ?? 'ไม่มี IP') : p.vendor === 'aruba' ? 'AOS-CX L2' : 'IOS L2';
+  const sub = p.isHost ? (ip ?? p.roleNote) : p.isRouter ? (ip ?? p.roleNote) : p.roleNote;
   return (
     <div
       className={`node${selected ? ' selected' : ''}`}
@@ -60,6 +60,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
   const s = useInternalNode(source);
   const t = useInternalNode(target);
   const lab = useStore((st) => st.lab);
+  const hideLabels = useStore((st) => st.hideLabels);
   const link = lab.links.find((l) => l.id === id);
   if (!s || !t || !link) return null;
   const a = center(s);
@@ -77,7 +78,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
   const color = st.up ? '#2f6b86' : '#c62828';
   const trunkOf = (deviceId: string, port: string) => {
     const d = getDevice(lab, deviceId);
-    return !!(d && getIface(d, port)?.trunk && !(d.kind === 'aruba-switch' && getIface(d, port)?.routed));
+    return !!(d && getIface(d, port)?.trunk && !(isAruba(d.kind) && getIface(d, port)?.routed));
   };
   const endText = (deviceId: string, port: string, admin: boolean) =>
     `${shortPort(port)}${trunkOf(deviceId, port) ? ' ⇄T' : ''}${admin ? '' : ' ⏻'}`;
@@ -90,6 +91,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
         interactionWidth={22}
         style={{ stroke: color, strokeWidth: selected ? 5 : 2.5, strokeDasharray: st.up ? undefined : '8 6' }}
       />
+      {!hideLabels && (
       <EdgeLabelRenderer>
         <div
           className={`port-label ${st.aAdmin ? 'ok' : 'bad'}`}
@@ -111,6 +113,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
           {st.up ? '✓ UP' : '✕ DOWN'}
         </div>
       </EdgeLabelRenderer>
+      )}
     </>
   );
 }

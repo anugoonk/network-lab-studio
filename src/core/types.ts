@@ -1,5 +1,15 @@
-export type DeviceKind = 'cisco-router' | 'cisco-switch' | 'aruba-switch' | 'pc';
-export type Vendor = 'cisco' | 'aruba' | 'pc';
+export type DeviceKind =
+  | 'cisco-router'
+  | 'cisco-switch'
+  | 'aruba-switch'
+  | 'l3-switch'
+  | 'pc'
+  | 'laptop'
+  | 'server'
+  | 'wireless-ap'
+  | 'firewall'
+  | 'isp-router';
+export type Vendor = 'cisco' | 'aruba' | 'pc' | 'generic';
 export type CliMode = 'user' | 'priv' | 'config' | 'config-if' | 'config-subif' | 'config-svi' | 'config-vlan' | 'pc';
 
 export interface Iface {
@@ -94,4 +104,21 @@ export interface Lab {
   devices: Device[];
   links: Link[];
   counters: Record<string, number>;
+  guide?: Guide;
+}
+
+/** Lab Guide: instructions / objective / resources shown beside the canvas (editable by the instructor). */
+export interface GuideSection {
+  heading: string;
+  body: string;
+}
+export interface GuideLink {
+  label: string;
+  url: string;
+}
+export interface Guide {
+  title: string;
+  objective: string;
+  sections: GuideSection[];
+  resources: GuideLink[];
 }

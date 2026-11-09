@@ -16,7 +16,8 @@ import { PROFILES, shortPort } from './profiles';
 import type { Device, Endpoint, Iface, Lab, Link } from './types';
 
 const isSwitch = (d: Device) => PROFILES[d.kind].isSwitch;
-const canForward = (d: Device) => d.kind === 'cisco-router' || d.kind === 'aruba-switch';
+const canForward = (d: Device) => PROFILES[d.kind].canForward;
+const arubaSw = (d: Device) => PROFILES[d.kind].vendor === 'aruba' && PROFILES[d.kind].isSwitch;
 
 // ───────────────────────── link / port status ─────────────────────────
 
@@ -78,7 +79,7 @@ export const allowsVlan = (i: Iface, v: number): boolean => i.trunkAllowed === n
 /** Does this switch port carry frames of VLAN v (as part of the switch's VLAN v)? */
 export function portCarries(dev: Device, i: Iface, v: number): boolean {
   if (!isSwitch(dev)) return false;
-  if (dev.kind === 'aruba-switch' && i.routed) return false;
+  if (arubaSw(dev) && i.routed) return false;
   if (!dev.vlans.some((x) => x.id === v)) return false;
   return i.trunk ? allowsVlan(i, v) : i.accessVlan === v;
 }
@@ -91,7 +92,7 @@ export function isL2Member(dev: Device, iface: Iface): boolean {
 
 /** Thai reason why a switch port does not carry VLAN v ('' when it does). */
 function whyNotCarry(dev: Device, i: Iface, v: number): string {
-  if (dev.kind === 'aruba-switch' && i.routed)
+  if (arubaSw(dev) && i.routed)
     return `พอร์ต ${i.name} ของ ${dev.name} ยังเป็น routed port (AOS-CX ต้องสั่ง no routing ก่อนใช้เป็น L2 port)`;
   if (!dev.vlans.some((x) => x.id === v)) return `VLAN ${v} ยังไม่ได้สร้างบน ${dev.name}`;
   if (i.trunk && !allowsVlan(i, v)) return `trunk ${i.name} ของ ${dev.name} ไม่อนุญาต VLAN ${v} (allowed vlan)`;
@@ -128,10 +129,10 @@ function sviLineUp(lab: Lab, sw: Device, vlan: number): boolean {
 export function l3Interfaces(lab: Lab, dev: Device): L3If[] {
   const out: L3If[] = [];
   const p = PROFILES[dev.kind];
-  if (p.isHost || p.isRouter || dev.kind === 'aruba-switch') {
+  if (p.isHost || p.isRouter || arubaSw(dev)) {
     for (const i of dev.ifaces) {
       if (!i.ip || !i.mask) continue;
-      if (dev.kind === 'aruba-switch' && !i.routed) continue;
+      if (arubaSw(dev) && !i.routed) continue;
       out.push({
         deviceId: dev.id,
         name: i.name,
@@ -217,7 +218,7 @@ export function l2Domain(lab: Lab, src: L3If): Reached[] {
     }
     const pi = getIface(pd, peer.port);
     if (!pi) return;
-    if (pd.kind === 'aruba-switch' && pi.routed) return;
+    if (arubaSw(pd) && pi.routed) return;
     let v: number;
     if (pi.trunk) {
       v = tag === null ? pi.nativeVlan : tag;
@@ -326,7 +327,7 @@ function walkSteps(cur: Device, src: L3If, target: L3If, steps: Step[]): string 
 
     if (isSwitch(s.to)) {
       const Q = ii!;
-      if (s.to.kind === 'aruba-switch' && Q.routed)
+      if (arubaSw(s.to) && Q.routed)
         return `${lead()} พอร์ต ${s.in} ของ ${s.to.name} ยังเป็น routed port (AOS-CX ต้องสั่ง no routing ก่อนใช้เป็น L2 port)`;
       let v: number;
       if (Q.trunk) {

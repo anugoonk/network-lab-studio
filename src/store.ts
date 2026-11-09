@@ -1,24 +1,36 @@
 import { create } from 'zustand';
 import { executeLine, promptFor } from './core/cli/engine';
+import { emptyGuide } from './core/guide';
 import { isHostAddress, isValidMask, parseIp } from './core/ip';
 import {
+  NAME_RE,
   addDevice,
   addLink,
   contentSignature,
+  emptyLab,
   getDevice,
   removeDevice,
   removeLink,
   updateDevice,
-  NAME_RE,
 } from './core/lab';
 import { ping, type PingResult } from './core/network';
-import { loadStored, saveStored, serializeExport, parseImport } from './core/persist';
+import {
+  loadWorkspace,
+  newLabId,
+  parseImport,
+  saveWorkspace,
+  serializeExport,
+  type LabEntry,
+} from './core/persist';
 import { buildInterVlanLab, buildSampleLab } from './core/sample';
-import { emptyLab } from './core/lab';
-import type { DeviceKind, Endpoint, Lab } from './core/types';
+import type { DeviceKind, Endpoint, Guide, Lab } from './core/types';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
 export type RightTab = 'details' | 'console' | 'inspector';
+export type View = 'lab' | 'library' | 'manager';
+/** what is expanded on the left of the canvas: the labelled menu, the Lab Guide, or just the icon rail */
+export type LeftPanel = 'menu' | 'guide' | null;
+export type SampleKind = 'office' | 'intervlan';
 
 export interface TermLine {
   kind: 'cmd' | 'out' | 'hint' | 'sys';
@@ -28,30 +40,53 @@ export interface TermLine {
 
 export type Pending =
   | { kind: 'new' }
-  | { kind: 'sample'; which: 'office' | 'intervlan' }
+  | { kind: 'sample'; which: SampleKind }
   | { kind: 'import'; lab: Lab; fileName: string };
+
+export interface EntrySummary {
+  id: string;
+  name: string;
+  updatedAt: number;
+  devices: number;
+  links: number;
+  active: boolean;
+  hasGuide: boolean;
+}
 
 interface State {
   lab: Lab;
   savedSig: string | null;
+  /** id of the lab currently open; `others` holds every other saved lab */
+  activeId: string;
+  activeUpdatedAt: number;
+  others: LabEntry[];
+
   selection: Selection;
-  view: 'lab' | 'library';
+  view: View;
   rightTab: RightTab;
-  leftOpen: boolean;
+  leftPanel: LeftPanel;
   rightOpen: boolean;
+  hideLabels: boolean;
   transcripts: Record<string, TermLine[]>;
   pendingInput: { deviceId: string; text: string; n: number } | null;
   lastPing: PingResult | null;
   notice: { kind: 'ok' | 'error'; text: string } | null;
   connectDialog: { a?: string; b?: string } | null;
   confirm: Pending | null;
+  confirmDelete: string[] | null;
   fitNonce: number;
 
   isDirty: () => boolean;
-  setView: (v: 'lab' | 'library') => void;
+  summaries: () => EntrySummary[];
+  setView: (v: View) => void;
   setRightTab: (t: RightTab) => void;
+  setLeftPanel: (p: LeftPanel) => void;
+  toggleGuide: () => void;
+  toggleMenu: () => void;
+  /** header toggle: collapse whatever is expanded on the left, or expand the menu */
   toggleLeft: () => void;
   toggleRight: () => void;
+  toggleHideLabels: () => void;
   select: (s: Selection) => void;
   openConsole: (deviceId: string) => void;
   say: (kind: 'ok' | 'error', text: string) => void;
@@ -62,10 +97,14 @@ interface State {
   addDeviceAt: (kind: DeviceKind, x: number, y: number) => string;
   moveDevice: (id: string, x: number, y: number) => void;
   renameDevice: (id: string, name: string) => string | null;
+  renameLab: (name: string) => string | null;
   deleteSelection: () => void;
   connect: (a: Endpoint, b: Endpoint) => string | null;
   removeLinkById: (id: string) => void;
   setPcConfig: (id: string, ip: string, mask: string, gw: string) => string | null;
+
+  setGuide: (g: Guide | undefined) => void;
+  updateGuide: (fn: (g: Guide) => Guide) => void;
 
   exec: (deviceId: string, line: string) => void;
   clearTranscript: (deviceId: string) => void;
@@ -77,28 +116,91 @@ interface State {
   cancelReplace: () => void;
   exportLab: () => void;
   importText: (text: string, fileName: string) => string | null;
+
+  // File Manager
+  openLab: (id: string) => void;
+  createLab: (kind: 'blank' | SampleKind) => string;
+  duplicateLab: (id: string) => void;
+  requestDeleteLabs: (ids: string[]) => void;
+  confirmDeleteLabs: () => void;
+  cancelDelete: () => void;
+  exportEntry: (id: string) => void;
+  importAsEntry: (text: string, fileName: string) => string | null;
 }
 
-function initial(): { lab: Lab; savedSig: string | null } {
-  const stored = loadStored();
-  if (stored) return stored;
+function makeLab(kind: 'blank' | SampleKind): Lab {
+  return kind === 'office' ? buildSampleLab() : kind === 'intervlan' ? buildInterVlanLab() : emptyLab('New Lab');
+}
+
+function initial(): { lab: Lab; savedSig: string | null; activeId: string; updatedAt: number; others: LabEntry[] } {
+  const ws = loadWorkspace();
+  if (ws) {
+    const active = ws.entries.find((e) => e.id === ws.activeId)!;
+    return {
+      lab: active.lab,
+      savedSig: active.savedSig,
+      activeId: active.id,
+      updatedAt: active.updatedAt,
+      others: ws.entries.filter((e) => e.id !== active.id),
+    };
+  }
   const lab = buildSampleLab();
-  return { lab, savedSig: contentSignature(lab) };
+  return { lab, savedSig: contentSignature(lab), activeId: newLabId(), updatedAt: Date.now(), others: [] };
 }
 
 const init = initial();
 
+function download(filename: string, text: string) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const fileName = (lab: Lab) => `${lab.name.replace(/[^\w-]+/g, '_') || 'lab'}.nls.json`;
+
 export const useStore = create<State>((set, get) => {
   const setLab = (lab: Lab) => set({ lab });
+
+  /** the open lab as a saved entry (used when switching labs and when persisting) */
+  const activeEntry = (): LabEntry => {
+    const s = get();
+    return { id: s.activeId, name: s.lab.name, updatedAt: s.activeUpdatedAt, savedSig: s.savedSig, lab: s.lab };
+  };
+
+  const loadEntry = (e: LabEntry, others: LabEntry[]) => {
+    set({
+      lab: e.lab,
+      savedSig: e.savedSig,
+      activeId: e.id,
+      activeUpdatedAt: e.updatedAt,
+      others,
+      selection: null,
+      transcripts: {},
+      lastPing: null,
+      confirm: null,
+      view: 'lab',
+      rightTab: 'details',
+      leftPanel: e.lab.guide ? 'guide' : 'menu',
+      fitNonce: get().fitNonce + 1,
+    });
+  };
 
   const replaceLab = (lab: Lab) => {
     set({
       lab,
       savedSig: contentSignature(lab),
+      activeUpdatedAt: Date.now(),
       selection: null,
       transcripts: {},
       lastPing: null,
       confirm: null,
+      leftPanel: lab.guide ? 'guide' : get().leftPanel === 'guide' ? 'menu' : get().leftPanel,
       fitNonce: get().fitNonce + 1,
     });
   };
@@ -106,24 +208,49 @@ export const useStore = create<State>((set, get) => {
   return {
     lab: init.lab,
     savedSig: init.savedSig,
+    activeId: init.activeId,
+    activeUpdatedAt: init.updatedAt,
+    others: init.others,
+
     selection: null,
     view: 'lab',
     rightTab: 'details',
-    leftOpen: true,
+    leftPanel: init.lab.guide ? 'guide' : 'menu',
     rightOpen: true,
+    hideLabels: false,
     transcripts: {},
     pendingInput: null,
     lastPing: null,
     notice: null,
     connectDialog: null,
     confirm: null,
+    confirmDelete: null,
     fitNonce: 0,
 
     isDirty: () => contentSignature(get().lab) !== get().savedSig,
+    summaries: () => {
+      const s = get();
+      const all = [activeEntry(), ...s.others];
+      return all
+        .map((e) => ({
+          id: e.id,
+          name: e.lab.name,
+          updatedAt: e.updatedAt,
+          devices: e.lab.devices.length,
+          links: e.lab.links.length,
+          active: e.id === s.activeId,
+          hasGuide: !!e.lab.guide,
+        }))
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+    },
     setView: (view) => set({ view }),
     setRightTab: (rightTab) => set({ rightTab, rightOpen: true }),
-    toggleLeft: () => set({ leftOpen: !get().leftOpen }),
+    setLeftPanel: (leftPanel) => set({ leftPanel }),
+    toggleGuide: () => set({ leftPanel: get().leftPanel === 'guide' ? null : 'guide', view: 'lab' }),
+    toggleMenu: () => set({ leftPanel: get().leftPanel === 'menu' ? null : 'menu' }),
+    toggleLeft: () => set({ leftPanel: get().leftPanel === null ? 'menu' : null }),
     toggleRight: () => set({ rightOpen: !get().rightOpen }),
+    toggleHideLabels: () => set({ hideLabels: !get().hideLabels }),
     select: (selection) => set({ selection }),
     openConsole: (deviceId) => set({ selection: { type: 'device', id: deviceId }, rightTab: 'console', rightOpen: true, view: 'lab' }),
     say: (kind, text) => set({ notice: { kind, text } }),
@@ -141,6 +268,13 @@ export const useStore = create<State>((set, get) => {
       const n = name.trim();
       if (!NAME_RE.test(n)) return 'ชื่อใช้ได้เฉพาะ A-Z, 0-9, - และ _ (ขึ้นต้นด้วยตัวอักษรหรือตัวเลข ยาวไม่เกิน 24 ตัว)';
       setLab(updateDevice(get().lab, id, (d) => ({ ...d, name: n })));
+      return null;
+    },
+    renameLab: (name) => {
+      const n = name.trim();
+      if (!n) return 'ชื่อ Lab ต้องไม่ว่าง';
+      if (n.length > 120) return 'ชื่อ Lab ยาวเกิน 120 ตัวอักษร';
+      setLab({ ...get().lab, name: n });
       return null;
     },
     deleteSelection: () => {
@@ -185,6 +319,18 @@ export const useStore = create<State>((set, get) => {
       return null;
     },
 
+    setGuide: (g) => {
+      const lab = get().lab;
+      const next: Lab = { ...lab };
+      if (g) next.guide = g;
+      else delete next.guide;
+      setLab(next);
+    },
+    updateGuide: (fn) => {
+      const lab = get().lab;
+      setLab({ ...lab, guide: fn(lab.guide ?? emptyGuide()) });
+    },
+
     exec: (deviceId, line) => {
       const lab = get().lab;
       const res = executeLine(lab, deviceId, line);
@@ -225,45 +371,137 @@ export const useStore = create<State>((set, get) => {
       const p = get().confirm;
       if (!p) return;
       if (p.kind === 'new') replaceLab(emptyLab('New Lab'));
-      else if (p.kind === 'sample') replaceLab(p.which === 'intervlan' ? buildInterVlanLab() : buildSampleLab());
+      else if (p.kind === 'sample') replaceLab(makeLab(p.which));
       else replaceLab(p.lab);
-      set({ notice: { kind: 'ok', text: p.kind === 'import' ? `นำเข้า ${p.fileName} สำเร็จ` : p.kind === 'new' ? 'สร้าง Lab ใหม่แล้ว' : p.which === 'intervlan' ? 'เปิด Sample Lab: Inter-VLAN แล้ว' : 'เปิด Sample Lab แล้ว' } });
+      set({
+        view: 'lab',
+        notice: {
+          kind: 'ok',
+          text:
+            p.kind === 'import'
+              ? `นำเข้า ${p.fileName} สำเร็จ`
+              : p.kind === 'new'
+                ? 'สร้าง Lab ใหม่แล้ว'
+                : p.which === 'intervlan'
+                  ? 'เปิด Sample Lab: Inter-VLAN แล้ว'
+                  : 'เปิด Sample Lab แล้ว',
+        },
+      });
     },
     cancelReplace: () => set({ confirm: null }),
     exportLab: () => {
       const lab = get().lab;
-      const blob = new Blob([serializeExport(lab)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${lab.name.replace(/[^\w-]+/g, '_') || 'lab'}.nls.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      download(fileName(lab), serializeExport(lab));
       set({ savedSig: contentSignature(lab), notice: { kind: 'ok', text: 'Export Lab เป็น JSON แล้ว' } });
     },
-    importText: (text, fileName) => {
+    importText: (text, name) => {
       const r = parseImport(text);
       if (!r.ok) {
         set({ notice: { kind: 'error', text: `นำเข้าไม่สำเร็จ (Lab ปัจจุบันไม่ถูกเปลี่ยน): ${r.error}` } });
         return r.error;
       }
-      get().requestReplace({ kind: 'import', lab: r.lab, fileName });
+      get().requestReplace({ kind: 'import', lab: r.lab, fileName: name });
+      return null;
+    },
+
+    // ───────── File Manager ─────────
+    openLab: (id) => {
+      const s = get();
+      if (id === s.activeId) return set({ view: 'lab' });
+      const target = s.others.find((e) => e.id === id);
+      if (!target) return;
+      loadEntry(target, [...s.others.filter((e) => e.id !== id), activeEntry()]);
+    },
+    createLab: (kind) => {
+      const s = get();
+      const lab = makeLab(kind);
+      const entry: LabEntry = { id: newLabId(), name: lab.name, updatedAt: Date.now(), savedSig: contentSignature(lab), lab };
+      loadEntry(entry, [...s.others, activeEntry()]);
+      set({
+        notice: { kind: 'ok', text: kind === 'blank' ? 'สร้าง Lab ใหม่ในรายการแล้ว' : `เพิ่ม Sample Lab "${lab.name}" ในรายการแล้ว` },
+      });
+      return entry.id;
+    },
+    duplicateLab: (id) => {
+      const s = get();
+      const src = id === s.activeId ? activeEntry() : s.others.find((e) => e.id === id);
+      if (!src) return;
+      const lab: Lab = { ...structuredClone(src.lab), name: `${src.lab.name} (สำเนา)`.slice(0, 120) };
+      const copy: LabEntry = { id: newLabId(), name: lab.name, updatedAt: Date.now(), savedSig: contentSignature(lab), lab };
+      set({ others: [...s.others, copy], notice: { kind: 'ok', text: `ทำสำเนา "${src.lab.name}" แล้ว` } });
+    },
+    requestDeleteLabs: (ids) => set({ confirmDelete: ids.length ? ids : null }),
+    cancelDelete: () => set({ confirmDelete: null }),
+    confirmDeleteLabs: () => {
+      const s = get();
+      const ids = new Set(s.confirmDelete ?? []);
+      if (!ids.size) return;
+      const remaining = s.others.filter((e) => !ids.has(e.id));
+      if (!ids.has(s.activeId)) {
+        set({ others: remaining, confirmDelete: null, notice: { kind: 'ok', text: `ลบ ${ids.size} Lab แล้ว` } });
+        return;
+      }
+      // the open lab was deleted: open the most recent remaining one, or start a blank lab
+      const next = [...remaining].sort((a, b) => b.updatedAt - a.updatedAt)[0];
+      if (next) loadEntry(next, remaining.filter((e) => e.id !== next.id));
+      else {
+        const lab = emptyLab('New Lab');
+        loadEntry({ id: newLabId(), name: lab.name, updatedAt: Date.now(), savedSig: contentSignature(lab), lab }, []);
+      }
+      set({ view: 'manager', confirmDelete: null, notice: { kind: 'ok', text: `ลบ ${ids.size} Lab แล้ว` } });
+    },
+    exportEntry: (id) => {
+      const s = get();
+      if (id === s.activeId) return get().exportLab();
+      const e = s.others.find((x) => x.id === id);
+      if (!e) return;
+      download(fileName(e.lab), serializeExport(e.lab));
+      set({
+        others: s.others.map((x) => (x.id === id ? { ...x, savedSig: contentSignature(x.lab) } : x)),
+        notice: { kind: 'ok', text: `Export "${e.lab.name}" แล้ว` },
+      });
+    },
+    importAsEntry: (text, name) => {
+      const r = parseImport(text);
+      if (!r.ok) {
+        set({ notice: { kind: 'error', text: `นำเข้าไม่สำเร็จ (ไม่มีอะไรถูกเปลี่ยน): ${r.error}` } });
+        return r.error;
+      }
+      const e: LabEntry = { id: newLabId(), name: r.lab.name, updatedAt: Date.now(), savedSig: contentSignature(r.lab), lab: r.lab };
+      set({ others: [...get().others, e], notice: { kind: 'ok', text: `นำเข้า ${name} เป็น "${r.lab.name}" ในรายการแล้ว` } });
       return null;
     },
   };
 });
 
-// ───────── autosave ─────────
+// ───────── autosave (whole workspace, debounced) ─────────
 let timer: ReturnType<typeof setTimeout> | undefined;
+let lastSig = contentSignature(init.lab);
+
+function persistNow() {
+  const s = useStore.getState();
+  const sig = contentSignature(s.lab);
+  if (sig !== lastSig) {
+    lastSig = sig;
+    useStore.setState({ activeUpdatedAt: Date.now() });
+  }
+  const st = useStore.getState();
+  saveWorkspace({
+    activeId: st.activeId,
+    entries: [{ id: st.activeId, name: st.lab.name, updatedAt: st.activeUpdatedAt, savedSig: st.savedSig, lab: st.lab }, ...st.others],
+  });
+}
+
 useStore.subscribe((s, prev) => {
-  if (s.lab === prev.lab && s.savedSig === prev.savedSig) return;
+  if (s.lab === prev.lab && s.savedSig === prev.savedSig && s.others === prev.others && s.activeId === prev.activeId) return;
   clearTimeout(timer);
-  timer = setTimeout(() => {
-    const st = useStore.getState();
-    saveStored({ lab: st.lab, savedSig: st.savedSig });
-  }, 250);
+  timer = setTimeout(persistNow, 250);
 });
+
+/** flush right away (used when the page is closed) */
+export function flushWorkspace() {
+  clearTimeout(timer);
+  persistNow();
+}
 
 export { promptFor };

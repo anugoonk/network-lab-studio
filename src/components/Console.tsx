@@ -46,9 +46,16 @@ export function Console() {
     );
   }
 
+  if (!PROFILES[device.kind].hasCli) {
+    return (
+      <section className="card" data-testid="console-unavailable">
+        <p className="muted">{device.name} ({PROFILES[device.kind].label}) ไม่มี Console — โปรแกรมนี้จำลองเฉพาะการวางและต่อสายของอุปกรณ์ชนิดนี้</p>
+      </section>
+    );
+  }
   const history = device.cli.history;
   const prompt = promptFor(device);
-  const isPc = device.kind === 'pc';
+  const isPc = PROFILES[device.kind].isHost;
 
   const submit = () => {
     exec(device.id, value);

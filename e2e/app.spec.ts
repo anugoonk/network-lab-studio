@@ -122,6 +122,7 @@ test('invalid IP config is rejected with a message', async ({ page }) => {
 });
 
 test('add a new PC from the palette, cable it to a free port, set VLAN + IP, ping', async ({ page }) => {
+  await page.getByTestId('menu-add').click(); // Lab Guide is open by default → expand the menu
   await page.getByTestId('palette-pc').click();
   await expect(page.getByTestId('node-PC-11')).toBeVisible();
   await page.getByTestId('btn-connect').click();
@@ -158,6 +159,7 @@ test('add a new PC from the palette, cable it to a free port, set VLAN + IP, pin
 });
 
 test('drag a device from the palette onto the canvas; rename; delete', async ({ page }) => {
+  await page.getByTestId('menu-add').click();
   const before = await page.locator('.react-flow__node').count();
   await page.getByTestId('palette-aruba-switch').dragTo(page.getByTestId('canvas'), { targetPosition: { x: 300, y: 500 } });
   await expect(page.locator('.react-flow__node')).toHaveCount(before + 1);
@@ -170,6 +172,7 @@ test('drag a device from the palette onto the canvas; rename; delete', async ({ 
 });
 
 test('drag a cable between two devices, choose ports, and select a link', async ({ page }) => {
+  await page.getByTestId('menu-add').click();
   await page.getByTestId('palette-pc').click();
   const newNode = page.getByTestId('node-PC-11');
   await expect(newNode).toBeVisible();
@@ -290,12 +293,12 @@ test('Command Library: filter, wrong-mode message, insert into console', async (
   await expect(page.getByTestId('lib-card-cisco.switchport.vlan')).toHaveCount(0);
 
   // target = SW1 (Cisco) → wrong system
-  await page.getByTestId('lib-target').selectOption({ label: 'SW1 — Cisco IOS Layer 2 Switch' });
+  await page.getByTestId('lib-target').selectOption({ label: 'SW1 — Cisco IOS Access Switch' });
   await page.getByTestId('lib-insert-aruba.vlan.access').click();
   await expect(page.getByTestId('lib-problem-aruba.vlan.access')).toContainText('Aruba AOS-CX');
 
   // target = SW2 but still in privileged mode → tells which mode to enter
-  await page.getByTestId('lib-target').selectOption({ label: 'SW2 — HPE Aruba AOS-CX Layer 2 Switch' });
+  await page.getByTestId('lib-target').selectOption({ label: 'SW2 — HPE Aruba AOS-CX Access Switch' });
   await page.getByTestId('lib-insert-aruba.vlan.access').click();
   await expect(page.getByTestId('lib-problem-aruba.vlan.access')).toContainText('interface');
 
@@ -304,7 +307,7 @@ test('Command Library: filter, wrong-mode message, insert into console', async (
   await type(page, 'configure terminal');
   await type(page, 'interface 1/1/5');
   await page.getByTestId('tab-library').click();
-  await page.getByTestId('lib-target').selectOption({ label: 'SW2 — HPE Aruba AOS-CX Layer 2 Switch' });
+  await page.getByTestId('lib-target').selectOption({ label: 'SW2 — HPE Aruba AOS-CX Access Switch' });
   await page.getByTestId('lib-insert-aruba.vlan.access').click();
   // goes back to the console with the example typed but NOT executed
   await expect(page.getByTestId('console-input')).toHaveValue('vlan access 10');

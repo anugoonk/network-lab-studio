@@ -4,9 +4,10 @@ import { Canvas } from './components/Canvas';
 import { CommandLibrary } from './components/CommandLibrary';
 import { Console } from './components/Console';
 import { DetailsPanel } from './components/DetailsPanel';
-import { ConfirmDialog, ConnectDialog } from './components/Dialogs';
+import { ConfirmDeleteDialog, ConfirmDialog, ConnectDialog } from './components/Dialogs';
+import { FileManager } from './components/FileManager';
 import { Inspector } from './components/Inspector';
-import { Palette } from './components/Palette';
+import { LeftDock } from './components/LeftDock';
 import { useStore, type RightTab } from './store';
 
 function Header() {
@@ -16,7 +17,7 @@ function Header() {
   const exportLab = useStore((s) => s.exportLab);
   const importText = useStore((s) => s.importText);
   const openConnect = useStore((s) => s.openConnect);
-  const leftOpen = useStore((s) => s.leftOpen);
+  const leftOpen = useStore((s) => s.leftPanel !== null);
   const rightOpen = useStore((s) => s.rightOpen);
   const toggleLeft = useStore((s) => s.toggleLeft);
   const toggleRight = useStore((s) => s.toggleRight);
@@ -42,6 +43,9 @@ function Header() {
         <button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')} data-testid="tab-library">
           Command Library
         </button>
+        <button className={view === 'manager' ? 'active' : ''} onClick={() => setView('manager')} data-testid="tab-manager">
+          Lab Manager
+        </button>
       </nav>
       <div className="actions">
         <button onClick={() => request({ kind: 'new' })} data-testid="btn-new">New Lab</button>
@@ -55,7 +59,7 @@ function Header() {
             <span className="sep" />
             <button onClick={() => openConnect()} data-testid="btn-connect">เชื่อมสาย</button>
             <button onClick={() => flow.fitView({ padding: 0.15, duration: 250 })} data-testid="btn-fit">Fit view</button>
-            <button onClick={toggleLeft} aria-pressed={leftOpen} data-testid="toggle-left">{leftOpen ? '◀ ย่อ Palette' : '▶ ขยาย Palette'}</button>
+            <button onClick={toggleLeft} aria-pressed={leftOpen} data-testid="toggle-left">{leftOpen ? '◀ ย่อแผงซ้าย' : '▶ แผงซ้าย'}</button>
             <button onClick={toggleRight} aria-pressed={rightOpen} data-testid="toggle-right">{rightOpen ? 'ซ่อนแผงขวา ▶' : '◀ แผงขวา'}</button>
           </>
         )}
@@ -72,7 +76,7 @@ function Crumb() {
     <nav className="crumb" aria-label="ตำแหน่งปัจจุบัน">
       <span>ตำแหน่งปัจจุบัน</span>
       <span className="slash">/</span>
-      <span className="link">{view === 'lab' ? 'Lab' : 'Command Library'}</span>
+      <span className="link">{view === 'lab' ? 'Lab' : view === 'library' ? 'Command Library' : 'Lab Manager'}</span>
       <span className="slash">/</span>
       <span className="here" title={name} data-testid="lab-name">
         {name}
@@ -130,7 +134,6 @@ function Notice() {
 
 export default function App() {
   const view = useStore((s) => s.view);
-  const leftOpen = useStore((s) => s.leftOpen);
   const rightOpen = useStore((s) => s.rightOpen);
   return (
     <ReactFlowProvider>
@@ -138,14 +141,17 @@ export default function App() {
         <Header />
         <Crumb />
         <Notice />
+        {/* the lab view stays mounted (hidden) so the canvas keeps its viewport when switching tabs */}
         <div className="main" style={{ display: view === 'lab' ? 'flex' : 'none' }}>
-          <Palette collapsed={!leftOpen} />
+          <LeftDock />
           <Canvas />
           {rightOpen && <RightPanel />}
         </div>
         {view === 'library' && <CommandLibrary />}
+        {view === 'manager' && <FileManager />}
         <ConnectDialog />
         <ConfirmDialog />
+        <ConfirmDeleteDialog />
       </div>
     </ReactFlowProvider>
   );

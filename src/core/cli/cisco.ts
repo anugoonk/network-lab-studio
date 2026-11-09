@@ -11,9 +11,9 @@ import { l3Interfaces, ping, portLine } from '../network';
 import type { Device, DeviceKind, Lab } from '../types';
 import { cmd, curTarget, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 
-const RT: DeviceKind[] = ['cisco-router'];
+const RT: DeviceKind[] = ['cisco-router', 'isp-router'];
 const SW: DeviceKind[] = ['cisco-switch'];
-const BOTH: DeviceKind[] = ['cisco-router', 'cisco-switch'];
+const BOTH: DeviceKind[] = ['cisco-router', 'isp-router', 'cisco-switch'];
 
 const physIface = (c: Ctx) => (c.dev.cli.ctxIface ? getIface(c.dev, c.dev.cli.ctxIface) : undefined);
 
@@ -57,7 +57,7 @@ function ifaceBlock(d: Device, name: string): string[] {
 
 export function ciscoRunningConfig(dev: Device): string[] {
   const p = PROFILES[dev.kind];
-  const body: string[] = ['!', `version ${dev.kind === 'cisco-router' ? '15.4' : '15.0'}`, '!', `hostname ${dev.name}`, '!'];
+  const body: string[] = ['!', `version ${p.isRouter ? '15.4' : '15.0'}`, '!', `hostname ${dev.name}`, '!'];
   if (p.isSwitch) {
     for (const v of dev.vlans.filter((x) => x.id !== 1)) body.push(`vlan ${v.id}`, ` name ${v.name}`, '!');
   }
@@ -207,7 +207,7 @@ function showIpRoute(lab: Lab, dev: Device): string[] {
 }
 
 function showVersion(dev: Device): string[] {
-  const rt = dev.kind === 'cisco-router';
+  const rt = PROFILES[dev.kind].isRouter;
   return [
     rt
       ? 'Cisco IOS Software, C2900 Software (C2900-UNIVERSALK9-M), Version 15.4(3)M, RELEASE SOFTWARE (fc1)'

@@ -1,19 +1,13 @@
 import { useReactFlow } from '@xyflow/react';
-import { PROFILES } from '../core/profiles';
+import { PALETTE_GROUPS, PROFILES } from '../core/profiles';
 import type { DeviceKind } from '../core/types';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
 
-const ITEMS: { kind: DeviceKind; note: string }[] = [
-  { kind: 'cisco-router', note: 'Router · Gi0/0–0/2' },
-  { kind: 'cisco-switch', note: 'Switch L2 · Fa0/1–24, Gi0/1–2' },
-  { kind: 'aruba-switch', note: 'Switch L2 · 1/1/1–1/1/28' },
-  { kind: 'pc', note: 'เครื่องผู้ใช้ · Ethernet0' },
-];
-
 export const DRAG_MIME = 'application/x-nls-device';
 
-export function Palette({ collapsed = false }: { collapsed?: boolean }) {
+/** Draggable device list (lives inside the "Add an object" section of the left menu). */
+export function Palette() {
   const addDeviceAt = useStore((s) => s.addDeviceAt);
   const flow = useReactFlow();
 
@@ -29,10 +23,12 @@ export function Palette({ collapsed = false }: { collapsed?: boolean }) {
   };
 
   return (
-    <aside className={`palette${collapsed ? ' collapsed' : ''}`} aria-label="Device Palette">
-      <h2>อุปกรณ์</h2>
-      <p className="muted small">ลากลงพื้นที่วาด หรือกดเพื่อเพิ่มกลางจอ</p>
-      {ITEMS.map(({ kind, note }) => (
+    <div className="palette-list" aria-label="Device Palette">
+      <p className="menu-hint">ลากลงพื้นที่วาด หรือกดเพื่อเพิ่มกลางจอ</p>
+      {PALETTE_GROUPS.map((g) => (
+        <div key={g.title} className="palette-group" data-testid={`palette-group-${g.title}`}>
+          <div className="menu-hint palette-group-title"><b>{g.title}</b></div>
+          {g.items.map(({ kind, note }) => (
         <div
           key={kind}
           className="palette-item"
@@ -49,14 +45,16 @@ export function Palette({ collapsed = false }: { collapsed?: boolean }) {
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && addAtCenter(kind)}
         >
           <span className="tile">
-            <DeviceIcon kind={kind} size={38} />
+            <DeviceIcon kind={kind} size={34} />
           </span>
           <div>
             <div className="palette-name">{PROFILES[kind].label}</div>
-            <div className="muted small">{note}</div>
+            <div className="menu-hint">{note}</div>
           </div>
         </div>
+          ))}
+        </div>
       ))}
-    </aside>
+    </div>
   );
 }
