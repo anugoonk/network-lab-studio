@@ -1,22 +1,59 @@
 /**
  * Cisco IOS CLI profile.
- * Reference: Catalyst 2960 on IOS 15.0(2)SE (switch) and ISR 2911 on IOS 15.4(3)M (router).
+ * Reference: Catalyst 2960 on IOS 15.0(2)SE (L2 switch) and ISR 2911 on IOS 15.4(3)M (router).
  * Output formats are close to, but simplified from, the real devices.
+ * Note: the L2 switch has no `ip routing` — an SVI is a management address only (use `ip default-gateway`).
  */
-import { isHostAddress, maskToPrefix, networkOf, ipToString, subnetsOverlap } from '../ip';
-import { NAME_RE, getIface } from '../lab';
+import { ipToString, isHostAddress, maskToPrefix, networkOf, parseIp, subnetsOverlap } from '../ip';
+import { NAME_RE, formatVlanList, getIface, parseVlanList, subName } from '../lab';
 import { PROFILES, shortPort } from '../profiles';
-import { ping, portLine } from '../network';
-import type { Device, DeviceKind, Iface, Lab } from '../types';
-import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
+import { l3Interfaces, ping, portLine } from '../network';
+import type { Device, DeviceKind, Lab } from '../types';
+import { cmd, curTarget, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 
 const RT: DeviceKind[] = ['cisco-router'];
 const SW: DeviceKind[] = ['cisco-switch'];
 const BOTH: DeviceKind[] = ['cisco-router', 'cisco-switch'];
 
-const curIface = (c: Ctx): Iface | undefined => (c.dev.cli.ctxIface ? getIface(c.dev, c.dev.cli.ctxIface) : undefined);
+const physIface = (c: Ctx) => (c.dev.cli.ctxIface ? getIface(c.dev, c.dev.cli.ctxIface) : undefined);
+
+function targetName(c: Ctx): string {
+  const d = c.dev;
+  if (d.cli.mode === 'config-svi') return `Vlan${d.cli.ctxVlan}`;
+  return d.cli.ctxIface ?? '?';
+}
 
 // ───────── renderers ─────────
+
+function ifaceBlock(d: Device, name: string): string[] {
+  const i = getIface(d, name)!;
+  const sw = PROFILES[d.kind].isSwitch;
+  const out = [`interface ${i.name}`];
+  if (i.description) out.push(` description ${i.description}`);
+  if (sw) {
+    if (i.trunk) {
+      if (i.nativeVlan !== 1) out.push(` switchport trunk native vlan ${i.nativeVlan}`);
+      if (i.trunkAllowed !== null) out.push(` switchport trunk allowed vlan ${formatVlanList(i.trunkAllowed)}`);
+      out.push(' switchport mode trunk');
+    } else {
+      if (i.accessVlan !== 1) out.push(` switchport access vlan ${i.accessVlan}`);
+      if (i.modeAccess) out.push(' switchport mode access');
+    }
+  } else if (i.ip && i.mask) out.push(` ip address ${i.ip} ${i.mask}`);
+  else out.push(' no ip address');
+  if (!i.adminUp) out.push(' shutdown');
+  out.push('!');
+  for (const s of d.subifs.filter((x) => x.parent === name)) {
+    out.push(`interface ${subName(s)}`);
+    if (s.description) out.push(` description ${s.description}`);
+    if (s.vlan !== null) out.push(` encapsulation dot1Q ${s.vlan}`);
+    if (s.ip && s.mask) out.push(` ip address ${s.ip} ${s.mask}`);
+    else out.push(' no ip address');
+    if (!s.adminUp) out.push(' shutdown');
+    out.push('!');
+  }
+  return out;
+}
 
 export function ciscoRunningConfig(dev: Device): string[] {
   const p = PROFILES[dev.kind];
@@ -24,17 +61,18 @@ export function ciscoRunningConfig(dev: Device): string[] {
   if (p.isSwitch) {
     for (const v of dev.vlans.filter((x) => x.id !== 1)) body.push(`vlan ${v.id}`, ` name ${v.name}`, '!');
   }
-  for (const i of dev.ifaces) {
-    body.push(`interface ${i.name}`);
-    if (i.description) body.push(` description ${i.description}`);
-    if (p.isSwitch) {
-      if (i.accessVlan !== 1) body.push(` switchport access vlan ${i.accessVlan}`);
-      if (i.modeAccess) body.push(' switchport mode access');
-    } else if (i.ip && i.mask) body.push(` ip address ${i.ip} ${i.mask}`);
+  for (const i of dev.ifaces) body.push(...ifaceBlock(dev, i.name));
+  for (const v of dev.svis) {
+    body.push(`interface Vlan${v.vlan}`);
+    if (v.description) body.push(` description ${v.description}`);
+    if (v.ip && v.mask) body.push(` ip address ${v.ip} ${v.mask}`);
     else body.push(' no ip address');
-    if (!i.adminUp) body.push(' shutdown');
+    if (!v.adminUp) body.push(' shutdown');
     body.push('!');
   }
+  if (dev.kind === 'cisco-switch' && dev.gateway) body.push(`ip default-gateway ${dev.gateway}`);
+  for (const r of dev.routes) body.push(`ip route ${r.net} ${r.mask} ${r.nextHop}`);
+  if (dev.routes.length) body.push('!');
   body.push('end');
   const size = body.join('\n').length;
   return ['Building configuration...', '', `Current configuration : ${size} bytes`, ...body];
@@ -61,7 +99,8 @@ function showVlanBrief(dev: Device): string[] {
     '---- -------------------------------- --------- -------------------------------',
   ];
   for (const v of [...dev.vlans].sort((a, b) => a.id - b.id)) {
-    const ports = dev.ifaces.filter((i) => i.accessVlan === v.id).map((i) => shortPort(i.name));
+    // like the real command, trunk ports are not listed
+    const ports = dev.ifaces.filter((i) => !i.trunk && i.accessVlan === v.id).map((i) => shortPort(i.name));
     const wrapped = wrapPorts(ports, 48);
     out.push(`${String(v.id).padEnd(5)}${v.name.padEnd(33)}${'active'.padEnd(10)}${wrapped[0] ?? ''}`.trimEnd());
     out.push(...wrapped.slice(1));
@@ -81,7 +120,7 @@ function showInterfacesStatus(lab: Lab, dev: Device): string[] {
         shortPort(i.name).padEnd(10),
         i.description.slice(0, 18).padEnd(19),
         status.padEnd(13),
-        String(i.accessVlan).padEnd(11),
+        (i.trunk ? 'trunk' : String(i.accessVlan)).padEnd(11),
         (up ? 'a-full' : 'auto').padEnd(8),
         (up ? (giga ? 'a-1000' : 'a-100') : 'auto').padEnd(6),
         giga ? '10/100/1000BaseTX' : '10/100BaseTX',
@@ -93,33 +132,76 @@ function showInterfacesStatus(lab: Lab, dev: Device): string[] {
   return out;
 }
 
+function showInterfacesTrunk(lab: Lab, dev: Device): string[] {
+  const trunks = dev.ifaces.filter((i) => i.trunk);
+  if (!trunks.length) return [];
+  const existing = new Set(dev.vlans.map((v) => v.id));
+  const allowedOf = (i: (typeof trunks)[number]) => (i.trunkAllowed === null ? [...existing] : i.trunkAllowed);
+  const sec = (title: string, row: (i: (typeof trunks)[number]) => string): string[] => [
+    '',
+    `Port        ${title}`,
+    ...trunks.map((i) => `${shortPort(i.name).padEnd(12)}${row(i)}`),
+  ];
+  return [
+    'Port        Mode             Encapsulation  Status        Native vlan',
+    ...trunks.map((i) => {
+      const up = portLine(lab, dev, i) === 'up';
+      return `${shortPort(i.name).padEnd(12)}${'on'.padEnd(17)}${'802.1q'.padEnd(15)}${(up ? 'trunking' : 'not-trunking').padEnd(14)}${i.nativeVlan}`;
+    }),
+    ...sec('Vlans allowed on trunk', (i) => formatVlanList(i.trunkAllowed)),
+    ...sec('Vlans allowed and active in management domain', (i) => formatVlanList(allowedOf(i).filter((v) => existing.has(v)).sort((a, b) => a - b)) || 'none'),
+    ...sec('Vlans in spanning tree forwarding state and not pruned', (i) =>
+      portLine(lab, dev, i) === 'up' ? formatVlanList(allowedOf(i).filter((v) => existing.has(v)).sort((a, b) => a - b)) : 'none',
+    ),
+  ];
+}
+
 function showIpIntBrief(lab: Lab, dev: Device): string[] {
   const out = ['Interface                  IP-Address      OK? Method Status                Protocol'];
+  const row = (name: string, ip: string | null, status: string, proto: string) =>
+    `${name.padEnd(27)}${(ip ?? 'unassigned').padEnd(16)}YES ${(ip ? 'manual' : 'unset').padEnd(7)}${status.padEnd(22)}${proto}`;
+  const l3 = l3Interfaces(lab, dev);
+  if (dev.kind === 'cisco-switch') {
+    for (const v of dev.svis) {
+      const ifc = l3.find((x) => x.kind === 'svi' && x.vlan === v.vlan);
+      out.push(row(`Vlan${v.vlan}`, v.ip, v.adminUp ? (ifc?.up ? 'up' : 'down') : 'administratively down', ifc?.up ? 'up' : 'down'));
+    }
+  }
   for (const i of dev.ifaces) {
     const line = portLine(lab, dev, i);
     const status = line === 'admin-down' ? 'administratively down' : line === 'up' ? 'up' : 'down';
-    const proto = line === 'up' ? 'up' : 'down';
-    out.push(
-      `${i.name.padEnd(27)}${(i.ip ?? 'unassigned').padEnd(16)}YES ${(i.ip ? 'manual' : 'unset').padEnd(7)}${status.padEnd(22)}${proto}`,
-    );
+    out.push(row(i.name, i.ip, status, line === 'up' ? 'up' : 'down'));
+    for (const s of dev.subifs.filter((x) => x.parent === i.name)) {
+      const ifc = l3.find((x) => x.name === subName(s));
+      const adm = i.adminUp && s.adminUp;
+      out.push(row(subName(s), s.ip, adm ? (ifc?.up ? 'up' : 'down') : 'administratively down', ifc?.up ? 'up' : 'down'));
+    }
   }
   return out;
 }
 
 function showIpRoute(lab: Lab, dev: Device): string[] {
+  const up = l3Interfaces(lab, dev).filter((i) => i.up);
+  const installed = dev.routes
+    .map((r) => ({ r, via: up.find((i) => parseIp(r.nextHop) !== null && networkOf(i.ip, i.mask) === networkOf(r.nextHop, i.mask)) }))
+    .filter((x) => x.via);
+  const def = installed.find((x) => x.r.net === '0.0.0.0' && x.r.mask === '0.0.0.0');
   const out = [
     'Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP',
     '       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area',
+    '       * - candidate default',
     '',
-    'Gateway of last resort is not set',
+    def ? `Gateway of last resort is ${def.r.nextHop} to network 0.0.0.0` : 'Gateway of last resort is not set',
     '',
   ];
-  const up = dev.ifaces.filter((i) => i.ip && i.mask && portLine(lab, dev, i) === 'up');
-  if (!up.length) return [...out.slice(0, 4)];
   for (const i of up) {
-    const net = ipToString(networkOf(i.ip!, i.mask!)!);
-    out.push(`C        ${net}/${maskToPrefix(i.mask!)} is directly connected, ${i.name}`);
+    const net = ipToString(networkOf(i.ip, i.mask)!);
+    out.push(`C        ${net}/${maskToPrefix(i.mask)} is directly connected, ${i.name}`);
     out.push(`L        ${i.ip}/32 is directly connected, ${i.name}`);
+  }
+  for (const { r } of installed) {
+    const isDef = r.net === '0.0.0.0' && r.mask === '0.0.0.0';
+    out.push(`${isDef ? 'S*' : 'S '}       ${r.net}/${maskToPrefix(r.mask)} [1/0] via ${r.nextHop}`);
   }
   return out;
 }
@@ -140,14 +222,9 @@ function showVersion(dev: Device): string[] {
 function ciscoPing(c: Ctx): RunResult {
   const ip = c.args[0];
   const r = ping(c.lab, c.dev.id, ip);
-  const ok = r.ok;
   const lines = ['Type escape sequence to abort.', `Sending 5, 100-byte ICMP Echos to ${ip}, timeout is 2 seconds:`];
-  lines.push(ok ? '!!!!!' : '.....');
-  lines.push(
-    ok
-      ? 'Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms'
-      : 'Success rate is 0 percent (0/5)',
-  );
+  lines.push(r.ok ? '!!!!!' : '.....');
+  lines.push(r.ok ? 'Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms' : 'Success rate is 0 percent (0/5)');
   return { lines };
 }
 
@@ -158,6 +235,8 @@ const setMode = (mode: RunResult['mode']) => (): RunResult => ({ mode });
 function exitCmd(c: Ctx): RunResult {
   switch (c.dev.cli.mode) {
     case 'config-if':
+    case 'config-subif':
+    case 'config-svi':
     case 'config-vlan':
       return { mode: 'config', ctxIface: null, ctxVlan: null };
     case 'config':
@@ -174,8 +253,16 @@ function saveConfig(c: Ctx): RunResult {
   return { lines: ['Building configuration...', '[OK]'] };
 }
 
-function interfaceCmd(c: Ctx): RunResult {
-  return { mode: 'config-if', ctxIface: c.args[0], ctxVlan: null };
+function interfaceRouter(c: Ctx): RunResult {
+  const name = c.args[0];
+  const dot = name.indexOf('.');
+  if (dot < 0) return { mode: 'config-if', ctxIface: name, ctxVlan: null };
+  const parent = name.slice(0, dot);
+  const id = Number(name.slice(dot + 1));
+  if (!c.dev.subifs.some((s) => s.parent === parent && s.id === id)) {
+    c.dev.subifs.push({ parent, id, vlan: null, adminUp: true, description: '', ip: null, mask: null });
+  }
+  return { mode: 'config-subif', ctxIface: name, ctxVlan: null };
 }
 
 function vlanCmd(c: Ctx): RunResult {
@@ -186,6 +273,13 @@ function vlanCmd(c: Ctx): RunResult {
   }
   return { mode: 'config-vlan', ctxVlan: id, ctxIface: null };
 }
+
+function needIface(c: Ctx) {
+  const i = physIface(c);
+  return i ?? null;
+}
+
+const IF_MODES = ['config-if', 'config-subif', 'config-svi'] as const;
 
 const specs: CommandSpec[] = [
   // ── modes ──
@@ -208,19 +302,19 @@ const specs: CommandSpec[] = [
     run: () => ({ mode: 'config', lines: ['Enter configuration commands, one per line.  End with CNTL/Z.'] }),
   }),
   cmd({
-    id: 'cisco.exit', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv', 'config', 'config-if', 'config-vlan'], syntax: 'exit',
+    id: 'cisco.exit', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan'], syntax: 'exit',
     helpEn: 'Exit from the EXEC / current configuration level', descTh: 'ถอยออกหนึ่งระดับ (config-if → config → priv → user)', topic: 'Mode',
     example: 'exit', verify: '(ดู prompt)', verifyTh: 'prompt ต้องย้อนกลับหนึ่งระดับ',
     run: exitCmd,
   }),
   cmd({
-    id: 'cisco.end', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-vlan'], syntax: 'end',
+    id: 'cisco.end', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-subif', 'config-svi', 'config-vlan'], syntax: 'end',
     helpEn: 'Exit from configure mode', descTh: 'กลับ Privileged EXEC ทันทีจากทุกระดับของ config', topic: 'Mode',
     example: 'end', verify: 'show running-config', verifyTh: 'prompt ต้องลงท้ายด้วย #',
     run: () => ({ mode: 'priv', ctxIface: null, ctxVlan: null }),
   }),
   cmd({
-    id: 'cisco.do', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-vlan'], syntax: 'do <command>',
+    id: 'cisco.do', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-subif', 'config-svi', 'config-vlan'], syntax: 'do <command>',
     helpEn: 'To run exec commands in config mode', descTh: 'รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode', topic: 'Troubleshooting',
     example: 'do show running-config', verify: '(ผลลัพธ์แสดงทันที)', verifyTh: 'ต้องเห็นผล show โดย prompt ไม่เปลี่ยน',
     special: 'do',
@@ -229,7 +323,7 @@ const specs: CommandSpec[] = [
   // ── show ──
   cmd({
     id: 'cisco.show.run', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'show running-config',
-    helpEn: 'Current operating configuration', descTh: 'ดู configuration ปัจจุบัน (hostname, VLAN, interface, IP, shutdown)', topic: 'Config',
+    helpEn: 'Current operating configuration', descTh: 'ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown)', topic: 'Config',
     example: 'show running-config', verify: 'show running-config', verifyTh: 'หาบรรทัด interface ที่เพิ่งแก้',
     run: (c) => ({ lines: ciscoRunningConfig(c.dev) }),
   }),
@@ -246,32 +340,38 @@ const specs: CommandSpec[] = [
     run: (c) => ({ lines: showVersion(c.dev) }),
   }),
   cmd({
-    id: 'cisco.show.ipbrief', vendor: 'cisco', deviceTypes: RT, modes: ['user', 'priv'], syntax: 'show ip interface brief',
-    helpEn: 'Brief summary of IP status and configuration', descTh: 'สรุป IP และสถานะ (Status/Protocol) ของทุก interface บน router', topic: 'Interface',
+    id: 'cisco.show.ipbrief', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv'], syntax: 'show ip interface brief',
+    helpEn: 'Brief summary of IP status and configuration', descTh: 'สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย', topic: 'Interface',
     example: 'show ip interface brief', verify: 'show ip interface brief', verifyTh: 'ดู Status=up และ Protocol=up',
     run: (c) => ({ lines: showIpIntBrief(c.lab, c.dev) }),
   }),
   cmd({
     id: 'cisco.show.iproute', vendor: 'cisco', deviceTypes: RT, modes: ['user', 'priv'], syntax: 'show ip route',
-    helpEn: 'IP routing table', descTh: 'ดูตาราง routing (รุ่นแรกมีเฉพาะ Connected/Local)', topic: 'IP',
-    example: 'show ip route', verify: 'show ip route', verifyTh: 'ต้องเห็น C (connected) ของ subnet ที่ interface up/up',
+    helpEn: 'IP routing table', descTh: 'ดูตาราง routing: C/L (connected), S (static), S* (default route)', topic: 'IP',
+    example: 'show ip route', verify: 'show ip route', verifyTh: 'ต้องเห็น C ของ subnet ที่ up/up และ S ของ static route ที่ next hop ถึงได้',
     run: (c) => ({ lines: showIpRoute(c.lab, c.dev) }),
   }),
   cmd({
     id: 'cisco.show.intstatus', vendor: 'cisco', deviceTypes: SW, modes: ['user', 'priv'], syntax: 'show interfaces status',
-    helpEn: 'Interface status', descTh: 'ดูสถานะพอร์ตของ switch (connected / notconnect / disabled) และ VLAN', topic: 'Interface',
+    helpEn: 'Interface status', descTh: 'ดูสถานะพอร์ตของ switch (connected / notconnect / disabled) และ VLAN (trunk แสดงเป็น trunk)', topic: 'Interface',
     example: 'show interfaces status', verify: 'show interfaces status', verifyTh: 'Status=disabled แปลว่าถูก shutdown',
     run: (c) => ({ lines: showInterfacesStatus(c.lab, c.dev) }),
   }),
   cmd({
+    id: 'cisco.show.trunk', vendor: 'cisco', deviceTypes: SW, modes: ['user', 'priv'], syntax: 'show interfaces trunk',
+    helpEn: 'Interface trunk information', descTh: 'ดูพอร์ตที่เป็น trunk, native VLAN และ VLAN ที่อนุญาต/ใช้งานอยู่', topic: 'VLAN',
+    example: 'show interfaces trunk', verify: 'show interfaces trunk', verifyTh: 'ต้องเห็นพอร์ต trunk พร้อม allowed vlan และ native vlan',
+    run: (c) => ({ lines: showInterfacesTrunk(c.lab, c.dev) }),
+  }),
+  cmd({
     id: 'cisco.show.vlanbrief', vendor: 'cisco', deviceTypes: SW, modes: ['user', 'priv'], syntax: 'show vlan brief',
-    helpEn: 'VLAN membership summary', descTh: 'ดู VLAN ทั้งหมดและพอร์ตที่อยู่ในแต่ละ VLAN', topic: 'VLAN',
+    helpEn: 'VLAN membership summary', descTh: 'ดู VLAN ทั้งหมดและพอร์ต access ที่อยู่ในแต่ละ VLAN (trunk ไม่แสดงในตารางนี้)', topic: 'VLAN',
     example: 'show vlan brief', verify: 'show vlan brief', verifyTh: 'พอร์ตที่ตั้ง access VLAN ต้องอยู่ในแถวของ VLAN นั้น',
     run: (c) => ({ lines: showVlanBrief(c.dev) }),
   }),
   cmd({
-    id: 'cisco.ping', vendor: 'cisco', deviceTypes: RT, modes: ['user', 'priv'], syntax: 'ping <ip-address>',
-    helpEn: 'Send echo messages', descTh: 'ทดสอบ ping จาก router ไปยัง IPv4 ปลายทาง', topic: 'Troubleshooting',
+    id: 'cisco.ping', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv'], syntax: 'ping <ip-address>',
+    helpEn: 'Send echo messages', descTh: 'ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง', topic: 'Troubleshooting',
     example: 'ping 192.168.1.101', verify: 'ping 192.168.1.101', verifyTh: '!!!!! = สำเร็จ, ..... = ไม่สำเร็จ',
     run: ciscoPing,
   }),
@@ -302,19 +402,53 @@ const specs: CommandSpec[] = [
     },
   }),
   cmd({
-    id: 'cisco.interface.rt', vendor: 'cisco', deviceTypes: RT, modes: ['config', 'config-if', 'config-vlan'], syntax: 'interface <interface>',
-    helpEn: 'Select an interface to configure', descTh: 'เข้า Interface Configuration mode ของพอร์ต router', topic: 'Interface',
-    example: 'interface GigabitEthernet0/1', verify: 'show ip interface brief', verifyTh: 'prompt ต้องเป็น (config-if)#',
-    run: interfaceCmd,
+    id: 'cisco.interface.rt', vendor: 'cisco', deviceTypes: RT, modes: ['config', 'config-if', 'config-subif'], syntax: 'interface <interface>',
+    helpEn: 'Select an interface to configure', descTh: 'เข้า Interface Configuration ของพอร์ต router หรือ sub-interface (เช่น gi0/0.10 — สร้างให้อัตโนมัติ)', topic: 'Interface',
+    example: 'interface GigabitEthernet0/1', verify: 'show ip interface brief', verifyTh: 'prompt เป็น (config-if)# หรือ (config-subif)# สำหรับ sub-interface',
+    run: interfaceRouter,
   }),
   cmd({
-    id: 'cisco.interface.sw', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-vlan'], syntax: 'interface <interface>',
+    id: 'cisco.nointerface.sub', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'no interface <interface>',
+    helpEn: 'Delete a sub-interface', descTh: 'ลบ sub-interface (ลบพอร์ตจริงไม่ได้)', topic: 'Interface',
+    example: 'no interface GigabitEthernet0/0.10', verify: 'show ip interface brief', verifyTh: 'sub-interface ต้องหายไปจากตาราง',
+    run: (c) => {
+      const name = c.args[0];
+      if (!name.includes('.')) return { error: ['% Interface cannot be deleted (ลบได้เฉพาะ sub-interface)'] };
+      c.dev.subifs = c.dev.subifs.filter((s) => subName(s) !== name);
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.interface.sw', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface <interface>',
     helpEn: 'Select an interface to configure', descTh: 'เข้า Interface Configuration mode ของพอร์ต switch (ย่อได้ เช่น fa0/1, gi0/2)', topic: 'Interface',
     example: 'interface FastEthernet0/1', verify: 'show interfaces status', verifyTh: 'prompt ต้องเป็น (config-if)#',
-    run: interfaceCmd,
+    run: (c) => ({ mode: 'config-if', ctxIface: c.args[0], ctxVlan: null }),
   }),
   cmd({
-    id: 'cisco.vlan', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-vlan'], syntax: 'vlan <vlan-id>',
+    id: 'cisco.interface.vlan', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface vlan <vlan-id>',
+    helpEn: 'Switch Virtual Interface', descTh: 'สร้าง/เข้า SVI (Vlan interface) เพื่อตั้ง IP จัดการของ switch (L2 switch ไม่ route ระหว่าง VLAN)', topic: 'IP',
+    example: 'interface vlan 10', verify: 'show ip interface brief', verifyTh: 'ต้องเห็น Vlan10 ในตาราง',
+    run: (c) => {
+      const id = Number(c.args[0]);
+      if (!c.dev.svis.some((v) => v.vlan === id)) {
+        c.dev.svis.push({ vlan: id, adminUp: true, description: '', ip: null, mask: null });
+        c.dev.svis.sort((a, b) => a.vlan - b.vlan);
+      }
+      return { mode: 'config-svi', ctxVlan: id, ctxIface: null };
+    },
+  }),
+  cmd({
+    id: 'cisco.nointerface.vlan', vendor: 'cisco', deviceTypes: SW, modes: ['config'], syntax: 'no interface vlan <vlan-id>',
+    helpEn: 'Delete a Switch Virtual Interface', descTh: 'ลบ SVI', topic: 'IP',
+    example: 'no interface vlan 10', verify: 'show ip interface brief', verifyTh: 'Vlan10 ต้องหายไป',
+    run: (c) => {
+      const id = Number(c.args[0]);
+      c.dev.svis = c.dev.svis.filter((v) => v.vlan !== id);
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.vlan', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'vlan <vlan-id>',
     helpEn: 'VLAN commands', descTh: 'สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan', topic: 'VLAN',
     example: 'vlan 30', verify: 'show vlan brief', verifyTh: 'VLAN ใหม่ต้องปรากฏในตาราง',
     run: vlanCmd,
@@ -342,39 +476,84 @@ const specs: CommandSpec[] = [
       return {};
     },
   }),
-
-  // ── interface config ──
   cmd({
-    id: 'cisco.shutdown', vendor: 'cisco', deviceTypes: BOTH, modes: ['config-if'], syntax: 'shutdown',
-    helpEn: 'Shutdown the selected interface', descTh: 'ปิดพอร์ต (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down', topic: 'Interface',
-    example: { 'cisco-router': 'shutdown', 'cisco-switch': 'shutdown' }, verify: 'show ip interface brief / show interfaces status',
-    verifyTh: 'Status ต้องเป็น administratively down (router) หรือ disabled (switch)',
+    id: 'cisco.ip.defgw', vendor: 'cisco', deviceTypes: SW, modes: ['config'], syntax: 'ip default-gateway <ip-address>',
+    helpEn: 'Specify default gateway (if not routing IP)', descTh: 'ตั้ง default gateway ของ L2 switch (ใช้กับ SVI สำหรับจัดการข้าม subnet)', topic: 'IP',
+    example: 'ip default-gateway 192.168.10.1', verify: 'show running-config', verifyTh: 'ต้องเห็นบรรทัด ip default-gateway',
     run: (c) => {
-      const i = curIface(c);
-      if (!i) return { error: ['% No interface selected'] };
-      i.adminUp = false;
-      return { lines: [`%LINK-5-CHANGED: Interface ${i.name}, changed state to administratively down`] };
+      if (parseIp(c.args[0]) === null) return { error: ['% Invalid IP address'] };
+      c.dev.gateway = c.args[0];
+      return {};
     },
   }),
   cmd({
-    id: 'cisco.noshutdown', vendor: 'cisco', deviceTypes: BOTH, modes: ['config-if'], syntax: 'no shutdown',
+    id: 'cisco.noip.defgw', vendor: 'cisco', deviceTypes: SW, modes: ['config'], syntax: 'no ip default-gateway',
+    helpEn: 'Specify default gateway (if not routing IP)', descTh: 'ลบ default gateway ของ switch', topic: 'IP',
+    example: 'no ip default-gateway', verify: 'show running-config', verifyTh: 'บรรทัด ip default-gateway ต้องหายไป',
+    run: (c) => {
+      c.dev.gateway = null;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.ip.route', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'ip route <network> <route-mask> <next-hop>',
+    helpEn: 'Establish static routes', descTh: 'เพิ่ม static route ไปยังเครือข่ายปลายทางผ่าน next hop (default route = 0.0.0.0 0.0.0.0 <next-hop>)', topic: 'IP',
+    example: 'ip route 172.16.0.0 255.255.255.0 10.0.0.2', verify: 'show ip route', verifyTh: 'ต้องเห็นบรรทัด S (หรือ S* สำหรับ default) เมื่อ next hop ถึงได้',
+    run: (c) => {
+      const [net, mask, nh] = c.args;
+      if (networkOf(net, mask) !== parseIp(net)) return { error: ['%Inconsistent address and mask'] };
+      if (parseIp(nh) === null) return { error: ['% Invalid next hop'] };
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask));
+      c.dev.routes.push({ net, mask, nextHop: nh });
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.noip.route', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'no ip route <network> <route-mask> <next-hop>',
+    helpEn: 'Establish static routes', descTh: 'ลบ static route', topic: 'IP',
+    prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', nextHop: '10.0.0.2' }),
+    example: 'no ip route 172.16.0.0 255.255.255.0 10.0.0.2', verify: 'show ip route', verifyTh: 'บรรทัด S ของ route นั้นต้องหายไป',
+    run: (c) => {
+      const [net, mask, nh] = c.args;
+      const before = c.dev.routes.length;
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask && r.nextHop === nh));
+      if (c.dev.routes.length === before) return { error: ['%No matching route to delete'] };
+      return {};
+    },
+  }),
+
+  // ── interface-level (physical port, sub-interface, SVI) ──
+  cmd({
+    id: 'cisco.shutdown', vendor: 'cisco', deviceTypes: BOTH, modes: [...IF_MODES], syntax: 'shutdown',
+    helpEn: 'Shutdown the selected interface', descTh: 'ปิดพอร์ต/sub-interface/SVI (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down', topic: 'Interface',
+    example: 'shutdown', verify: 'show ip interface brief / show interfaces status',
+    verifyTh: 'Status ต้องเป็น administratively down (router) หรือ disabled (switch)',
+    run: (c) => {
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      t.adminUp = false;
+      return { lines: [`%LINK-5-CHANGED: Interface ${targetName(c)}, changed state to administratively down`] };
+    },
+  }),
+  cmd({
+    id: 'cisco.noshutdown', vendor: 'cisco', deviceTypes: BOTH, modes: [...IF_MODES], syntax: 'no shutdown',
     helpEn: 'Shutdown the selected interface', descTh: 'เปิดพอร์ต (router ทุกพอร์ตเริ่มต้นเป็น shutdown ต้องสั่งก่อนใช้งาน)', topic: 'Interface',
     example: 'no shutdown', verify: 'show ip interface brief / show interfaces status', verifyTh: 'Status ต้องเป็น up เมื่อปลายสายอีกฝั่งเปิดอยู่ด้วย',
     run: (c) => {
-      const i = curIface(c);
-      if (!i) return { error: ['% No interface selected'] };
-      i.adminUp = true;
-      return { lines: [`%LINK-3-UPDOWN: Interface ${i.name}, changed state to up`] };
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      t.adminUp = true;
+      return { lines: [`%LINK-3-UPDOWN: Interface ${targetName(c)}, changed state to up`] };
     },
   }),
   cmd({
-    id: 'cisco.description', vendor: 'cisco', deviceTypes: BOTH, modes: ['config-if'], syntax: 'description <text>',
+    id: 'cisco.description', vendor: 'cisco', deviceTypes: BOTH, modes: [...IF_MODES], syntax: 'description <text>',
     helpEn: 'Interface specific description', descTh: 'ตั้งคำอธิบายพอร์ต (เช่น UPLINK-TO-SW2)', topic: 'Interface',
     example: 'description UPLINK', verify: 'show running-config', verifyTh: 'ต้องเห็นบรรทัด description ใต้ interface',
     run: (c) => {
-      const i = curIface(c);
-      if (!i) return { error: ['% No interface selected'] };
-      i.description = c.args[0].slice(0, 200);
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      t.description = c.args[0].slice(0, 200);
       return {};
     },
   }),
@@ -383,9 +562,22 @@ const specs: CommandSpec[] = [
     helpEn: 'Set trunking mode to ACCESS unconditionally', descTh: 'กำหนดให้พอร์ตเป็น access port (untagged VLAN เดียว)', topic: 'VLAN',
     example: 'switchport mode access', verify: 'show running-config', verifyTh: 'ต้องเห็น switchport mode access ใต้ interface',
     run: (c) => {
-      const i = curIface(c);
+      const i = needIface(c);
       if (!i) return { error: ['% No interface selected'] };
       i.modeAccess = true;
+      i.trunk = false;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.switchport.trunk', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'switchport mode trunk',
+    helpEn: 'Set trunking mode to TRUNK unconditionally', descTh: 'กำหนดให้พอร์ตเป็น 802.1Q trunk (ส่งหลาย VLAN แบบ tagged; native VLAN แบบ untagged)', topic: 'VLAN',
+    example: 'switchport mode trunk', verify: 'show interfaces trunk', verifyTh: 'พอร์ตต้องอยู่ในตาราง trunk สถานะ trunking เมื่อลิงก์ up',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      i.trunk = true;
+      i.modeAccess = false;
       return {};
     },
   }),
@@ -394,7 +586,7 @@ const specs: CommandSpec[] = [
     helpEn: 'Set VLAN when interface is in access mode', descTh: 'กำหนด access VLAN ให้พอร์ต — เฟรมของพอร์ตนี้จะอยู่ใน VLAN นี้', topic: 'VLAN',
     example: 'switchport access vlan 10', verify: 'show vlan brief', verifyTh: 'พอร์ตต้องไปอยู่ในแถว VLAN ที่ตั้ง',
     run: (c) => {
-      const i = curIface(c);
+      const i = needIface(c);
       if (!i) return { error: ['% No interface selected'] };
       const id = Number(c.args[0]);
       const lines: string[] = [];
@@ -408,33 +600,156 @@ const specs: CommandSpec[] = [
     },
   }),
   cmd({
-    id: 'cisco.ipaddress', vendor: 'cisco', deviceTypes: RT, modes: ['config-if'], syntax: 'ip address <ip-address> <subnet-mask>',
-    helpEn: 'Set the IP address of an interface', descTh: 'ตั้ง IPv4 และ subnet mask ให้ routed interface', topic: 'IP',
-    example: 'ip address 10.0.0.1 255.255.255.0', verify: 'show ip interface brief', verifyTh: 'ต้องเห็น IP ใหม่ในคอลัมน์ IP-Address',
+    id: 'cisco.trunk.allowed', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'switchport trunk allowed vlan <vlan-list>',
+    helpEn: 'VLANs allowed on the trunk', descTh: 'กำหนดรายการ VLAN ที่ trunk อนุญาต (แทนที่ทั้งรายการ) เช่น 10,20,30-40', topic: 'VLAN',
+    example: 'switchport trunk allowed vlan 10,20', verify: 'show interfaces trunk', verifyTh: 'ดูคอลัมน์ Vlans allowed on trunk',
     run: (c) => {
-      const i = curIface(c);
+      const i = needIface(c);
       if (!i) return { error: ['% No interface selected'] };
-      const [ip, mask] = c.args;
-      if (!isHostAddress(ip, mask)) return { error: ['Bad mask / invalid address (ไม่ใช่ host address ที่ใช้ได้ใน subnet นี้)'] };
-      for (const o of c.dev.ifaces) {
-        if (o !== i && o.ip && o.mask && subnetsOverlap(ip, mask, o.ip, o.mask)) {
-          return { error: [`% ${ipToString(networkOf(ip, mask)!)} overlaps with ${o.name}`] };
-        }
-      }
-      i.ip = ip;
-      i.mask = mask;
+      i.trunkAllowed = parseVlanList(c.args[0]);
       return {};
     },
   }),
   cmd({
-    id: 'cisco.noipaddress', vendor: 'cisco', deviceTypes: RT, modes: ['config-if'], syntax: 'no ip address',
-    helpEn: 'Remove the IP address of an interface', descTh: 'ลบ IP ออกจาก interface', topic: 'IP',
+    id: 'cisco.trunk.allowed.all', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'switchport trunk allowed vlan all',
+    helpEn: 'All VLANs', descTh: 'อนุญาตทุก VLAN บน trunk (ค่าเริ่มต้น)', topic: 'VLAN',
+    example: 'switchport trunk allowed vlan all', verify: 'show interfaces trunk', verifyTh: 'allowed ต้องเป็น 1-4094',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      i.trunkAllowed = null;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.trunk.allowed.add', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'switchport trunk allowed vlan add <vlan-list>',
+    helpEn: 'Add VLANs to the current list', descTh: 'เพิ่ม VLAN เข้ารายการที่อนุญาต (ไม่ลบของเดิม)', topic: 'VLAN',
+    example: 'switchport trunk allowed vlan add 30', verify: 'show interfaces trunk', verifyTh: 'VLAN ที่เพิ่มต้องอยู่ในรายการ allowed',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      if (i.trunkAllowed !== null) {
+        i.trunkAllowed = [...new Set([...i.trunkAllowed, ...parseVlanList(c.args[0])!])].sort((a, b) => a - b);
+      }
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.trunk.allowed.remove', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'switchport trunk allowed vlan remove <vlan-list>',
+    helpEn: 'Remove VLANs from the current list', descTh: 'ถอด VLAN ออกจากรายการที่อนุญาต', topic: 'VLAN',
+    example: 'switchport trunk allowed vlan remove 20', verify: 'show interfaces trunk', verifyTh: 'VLAN ที่ถอดต้องหายจากรายการ allowed',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      const drop = new Set(parseVlanList(c.args[0])!);
+      const base = i.trunkAllowed ?? Array.from({ length: 4094 }, (_, k) => k + 1);
+      i.trunkAllowed = base.filter((v) => !drop.has(v));
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.trunk.native', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'switchport trunk native vlan <vlan-id>',
+    helpEn: 'Set native VLAN when interface is in trunking mode', descTh: 'กำหนด native VLAN (เฟรม untagged ของ trunk) — ต้องตรงกันทั้งสองฝั่ง', topic: 'VLAN',
+    example: 'switchport trunk native vlan 99', verify: 'show interfaces trunk', verifyTh: 'คอลัมน์ Native vlan ต้องเปลี่ยน',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      i.nativeVlan = Number(c.args[0]);
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.no.trunk.allowed', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'no switchport trunk allowed vlan',
+    helpEn: 'Reset allowed VLANs to default', descTh: 'คืนค่า allowed vlan เป็นทุก VLAN', topic: 'VLAN',
+    example: 'no switchport trunk allowed vlan', verify: 'show interfaces trunk', verifyTh: 'allowed ต้องกลับเป็น 1-4094',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      i.trunkAllowed = null;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.no.trunk.native', vendor: 'cisco', deviceTypes: SW, modes: ['config-if'], syntax: 'no switchport trunk native vlan',
+    helpEn: 'Reset native VLAN to default (1)', descTh: 'คืนค่า native VLAN เป็น 1', topic: 'VLAN',
+    example: 'no switchport trunk native vlan', verify: 'show interfaces trunk', verifyTh: 'Native vlan ต้องกลับเป็น 1',
+    run: (c) => {
+      const i = needIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      i.nativeVlan = 1;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.encapsulation', vendor: 'cisco', deviceTypes: RT, modes: ['config-subif'], syntax: 'encapsulation dot1Q <vlan-id>',
+    helpEn: 'IEEE 802.1Q Virtual LAN', descTh: 'กำหนดให้ sub-interface รับ-ส่งเฟรม tagged VLAN นี้ (router-on-a-stick) — ต้องทำก่อนตั้ง IP', topic: 'VLAN',
+    example: 'encapsulation dot1Q 10', verify: 'show ip interface brief', verifyTh: 'sub-interface ต้อง up/up เมื่อพอร์ตแม่ up และต่อกับ trunk',
+    run: (c) => {
+      const s = c.dev.subifs.find((x) => subName(x) === c.dev.cli.ctxIface);
+      if (!s) return { error: ['% No interface selected'] };
+      s.vlan = Number(c.args[0]);
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.ipaddress', vendor: 'cisco', deviceTypes: RT, modes: ['config-if', 'config-subif'], syntax: 'ip address <ip-address> <subnet-mask>',
+    helpEn: 'Set the IP address of an interface', descTh: 'ตั้ง IPv4 และ subnet mask ให้ routed interface หรือ sub-interface', topic: 'IP',
+    example: { 'cisco-router': 'ip address 10.0.0.1 255.255.255.0' }, verify: 'show ip interface brief', verifyTh: 'ต้องเห็น IP ใหม่ในคอลัมน์ IP-Address',
+    run: (c) => {
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      const [ip, mask] = c.args;
+      if (c.dev.cli.mode === 'config-subif') {
+        const s = c.dev.subifs.find((x) => subName(x) === c.dev.cli.ctxIface);
+        if (!s || s.vlan === null) {
+          return { error: ['% Configuring IP routing on a LAN subinterface is only allowed if that', '  subinterface is already configured as an IEEE 802.1Q or ISL vLAN subinterface.'] };
+        }
+      }
+      if (!isHostAddress(ip, mask)) return { error: ['Bad mask / invalid address (ไม่ใช่ host address ที่ใช้ได้ใน subnet นี้)'] };
+      const clash = overlapWith(c, t, ip, mask, subnetsOverlap);
+      if (clash) return { error: [`% ${ipToString(networkOf(ip, mask)!)} overlaps with ${clash}`] };
+      t.ip = ip;
+      t.mask = mask;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.ipaddress.svi', vendor: 'cisco', deviceTypes: SW, modes: ['config-svi'], syntax: 'ip address <ip-address> <subnet-mask>',
+    helpEn: 'Set the IP address of an interface', descTh: 'ตั้ง IP จัดการให้ SVI (L2 switch ใช้เป็น management address ไม่ใช่ gateway ของ VLAN)', topic: 'IP',
+    example: { 'cisco-switch': 'ip address 192.168.10.2 255.255.255.0' }, verify: 'show ip interface brief', verifyTh: 'ต้องเห็น IP ที่แถว VlanN',
+    run: (c) => {
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      const [ip, mask] = c.args;
+      if (!isHostAddress(ip, mask)) return { error: ['Bad mask / invalid address (ไม่ใช่ host address ที่ใช้ได้ใน subnet นี้)'] };
+      const clash = overlapWith(c, t, ip, mask, subnetsOverlap);
+      if (clash) return { error: [`% ${ipToString(networkOf(ip, mask)!)} overlaps with ${clash}`] };
+      t.ip = ip;
+      t.mask = mask;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.noipaddress', vendor: 'cisco', deviceTypes: RT, modes: ['config-if', 'config-subif'], syntax: 'no ip address',
+    helpEn: 'Remove the IP address of an interface', descTh: 'ลบ IP ออกจาก interface หรือ sub-interface', topic: 'IP',
     example: 'no ip address', verify: 'show ip interface brief', verifyTh: 'IP-Address ต้องเป็น unassigned',
     run: (c) => {
-      const i = curIface(c);
-      if (!i) return { error: ['% No interface selected'] };
-      i.ip = null;
-      i.mask = null;
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      t.ip = null;
+      t.mask = null;
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.noipaddress.svi', vendor: 'cisco', deviceTypes: SW, modes: ['config-svi'], syntax: 'no ip address',
+    helpEn: 'Remove the IP address of an interface', descTh: 'ลบ IP ออกจาก SVI', topic: 'IP',
+    example: 'no ip address', verify: 'show ip interface brief', verifyTh: 'IP-Address ต้องเป็น unassigned',
+    run: (c) => {
+      const t = curTarget(c);
+      if (!t) return { error: ['% No interface selected'] };
+      t.ip = null;
+      t.mask = null;
       return {};
     },
   }),

@@ -20,6 +20,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
+import { getDevice, getIface } from '../core/lab';
 import { linkStatus } from '../core/network';
 import { PROFILES, shortPort } from '../core/profiles';
 import { useStore } from '../store';
@@ -74,7 +75,12 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
   const pb = { x: b.x - ux * off, y: b.y - uy * off };
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   const color = st.up ? '#1a8f4c' : '#c62828';
-  const endText = (port: string, admin: boolean) => `${shortPort(port)}${admin ? '' : ' ⏻'}`;
+  const trunkOf = (deviceId: string, port: string) => {
+    const d = getDevice(lab, deviceId);
+    return !!(d && getIface(d, port)?.trunk && !(d.kind === 'aruba-switch' && getIface(d, port)?.routed));
+  };
+  const endText = (deviceId: string, port: string, admin: boolean) =>
+    `${shortPort(port)}${trunkOf(deviceId, port) ? ' ⇄T' : ''}${admin ? '' : ' ⏻'}`;
   const labelStyle = (p: { x: number; y: number }) => ({ transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y}px)` });
   return (
     <>
@@ -91,7 +97,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
           data-testid={`port-label-${id}-a`}
           title={st.aAdmin ? 'พอร์ตเปิดใช้งาน' : 'พอร์ตถูก shutdown'}
         >
-          {endText(link.a.port, st.aAdmin)}
+          {endText(link.a.deviceId, link.a.port, st.aAdmin)}
         </div>
         <div
           className={`port-label ${st.bAdmin ? 'ok' : 'bad'}`}
@@ -99,7 +105,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
           data-testid={`port-label-${id}-b`}
           title={st.bAdmin ? 'พอร์ตเปิดใช้งาน' : 'พอร์ตถูก shutdown'}
         >
-          {endText(link.b.port, st.bAdmin)}
+          {endText(link.b.deviceId, link.b.port, st.bAdmin)}
         </div>
         <div className={`link-badge ${st.up ? 'ok' : 'bad'}`} style={labelStyle(mid)} data-testid={`link-status-${id}`} title={st.up ? 'ลิงก์ใช้งานได้ (มีสาย + พอร์ตสองฝั่งเปิด)' : `มีสายเชื่อมอยู่ แต่ลิงก์ down — ${st.reasonTh}`}>
           {st.up ? '✓ UP' : '✕ DOWN'}

@@ -22,6 +22,9 @@ export function createDevice(kind: DeviceKind, id: string, name: string, x: numb
     y,
     ifaces: p.portNames.map((n) => makeIface(kind, n)),
     vlans: p.isSwitch ? [{ id: 1, name: kind === 'aruba-switch' ? 'DEFAULT_VLAN_1' : 'default' }] : [],
+    subifs: [],
+    svis: [],
+    routes: [],
     gateway: null,
     cli: { mode: initialMode(kind), ctxIface: null, ctxVlan: null, history: [] },
     startupConfig: null,
@@ -112,6 +115,9 @@ export function configSignature(lab: Lab): string {
       name: d.name,
       ifaces: d.ifaces,
       vlans: d.vlans,
+      subifs: d.subifs,
+      svis: d.svis,
+      routes: d.routes,
       gateway: d.gateway,
       startup: d.startupConfig,
     })),
@@ -126,4 +132,35 @@ export function contentSignature(lab: Lab): string {
     d: lab.devices.map((d) => ({ ...d, cli: undefined })),
     l: lab.links,
   });
+}
+
+export const subName = (s: { parent: string; id: number }): string => `${s.parent}.${s.id}`;
+
+/** "10,20,30-32" → [10,20,30,31,32]; null when malformed or out of range. */
+export function parseVlanList(text: string): number[] | null {
+  const out = new Set<number>();
+  for (const part of text.split(',')) {
+    const m = /^(\d{1,4})(?:-(\d{1,4}))?$/.exec(part);
+    if (!m) return null;
+    const a = Number(m[1]);
+    const b = m[2] === undefined ? a : Number(m[2]);
+    if (a < 1 || b > 4094 || a > b) return null;
+    for (let v = a; v <= b; v++) out.add(v);
+  }
+  return [...out].sort((x, y) => x - y);
+}
+
+/** [10,20,30,31,32] → "10,20,30-32" */
+export function formatVlanList(list: number[] | null): string {
+  if (list === null) return '1-4094';
+  if (!list.length) return 'none';
+  const parts: string[] = [];
+  let i = 0;
+  while (i < list.length) {
+    let j = i;
+    while (j + 1 < list.length && list[j + 1] === list[j] + 1) j++;
+    parts.push(j > i ? `${list[i]}-${list[j]}` : `${list[i]}`);
+    i = j + 1;
+  }
+  return parts.join(',');
 }

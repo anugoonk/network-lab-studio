@@ -313,3 +313,106 @@ test('Command Library: filter, wrong-mode message, insert into console', async (
   await expect(page.getByTestId('console-prompt')).toHaveText('SW2(config-if)#');
   await page.screenshot({ path: 'test-results/library-insert.png' });
 });
+
+test.describe('Inter-VLAN sample (trunk, router-on-a-stick, static route, SVI)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.getByTestId('btn-sample2').click();
+    // the Small Office lab was untouched, so no confirmation is needed
+    await expect(page.getByTestId('lab-name')).toContainText('Inter-VLAN');
+    await expect(page.getByTestId('node-PC-A')).toBeVisible();
+  });
+
+  test('works out of the box and trunk links are labelled', async ({ page }) => {
+    await expect(page.getByTestId('port-label-l2-a')).toContainText('Gi0/2 ⇄T');
+    await expect(page.getByTestId('port-label-l2-b')).toContainText('1/1/24 ⇄T');
+    await openConsole(page, 'PC-A');
+    for (const [ip, ok] of [['192.168.10.12', true], ['192.168.20.11', true], ['172.16.0.10', true]] as const) {
+      await type(page, `ping ${ip}`);
+      await expect(log(page).locator('.out', { hasText: `Reply from ${ip}` }).last()).toBeVisible();
+      expect(ok).toBe(true);
+    }
+  });
+
+  test('trunk allowed-vlan change on SW1 breaks VLAN 20 only; Inspector explains; fix with add', async ({ page }) => {
+    await openConsole(page, 'SW1');
+    for (const l of ['enable', 'configure terminal', 'interface gi0/2', 'switchport trunk allowed vlan remove 20']) await type(page, l);
+    await type(page, 'do show interfaces trunk');
+    await expect(log(page)).toContainText('trunking');
+    await openConsole(page, 'PC-B');
+    await type(page, 'ping 192.168.20.12');
+    await expect(log(page).locator('.out', { hasText: 'Destination host unreachable' }).last()).toBeVisible();
+    await page.getByTestId('rtab-inspector').click();
+    await page.getByTestId('inspector-src').selectOption({ label: 'PC-B' });
+    await page.getByTestId('inspector-dst').fill('192.168.20.12');
+    await page.getByTestId('inspector-run').click();
+    await expect(page.getByTestId('inspector-explain')).toContainText('VLAN 20');
+    await expect(page.getByTestId('inspector-explain')).toContainText('allowed');
+    // VLAN 10 still fine
+    await openConsole(page, 'PC-A');
+    await type(page, 'ping 192.168.10.12');
+    await expect(log(page).locator('.out', { hasText: 'Reply from 192.168.10.12' }).last()).toBeVisible();
+    // fix
+    await openConsole(page, 'SW1');
+    await type(page, 'switchport trunk allowed vlan add 20');
+    await openConsole(page, 'PC-B');
+    await type(page, 'ping 192.168.20.12');
+    await expect(log(page).locator('.out', { hasText: 'Reply from 192.168.20.12' }).last()).toBeVisible();
+    await page.screenshot({ path: 'test-results/intervlan.png' });
+  });
+
+  test('static/default route removal shows a return-path failure, restore fixes it', async ({ page }) => {
+    await openConsole(page, 'R2');
+    for (const l of ['enable', 'configure terminal', 'no ip route 0.0.0.0 0.0.0.0 10.0.0.1', 'end', 'show ip route']) await type(page, l);
+    await expect(log(page)).toContainText('Gateway of last resort is not set');
+    await openConsole(page, 'PC-A');
+    await type(page, 'ping 172.16.0.10');
+    await expect(log(page).locator('.out', { hasText: 'Request timed out' }).last()).toBeVisible();
+    await page.getByTestId('rtab-inspector').click();
+    await page.getByTestId('inspector-src').selectOption({ label: 'PC-A' });
+    await page.getByTestId('inspector-dst').fill('172.16.0.10');
+    await page.getByTestId('inspector-run').click();
+    await expect(page.getByTestId('inspector-explain')).toContainText('ขากลับ');
+    await openConsole(page, 'R2');
+    for (const l of ['configure terminal', 'ip route 0.0.0.0 0.0.0.0 10.0.0.1']) await type(page, l);
+    await openConsole(page, 'PC-A');
+    await type(page, 'ping 172.16.0.10');
+    await expect(log(page).locator('.out', { hasText: 'Reply from 172.16.0.10' }).last()).toBeVisible();
+  });
+
+  test('Aruba SVI makes SW2 the gateway; Cisco L2 switch rejects static routes', async ({ page }) => {
+    await openConsole(page, 'SW2');
+    for (const l of ['configure terminal', 'interface vlan 10', 'ip address 192.168.10.254/24', 'exit', 'interface vlan 20', 'ip address 192.168.20.254/24', 'end', 'show ip interface brief']) await type(page, l);
+    await expect(log(page)).toContainText('vlan10');
+    await expect(log(page)).toContainText('192.168.20.254/24');
+    await page.getByTestId('node-PC-C').click();
+    await page.getByTestId('rtab-details').click();
+    await page.getByTestId('pc-gw').fill('192.168.10.254');
+    await page.getByTestId('pc-apply').click();
+    await page.getByTestId('node-PC-D').click();
+    await page.getByTestId('pc-gw').fill('192.168.20.254');
+    await page.getByTestId('pc-apply').click();
+    await openConsole(page, 'PC-C');
+    await type(page, 'ping 192.168.20.12');
+    await expect(log(page).locator('.out', { hasText: 'Reply from 192.168.20.12' }).last()).toBeVisible();
+    // details panel shows SVIs
+    await page.getByTestId('node-SW2').click();
+    await page.getByTestId('rtab-details').click();
+    await expect(page.getByTestId('l3-section')).toContainText('Vlan10 (SVI)');
+    // Cisco L2 switch has no static routes
+    await openConsole(page, 'SW1');
+    for (const l of ['enable', 'configure terminal', 'ip route 1.1.1.0 255.255.255.0 10.0.0.1']) await type(page, l);
+    await expect(log(page)).toContainText("% Invalid input detected at '^' marker.");
+  });
+
+  test('router-on-a-stick: sub-interface prompt, encapsulation required before IP', async ({ page }) => {
+    await openConsole(page, 'R1');
+    for (const l of ['enable', 'configure terminal', 'interface gi0/0.30']) await type(page, l);
+    await expect(page.getByTestId('console-prompt')).toHaveText('R1(config-subif)#');
+    await type(page, 'ip address 192.168.30.1 255.255.255.0');
+    await expect(log(page)).toContainText('802.1Q');
+    await type(page, 'encapsulation dot1Q 30');
+    await type(page, 'ip address 192.168.30.1 255.255.255.0');
+    await type(page, 'do show ip interface brief');
+    await expect(log(page)).toContainText('GigabitEthernet0/0.30');
+  });
+});

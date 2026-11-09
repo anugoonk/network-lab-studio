@@ -82,6 +82,9 @@ export function makeIface(kind: DeviceKind, name: string): Iface {
     accessVlan: 1,
     modeAccess: false,
     routed: kind === 'aruba-switch', // AOS-CX interfaces default to routed (L3) mode
+    trunk: false,
+    trunkAllowed: null,
+    nativeVlan: 1,
   };
 }
 

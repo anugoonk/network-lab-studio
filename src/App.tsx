@@ -51,7 +51,8 @@ function Header() {
       </div>
       <div className="actions">
         <button onClick={() => request({ kind: 'new' })} data-testid="btn-new">New Lab</button>
-        <button onClick={() => request({ kind: 'sample' })} data-testid="btn-sample">Open Sample Lab</button>
+        <button onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">Open Sample Lab</button>
+        <button onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">Sample: Inter-VLAN</button>
         <button onClick={exportLab} data-testid="btn-export">Export</button>
         <button onClick={() => fileRef.current?.click()} data-testid="btn-import">Import</button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} data-testid="import-file" />

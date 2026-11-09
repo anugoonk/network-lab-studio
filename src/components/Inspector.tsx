@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getDevice } from '../core/lab';
-import { linkStatus, type PingResult } from '../core/network';
+import { allAddresses, l3Interfaces, linkStatus, type PingResult } from '../core/network';
 import { shortPort } from '../core/profiles';
 import { SAMPLE_PORTS } from '../core/sample';
 import { parseIp } from '../core/ip';
@@ -40,21 +40,22 @@ export function Inspector() {
   const lab = useStore((s) => s.lab);
   const lastPing = useStore((s) => s.lastPing);
   const runPing = useStore((s) => s.runPing);
-  const sources = lab.devices.filter((d) => d.kind === 'pc' || d.kind === 'cisco-router');
+  const sources = lab.devices.filter((d) => l3Interfaces(lab, d).length > 0);
   const [src, setSrc] = useState('');
   const [dst, setDst] = useState('192.168.1.110');
   const [err, setErr] = useState<string | null>(null);
   const srcId = sources.some((d) => d.id === src) ? src : (sources[0]?.id ?? '');
-  const targets = lab.devices.flatMap((d) => d.ifaces.filter((i) => i.ip).map((i) => ({ label: `${d.name} (${i.ip})`, ip: i.ip! })));
+  const targets = allAddresses(lab).map(({ device, ifc }) => ({ label: `${device.name} ${ifc.name} (${ifc.ip})`, ip: ifc.ip }));
 
   const run = () => {
     if (parseIp(dst.trim()) === null) return setErr('IPv4 ปลายทางไม่ถูกต้อง');
-    if (!srcId) return setErr('ไม่มีอุปกรณ์ต้นทาง (ต้องมี PC หรือ Router)');
+    if (!srcId) return setErr('ไม่มีอุปกรณ์ต้นทางที่มี IP (PC, Router หรือ switch ที่มี SVI)');
     setErr(null);
     runPing(srcId, dst.trim());
   };
 
   const isSample = lab.name.startsWith('Small Office');
+  const isInterVlan = lab.name.startsWith('Inter-VLAN');
 
   return (
     <>
@@ -122,6 +123,21 @@ export function Inspector() {
           </table>
         </div>
       </section>
+
+      {isInterVlan && (
+        <section className="card" data-testid="exercise-intervlan">
+          <h4>โจทย์ฝึก: Trunk, Router-on-a-stick และ Static Route</h4>
+          <ol className="small">
+            <li>PC-A (VLAN 10) ping PC-C (VLAN 10 บน SW2) ได้ผ่าน trunk <code>Gi0/2</code> ↔ <code>1/1/24</code> และ ping PC-B (VLAN 20) ได้ผ่าน R1 sub-interface <code>Gi0/0.10 / Gi0/0.20</code></li>
+            <li>PC-A ping <code>172.16.0.10</code> (PC-E) ได้ผ่าน static route บน R1 และ default route บน R2</li>
+            <li>
+              ทำให้เสีย: SW1 <code>interface gi0/2</code> → <code>switchport trunk allowed vlan remove 20</code> แล้ว PC-B ping PC-D ไม่ผ่าน (ดูเหตุผลใน Inspector) กู้คืนด้วย <code>switchport trunk allowed vlan add 20</code>
+            </li>
+            <li>ทำให้เสีย: R2 <code>no ip route 0.0.0.0 0.0.0.0 10.0.0.1</code> → ขาไปถึง PC-E แต่ขากลับไม่ได้ กู้คืนด้วย <code>ip route 0.0.0.0 0.0.0.0 10.0.0.1</code></li>
+            <li>ลองให้ SW2 (Aruba) เป็น gateway: <code>interface vlan 10</code> → <code>ip address 192.168.10.254/24</code> แล้วตั้ง gateway ของ PC-C เป็น 192.168.10.254</li>
+          </ol>
+        </section>
+      )}
 
       {isSample && (
         <section className="card" data-testid="exercise">

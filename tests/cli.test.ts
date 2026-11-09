@@ -146,7 +146,7 @@ describe('cross-vendor / wrong-mode errors never change config', () => {
   const lab = sample();
   const cases: [string, string[], RegExp][] = [
     ['SW2', ['enable'], /Unknown command/],
-    ['SW2', ['show ip interface brief'], /Unknown command/],
+    ['SW2', ['show vlan brief'], /Unknown command/],
     ['SW2', ['configure terminal', 'interface 1/1/1', 'switchport access vlan 10'], /Unknown command/],
     ['SW2', ['configure terminal', 'interface 1/1/99'], /Unknown command|Invalid/],
     ['SW2', ['show vlan', 'vlan access 10'], /Unknown command/],
@@ -225,9 +225,18 @@ describe('registry consistency: every "runnable" example really runs', () => {
           d.cli.ctxIface = first.name;
           if (kind === 'aruba-switch') first.routed = false;
         }
-        if (mode === 'config-vlan') {
+        if (mode === 'config-vlan') d.cli.ctxVlan = 10;
+        if (mode === 'config-subif') {
+          d.subifs.push({ parent: d.ifaces[0].name, id: 10, vlan: null, adminUp: true, description: '', ip: null, mask: null });
+          d.cli.ctxIface = `${d.ifaces[0].name}.10`;
+        }
+        if (mode === 'config-svi') {
+          d.svis.push({ vlan: 10, adminUp: true, description: '', ip: null, mask: null });
           d.cli.ctxVlan = 10;
         }
+        spec.prepare?.(d);
+        // aruba.ipaddress needs the port to be routed *and* selected
+        if (spec.id === 'aruba.ipaddress') d.cli.ctxIface = d.ifaces[0].name;
         lab = { ...lab, devices: [d] };
         const line = exampleFor(spec, kind);
         const r = executeLine(lab, 'dut', line);

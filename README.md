@@ -26,7 +26,7 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
 
 ## วิธีใช้งานโดยย่อ
 
-1. เปิดแอป — ระบบโหลด **Sample Lab “Small Office – Cisco & Aruba”** ให้ทันที (ครั้งต่อไปจะเปิดงานล่าสุดที่ auto-save ไว้)
+1. เปิดแอป — ระบบโหลด **Sample Lab “Small Office – Cisco & Aruba”** ให้ทันที (ปุ่ม “Sample: Inter-VLAN” เปิดแล็บ trunk/router-on-a-stick/static route) (ครั้งต่อไปจะเปิดงานล่าสุดที่ auto-save ไว้)
 2. คลิกอุปกรณ์เพื่อดูรายละเอียด (ชื่อ รุ่นจำลอง พอร์ต IP VLAN) · **ดับเบิลคลิก** เพื่อเปิด Console/Terminal
 3. เพิ่มอุปกรณ์: ลากจาก Palette ซ้ายลง canvas (หรือคลิกที่รายการ)
 4. ต่อสาย: ลากจุดกลมด้านขวาของอุปกรณ์ไปยังอุปกรณ์อื่น (หรือปุ่ม **เชื่อมสาย**) แล้วเลือกพอร์ตต้นทาง/ปลายทาง — พอร์ตที่มีสายแล้วเลือกซ้ำไม่ได้
@@ -40,9 +40,9 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
 |---|---|---|
 | มีสายเชื่อม | มี cable ระหว่างสองพอร์ต | เส้นบน canvas |
 | ลิงก์ใช้งานได้ | มีสาย **และ** พอร์ตทั้งสองฝั่งไม่ถูก shutdown | เส้นเขียวทึบ + ป้าย `✓ UP` |
-| ลิงก์ down | มีสายแต่มีอย่างน้อยหนึ่งฝั่งถูก shutdown | เส้นแดงประ + ป้าย `✕ DOWN` + ชื่อพอร์ตที่ถูก shutdown มี `⏻` |
+| ลิงก์ down | มีสายแต่มีอย่างน้อยหนึ่งฝั่งถูก shutdown | เส้นแดงประ + ป้าย `✕ DOWN` + ชื่อพอร์ตที่ถูก shutdown มี `⏻` · พอร์ต trunk มีป้าย `⇄T` |
 
-ลิงก์ที่ up แต่ VLAN ไม่ตรงกัน ยังแสดงเป็น UP (ถูกต้อง — ปัญหาอยู่ที่ VLAN ไม่ใช่ลิงก์) ให้ดูเหตุผลที่ Lab Inspector
+ลิงก์ที่ up แต่ VLAN/trunk ไม่ตรงกัน ยังแสดงเป็น UP (ถูกต้อง — ปัญหาอยู่ที่ VLAN ไม่ใช่ลิงก์) ให้ดูเหตุผลที่ Lab Inspector
 
 ## Sample Lab: Small Office – Cisco & Aruba
 
@@ -68,21 +68,36 @@ SW2(config-if)# no shutdown
 PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 ```
 
-## ขอบเขตของรุ่นแรก
+## Sample Lab 2: Inter-VLAN Routing (ปุ่ม “Sample: Inter-VLAN”)
+
+| อุปกรณ์ | การตั้งค่า |
+|---|---|
+| R1 (Cisco) | `Gi0/0` ต่อ SW1 `Gi0/1` เป็น trunk-side: sub-interface `Gi0/0.10` = 192.168.10.1/24 (VLAN 10), `Gi0/0.20` = 192.168.20.1/24 (VLAN 20); `Gi0/1` = 10.0.0.1/30 ไป R2; `ip route 172.16.0.0 255.255.255.0 10.0.0.2` |
+| R2 (Cisco) | `Gi0/0` = 10.0.0.2/30, `Gi0/1` = 172.16.0.1/24 ไป PC-E; default route `ip route 0.0.0.0 0.0.0.0 10.0.0.1` |
+| SW1 (Cisco L2) | `Gi0/1` trunk → R1, `Gi0/2` trunk → SW2 (allowed 10,20); `Fa0/1` = VLAN 10 (PC-A), `Fa0/2` = VLAN 20 (PC-B) |
+| SW2 (Aruba) | `1/1/24` trunk (allowed 10,20); `1/1/1` = VLAN 10 (PC-C), `1/1/2` = VLAN 20 (PC-D) |
+| PC | PC-A .10.11, PC-B .20.11, PC-C .10.12, PC-D .20.12, PC-E 172.16.0.10 |
+
+โจทย์ฝึกอยู่ในแท็บ Lab Inspector (ตัด VLAN ออกจาก allowed list, ลบ default route แล้วดูขากลับล้ม, ตั้ง SVI บน SW2 ให้เป็น gateway)
+
+## ขอบเขต
 
 **รองรับ**
 
-- Ethernet point-to-point, access VLAN (untagged), IPv4 + subnet mask, default gateway
-- การทดสอบ reachability ด้วย ICMP echo (`ping`) — คำนวณใหม่จาก topology + config ปัจจุบันทุกครั้ง: ตรวจสาย, admin state ของพอร์ตทั้งสองฝั่ง, สมาชิก VLAN ของแต่ละ switch, เส้นทางขากลับ; ป้องกัน loop ด้วย visited set
-- PC ใน subnet เดียวกันสื่อสารกันโดยตรง; ปลายทางนอก subnet ต้องผ่าน default gateway ที่เป็น router จริงบนลิงก์ที่เข้าถึงได้; router ส่งต่อระหว่าง subnet ที่ต่อกับ routed interface ของตัวเอง (connected routes)
+- Ethernet point-to-point, access VLAN (untagged) และ **802.1Q trunk** (allowed VLAN list, native VLAN), IPv4 + subnet mask, default gateway
+- **Router-on-a-stick**: sub-interface (`interface gi0/0.10` + `encapsulation dot1Q 10`) บน Cisco router
+- **SVI** (`interface vlan N`): บน Aruba AOS-CX ทำให้ switch route ระหว่าง VLAN ได้ (เป็น gateway ของ VLAN); บน Cisco 2960 (L2 switch) เป็น management IP เท่านั้น + `ip default-gateway` (ไม่ route ระหว่าง VLAN ตามของจริง)
+- **Static route / default route** บน Cisco router (`ip route net mask next-hop`) และ Aruba (`ip route a.b.c.d/len next-hop`); route จะใช้ได้ก็ต่อเมื่อ next hop อยู่ใน subnet ของ interface ที่ up/up; Aruba routed port ตั้ง IP ได้ (`routing` + `ip address`)
+- การทดสอบ reachability ด้วย ICMP echo (`ping`) — คำนวณใหม่จาก topology + config ปัจจุบันทุกครั้ง: ตรวจสาย, admin state ของพอร์ตทั้งสองฝั่ง, VLAN/trunk/allowed/native ของแต่ละ switch (การ tag/untag ระหว่างลิงก์), sub-interface, SVI, routing table (connected + static) และเส้นทางขากลับ; ป้องกัน loop ด้วย visited set (และจำกัดจำนวน hop ของ routing)
+- PC ใน subnet เดียวกันสื่อสารกันโดยตรง; ปลายทางนอก subnet ต้องผ่าน default gateway ที่เป็นอุปกรณ์ L3 (router หรือ Aruba switch) บนลิงก์ที่เข้าถึงได้; อุปกรณ์ที่ไม่ใช่ L3 (PC, Cisco L2 switch) ไม่ส่งต่อแพ็กเก็ต
 - CLI แยกตามระบบปฏิบัติการ (Cisco IOS / Aruba AOS-CX / PC) ต่อ device ละ config, CLI mode และ command history; ย่อคำสั่งได้ (`conf t`, `int gi0/1`); `?` แสดงคำสั่งใน mode ปัจจุบัน; `do show ...` ใน config mode
-- Auto-save ลง `localStorage`, Export/Import JSON (มี `schemaVersion`, ตรวจชนิดข้อมูล พอร์ต และการอ้างอิงอุปกรณ์ก่อนนำเข้า)
+- Auto-save ลง `localStorage`, Export/Import JSON (มี `schemaVersion`, ตรวจชนิดข้อมูล พอร์ต trunk/sub-interface/SVI/route และการอ้างอิงอุปกรณ์ก่อนนำเข้า; ไฟล์เก่าก่อนมี trunk/SVI ยังนำเข้าได้)
 
-**ยังไม่รองรับ (ตั้งใจตัดออกจากรุ่นแรก)**
+**ยังไม่รองรับ (ตั้งใจตัดออก)**
 
-- Trunk/802.1Q tagging, VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
-- IPv6, DHCP, DNS, ARP table/MAC address table, static/dynamic routing (RIP/OSPF/…), ACL, NAT
-- SVI / management IP บน switch (ดังนั้น ping switch ไม่ได้ และ switch ไม่ใช่ปลายทางของ ping), `interface range`, `show interfaces <name>` บน Cisco, `reload`
+- DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
+- IPv6, DHCP, DNS, ARP table/MAC address table, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF
+- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `interface range`, `show interfaces <name>` บน Cisco, `reload`
 - ping ใช้ ICMP echo แบบสรุปผล (ไม่มี TTL/fragmentation จริง และ latency เป็นค่าคงที่)
 
 ## รุ่น/เวอร์ชันอ้างอิงของ CLI profile และสถานะการตรวจสอบ
@@ -93,10 +108,11 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Cisco IOS L2 Switch | Catalyst 2960-24TT | IOS 15.0(2)SE |
 | Aruba AOS-CX L2 Switch | Aruba CX 6100 24G | ArubaOS-CX 10.10 |
 
-พฤติกรรมเริ่มต้นที่เลียนแบบของจริง: พอร์ต router (Cisco) และพอร์ต AOS-CX เริ่มต้นเป็น **shutdown**; พอร์ต Catalyst เริ่มต้นเป็น up (VLAN 1); พอร์ต AOS-CX เริ่มต้นเป็น **routed** จึงต้องสั่ง `no routing` ก่อนใช้ `vlan access`; Cisco `switchport access vlan N` จะสร้าง VLAN ให้อัตโนมัติพร้อมข้อความเตือนตาม IOS 15.0
+พฤติกรรมเริ่มต้นที่เลียนแบบของจริง (ตามที่เข้าใจ ยังไม่ได้ยืนยันกับเอกสาร): พอร์ต router (Cisco) และพอร์ต AOS-CX เริ่มต้นเป็น **shutdown**; พอร์ต Catalyst เริ่มต้นเป็น up (VLAN 1); พอร์ต AOS-CX เริ่มต้นเป็น **routed** จึงต้องสั่ง `no routing` ก่อนใช้ `vlan access`; Cisco `switchport access vlan N` จะสร้าง VLAN ให้อัตโนมัติพร้อมข้อความเตือนตาม IOS 15.0
 
 > **สถานะการตรวจสอบ syntax (ตรงตามจริง):** ไม่สามารถเข้าถึงเอกสารทางการของ HPE Aruba (AOS-CX Command Reference) และ Cisco ได้ในรอบพัฒนานี้ จึงตรวจได้เพียงบางส่วนจากแหล่งรอง (ฟอรัม Airheads/Aruba Community และ mirror ของ AOS-CX 10.10 Layer-2 guide): ยืนยันได้ว่า `vlan access <id>` คู่กับ `no shutdown` / `no routing` เป็นรูปแบบที่ใช้จริง และคอลัมน์ของ `show interface brief` (Port, Native VLAN, Mode, Type, Enabled, Status, Reason, Speed, Description) กับ Reason "Administratively down" ตรงกับของจริง
 > - ข้อควรระวัง: บางรุ่น AOS-CX (เช่น 6200) ไม่ต้องสั่ง `no routing` เพราะพอร์ตเริ่มต้นเป็น L2 — simulator ยึดพฤติกรรม routed-by-default ตามรุ่นอ้างอิงด้านบนเพื่อให้ผู้เรียนฝึกขั้นตอนนี้
+> - **คำสั่งที่เพิ่มรอบที่ 2 (trunk, sub-interface, SVI, static route) ยังไม่ได้ตรวจเทียบเอกสารทางการเช่นกัน:** Cisco `switchport trunk ...`, `encapsulation dot1Q`, `ip route` เป็นรูปแบบมาตรฐานที่ใช้กันทั่วไป ส่วน Aruba `vlan trunk allowed/native`, `interface vlan N`, `ip address a.b.c.d/len`, `ip route a.b.c.d/len next-hop` เขียนตามความรู้เกี่ยวกับ AOS-CX 10.x; **สถานะเริ่มต้นของ SVI บน AOS-CX (simulator ตั้งเป็น up)** และข้อความ error ของคำสั่งเหล่านี้ยังไม่ยืนยัน
 > - **ยังไม่ได้ตรวจเทียบเอกสารทางการ:** layout ของ `show vlan` (AOS-CX), ข้อความ error ของ AOS-CX (`% Unknown command.` ฯลฯ) และ output ของคำสั่ง Cisco ทั้งหมด (เขียนตามความรู้เกี่ยวกับ IOS 15.x) เป็นการประมาณ ไม่ใช่การคัดลอกทุกอักขระ — ควรตรวจเทียบก่อนใช้สอนจริง
 
 ## คำสั่งที่รองรับ
@@ -112,24 +128,28 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC | `enable` | `enable` | เข้า Privileged EXEC mode (prompt เปลี่ยนจาก > เป็น #) |
 | Privileged EXEC | `disable` | `disable` | กลับไป User EXEC mode |
 | Privileged EXEC | `configure terminal` | `configure terminal` | เข้า Global Configuration mode เพื่อแก้ config |
-| User EXEC, Privileged EXEC, Global config, Interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
-| Global config, Interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
-| Global config, Interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
-| Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, IP, shutdown) |
+| User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
+| Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown) |
 | Privileged EXEC | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ใน NVRAM (หลัง write memory) |
 | User EXEC, Privileged EXEC | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน IOS อ้างอิง |
-| User EXEC, Privileged EXEC | `show ip interface brief` | `show ip interface brief` | สรุป IP และสถานะ (Status/Protocol) ของทุก interface บน router |
-| User EXEC, Privileged EXEC | `show ip route` | `show ip route` | ดูตาราง routing (รุ่นแรกมีเฉพาะ Connected/Local) |
-| User EXEC, Privileged EXEC | `ping <ip-address>` | `ping 192.168.1.101` | ทดสอบ ping จาก router ไปยัง IPv4 ปลายทาง |
+| User EXEC, Privileged EXEC | `show ip interface brief` | `show ip interface brief` | สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย |
+| User EXEC, Privileged EXEC | `show ip route` | `show ip route` | ดูตาราง routing: C/L (connected), S (static), S* (default route) |
+| User EXEC, Privileged EXEC | `ping <ip-address>` | `ping 192.168.1.101` | ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง |
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
-| Global config, Interface config, VLAN config | `interface <interface>` | `interface GigabitEthernet0/1` | เข้า Interface Configuration mode ของพอร์ต router |
-| Interface config | `shutdown` | `shutdown` | ปิดพอร์ต (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
-| Interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (router ทุกพอร์ตเริ่มต้นเป็น shutdown ต้องสั่งก่อนใช้งาน) |
-| Interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต (เช่น UPLINK-TO-SW2) |
-| Interface config | `ip address <ip-address> <subnet-mask>` | `ip address 10.0.0.1 255.255.255.0` | ตั้ง IPv4 และ subnet mask ให้ routed interface |
-| Interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก interface |
+| Global config, Interface config, Sub-interface config | `interface <interface>` | `interface GigabitEthernet0/1` | เข้า Interface Configuration ของพอร์ต router หรือ sub-interface (เช่น gi0/0.10 — สร้างให้อัตโนมัติ) |
+| Global config | `no interface <interface>` | `no interface GigabitEthernet0/0.10` | ลบ sub-interface (ลบพอร์ตจริงไม่ได้) |
+| Global config | `ip route <network> <route-mask> <next-hop>` | `ip route 172.16.0.0 255.255.255.0 10.0.0.2` | เพิ่ม static route ไปยังเครือข่ายปลายทางผ่าน next hop (default route = 0.0.0.0 0.0.0.0 <next-hop>) |
+| Global config | `no ip route <network> <route-mask> <next-hop>` | `no ip route 172.16.0.0 255.255.255.0 10.0.0.2` | ลบ static route |
+| Interface config, Sub-interface config, VLAN interface config | `shutdown` | `shutdown` | ปิดพอร์ต/sub-interface/SVI (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
+| Interface config, Sub-interface config, VLAN interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (router ทุกพอร์ตเริ่มต้นเป็น shutdown ต้องสั่งก่อนใช้งาน) |
+| Interface config, Sub-interface config, VLAN interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต (เช่น UPLINK-TO-SW2) |
+| Sub-interface config | `encapsulation dot1Q <vlan-id>` | `encapsulation dot1Q 10` | กำหนดให้ sub-interface รับ-ส่งเฟรม tagged VLAN นี้ (router-on-a-stick) — ต้องทำก่อนตั้ง IP |
+| Interface config, Sub-interface config | `ip address <ip-address> <subnet-mask>` | `ip address 10.0.0.1 255.255.255.0` | ตั้ง IPv4 และ subnet mask ให้ routed interface หรือ sub-interface |
+| Interface config, Sub-interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก interface หรือ sub-interface |
 
 ### Cisco IOS — Layer 2 Switch (Cisco Catalyst 2960-24TT (simulated), Cisco IOS 15.0(2)SE)
 
@@ -138,54 +158,83 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC | `enable` | `enable` | เข้า Privileged EXEC mode (prompt เปลี่ยนจาก > เป็น #) |
 | Privileged EXEC | `disable` | `disable` | กลับไป User EXEC mode |
 | Privileged EXEC | `configure terminal` | `configure terminal` | เข้า Global Configuration mode เพื่อแก้ config |
-| User EXEC, Privileged EXEC, Global config, Interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
-| Global config, Interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
-| Global config, Interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
-| Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, IP, shutdown) |
+| User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
+| Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown) |
 | Privileged EXEC | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ใน NVRAM (หลัง write memory) |
 | User EXEC, Privileged EXEC | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน IOS อ้างอิง |
-| User EXEC, Privileged EXEC | `show interfaces status` | `show interfaces status` | ดูสถานะพอร์ตของ switch (connected / notconnect / disabled) และ VLAN |
-| User EXEC, Privileged EXEC | `show vlan brief` | `show vlan brief` | ดู VLAN ทั้งหมดและพอร์ตที่อยู่ในแต่ละ VLAN |
+| User EXEC, Privileged EXEC | `show ip interface brief` | `show ip interface brief` | สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย |
+| User EXEC, Privileged EXEC | `show interfaces status` | `show interfaces status` | ดูสถานะพอร์ตของ switch (connected / notconnect / disabled) และ VLAN (trunk แสดงเป็น trunk) |
+| User EXEC, Privileged EXEC | `show interfaces trunk` | `show interfaces trunk` | ดูพอร์ตที่เป็น trunk, native VLAN และ VLAN ที่อนุญาต/ใช้งานอยู่ |
+| User EXEC, Privileged EXEC | `show vlan brief` | `show vlan brief` | ดู VLAN ทั้งหมดและพอร์ต access ที่อยู่ในแต่ละ VLAN (trunk ไม่แสดงในตารางนี้) |
+| User EXEC, Privileged EXEC | `ping <ip-address>` | `ping 192.168.1.101` | ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง |
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
-| Global config, Interface config, VLAN config | `interface <interface>` | `interface FastEthernet0/1` | เข้า Interface Configuration mode ของพอร์ต switch (ย่อได้ เช่น fa0/1, gi0/2) |
-| Global config, Interface config, VLAN config | `vlan <vlan-id>` | `vlan 30` | สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan |
+| Global config, Interface config, VLAN interface config, VLAN config | `interface <interface>` | `interface FastEthernet0/1` | เข้า Interface Configuration mode ของพอร์ต switch (ย่อได้ เช่น fa0/1, gi0/2) |
+| Global config, Interface config, VLAN interface config, VLAN config | `interface vlan <vlan-id>` | `interface vlan 10` | สร้าง/เข้า SVI (Vlan interface) เพื่อตั้ง IP จัดการของ switch (L2 switch ไม่ route ระหว่าง VLAN) |
+| Global config | `no interface vlan <vlan-id>` | `no interface vlan 10` | ลบ SVI |
+| Global config, Interface config, VLAN interface config, VLAN config | `vlan <vlan-id>` | `vlan 30` | สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan |
 | Global config | `no vlan <vlan-id>` | `no vlan 30` | ลบ VLAN (พอร์ตที่อยู่ใน VLAN นั้นจะหยุดส่งต่อจนกว่าจะสร้างใหม่หรือย้ายพอร์ต) |
 | VLAN config | `name <name>` | `name STAFF` | ตั้งชื่อ VLAN (ใช้ตัวอักษรไม่มีช่องว่าง) |
-| Interface config | `shutdown` | `shutdown` | ปิดพอร์ต (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
-| Interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (router ทุกพอร์ตเริ่มต้นเป็น shutdown ต้องสั่งก่อนใช้งาน) |
-| Interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต (เช่น UPLINK-TO-SW2) |
+| Global config | `ip default-gateway <ip-address>` | `ip default-gateway 192.168.10.1` | ตั้ง default gateway ของ L2 switch (ใช้กับ SVI สำหรับจัดการข้าม subnet) |
+| Global config | `no ip default-gateway` | `no ip default-gateway` | ลบ default gateway ของ switch |
+| Interface config, Sub-interface config, VLAN interface config | `shutdown` | `shutdown` | ปิดพอร์ต/sub-interface/SVI (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
+| Interface config, Sub-interface config, VLAN interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (router ทุกพอร์ตเริ่มต้นเป็น shutdown ต้องสั่งก่อนใช้งาน) |
+| Interface config, Sub-interface config, VLAN interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต (เช่น UPLINK-TO-SW2) |
 | Interface config | `switchport mode access` | `switchport mode access` | กำหนดให้พอร์ตเป็น access port (untagged VLAN เดียว) |
+| Interface config | `switchport mode trunk` | `switchport mode trunk` | กำหนดให้พอร์ตเป็น 802.1Q trunk (ส่งหลาย VLAN แบบ tagged; native VLAN แบบ untagged) |
 | Interface config | `switchport access vlan <vlan-id>` | `switchport access vlan 10` | กำหนด access VLAN ให้พอร์ต — เฟรมของพอร์ตนี้จะอยู่ใน VLAN นี้ |
+| Interface config | `switchport trunk allowed vlan <vlan-list>` | `switchport trunk allowed vlan 10,20` | กำหนดรายการ VLAN ที่ trunk อนุญาต (แทนที่ทั้งรายการ) เช่น 10,20,30-40 |
+| Interface config | `switchport trunk allowed vlan all` | `switchport trunk allowed vlan all` | อนุญาตทุก VLAN บน trunk (ค่าเริ่มต้น) |
+| Interface config | `switchport trunk allowed vlan add <vlan-list>` | `switchport trunk allowed vlan add 30` | เพิ่ม VLAN เข้ารายการที่อนุญาต (ไม่ลบของเดิม) |
+| Interface config | `switchport trunk allowed vlan remove <vlan-list>` | `switchport trunk allowed vlan remove 20` | ถอด VLAN ออกจากรายการที่อนุญาต |
+| Interface config | `switchport trunk native vlan <vlan-id>` | `switchport trunk native vlan 99` | กำหนด native VLAN (เฟรม untagged ของ trunk) — ต้องตรงกันทั้งสองฝั่ง |
+| Interface config | `no switchport trunk allowed vlan` | `no switchport trunk allowed vlan` | คืนค่า allowed vlan เป็นทุก VLAN |
+| Interface config | `no switchport trunk native vlan` | `no switchport trunk native vlan` | คืนค่า native VLAN เป็น 1 |
+| VLAN interface config | `ip address <ip-address> <subnet-mask>` | `ip address 192.168.10.2 255.255.255.0` | ตั้ง IP จัดการให้ SVI (L2 switch ใช้เป็น management address ไม่ใช่ gateway ของ VLAN) |
+| VLAN interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก SVI |
 
 ### Aruba AOS-CX — Layer 2 Switch (Aruba CX 6100 24G (simulated), ArubaOS-CX 10.10)
 
 | Mode | Syntax | ตัวอย่างที่รันได้ | คำอธิบาย |
 |---|---|---|---|
 | Manager | `configure terminal` | `configure terminal` | เข้า Global Configuration mode (prompt เป็น (config)#) |
-| Manager, Global config, Interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv) |
-| Global config, Interface config, VLAN config | `end` | `end` | กลับ Manager mode (#) ทันทีจากทุกระดับของ config |
-| Global config, Interface config, VLAN config | `do <command>` | `do show vlan` | รันคำสั่ง show จากใน config mode โดยไม่ต้องออก |
-| Manager | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (VLAN, interface, shutdown, no routing, vlan access) |
+| Manager, Global config, Interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv) |
+| Global config, Interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Manager mode (#) ทันทีจากทุกระดับของ config |
+| Global config, Interface config, VLAN interface config, VLAN config | `do <command>` | `do show vlan` | รันคำสั่ง show จากใน config mode โดยไม่ต้องออก |
+| Manager | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (VLAN, interface, trunk, SVI, route) |
 | Manager | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ (หลัง write memory) |
 | Manager | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน AOS-CX อ้างอิง |
-| Manager | `show interface brief` | `show interface brief` | ตารางสรุปทุกพอร์ต: Native VLAN, Mode, Enabled, Status, Reason |
-| Manager | `show interface <interface>` | `show interface 1/1/1` | ดูรายละเอียดพอร์ตเดียว เช่น show interface 1/1/24 |
-| Manager | `show vlan` | `show vlan` | ดู VLAN ทั้งหมดและพอร์ตที่เป็นสมาชิก (เฉพาะพอร์ตที่ no routing) |
+| Manager | `show interface brief` | `show interface brief` | ตารางสรุปทุกพอร์ต: Native VLAN, Mode (access/trunk/routed), Enabled, Status, Reason |
+| Manager | `show interface <interface>` | `show interface 1/1/1` | ดูรายละเอียดพอร์ตเดียว เช่น show interface 1/1/24 (รวม allowed VLAN ของ trunk) |
+| Manager | `show vlan` | `show vlan` | ดู VLAN ทั้งหมดและพอร์ตที่เป็นสมาชิก (access และ trunk ที่อนุญาต VLAN นั้น; เฉพาะพอร์ตที่ no routing) |
+| Manager | `show ip interface brief` | `show ip interface brief` | สรุป IP ของ routed port และ VLAN interface (SVI) พร้อมสถานะ up/down |
+| Manager | `show ip route` | `show ip route` | ดูตาราง routing: C/L (connected), S (static) |
+| Manager | `ping <ip-address>` | `ping 192.168.1.1` | ทดสอบ ping จาก switch (ที่มี SVI/routed port) ไปยัง IPv4 ปลายทาง |
 | Manager | `write memory` | `write memory` | บันทึก running-config เป็น startup-config |
 | Manager | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config เป็น startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname ACCESS2` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
-| Global config, Interface config, VLAN config | `vlan <vlan-id>` | `vlan 30` | สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan |
+| Global config, Interface config, VLAN interface config, VLAN config | `vlan <vlan-id>` | `vlan 30` | สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan |
 | Global config | `no vlan <vlan-id>` | `no vlan 30` | ลบ VLAN (VLAN 1 ลบไม่ได้) |
 | VLAN config | `name <name>` | `name STAFF` | ตั้งชื่อ VLAN |
-| Global config, Interface config, VLAN config | `interface <interface>` | `interface 1/1/1` | เข้า Interface Configuration ของพอร์ต เช่น interface 1/1/1 |
-| Interface config | `shutdown` | `shutdown` | ปิดพอร์ต — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
-| Interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (พอร์ต AOS-CX เริ่มต้นเป็น shutdown) |
-| Interface config | `no routing` | `no routing` | เปลี่ยนพอร์ตจาก routed เป็น Layer 2 — ต้องทำก่อนใช้ vlan access |
-| Interface config | `routing` | `routing` | เปลี่ยนพอร์ตกลับเป็น routed (L3) — พอร์ตจะไม่ส่งต่อ VLAN |
-| Interface config | `vlan access <vlan-id>` | `vlan access 10` | กำหนด access VLAN (untagged) ให้พอร์ต L2 — VLAN ต้องถูกสร้างไว้ก่อน |
-| Interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต |
+| Global config, Interface config, VLAN interface config, VLAN config | `interface <interface>` | `interface 1/1/1` | เข้า Interface Configuration ของพอร์ต เช่น interface 1/1/1 |
+| Global config, Interface config, VLAN interface config, VLAN config | `interface vlan <vlan-id>` | `interface vlan 10` | สร้าง/เข้า VLAN interface (SVI) ให้ switch route ระหว่าง VLAN — VLAN ต้องถูกสร้างไว้ก่อน |
+| Global config | `no interface vlan <vlan-id>` | `no interface vlan 10` | ลบ VLAN interface |
+| Global config | `ip route <prefix> <next-hop>` | `ip route 172.16.0.0/24 192.168.1.1` | เพิ่ม static route แบบ prefix/ความยาว เช่น 172.16.0.0/24 ผ่าน next hop (default route = 0.0.0.0/0) |
+| Global config | `no ip route <prefix> <next-hop>` | `no ip route 172.16.0.0/24 192.168.1.1` | ลบ static route |
+| Interface config, VLAN interface config | `shutdown` | `shutdown` | ปิดพอร์ต/VLAN interface — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
+| Interface config, VLAN interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (พอร์ต AOS-CX เริ่มต้นเป็น shutdown) |
+| Interface config | `no routing` | `no routing` | เปลี่ยนพอร์ตจาก routed เป็น Layer 2 — ต้องทำก่อนใช้ vlan access / vlan trunk |
+| Interface config | `routing` | `routing` | เปลี่ยนพอร์ตกลับเป็น routed (L3) — พอร์ตจะไม่ส่งต่อ VLAN แต่ตั้ง IP ได้ |
+| Interface config | `vlan access <vlan-id>` | `vlan access 10` | กำหนด access VLAN (untagged) ให้พอร์ต L2 — VLAN ต้องถูกสร้างไว้ก่อน (ถ้าเป็น trunk จะกลับเป็น access) |
+| Interface config | `vlan trunk allowed <vlan-list>` | `vlan trunk allowed 10,20` | ตั้งพอร์ตเป็น trunk และกำหนด VLAN ที่อนุญาต เช่น 10,20,30-40 |
+| Interface config | `vlan trunk allowed all` | `vlan trunk allowed all` | ตั้งพอร์ตเป็น trunk ที่อนุญาตทุก VLAN |
+| Interface config | `vlan trunk native <vlan-id>` | `vlan trunk native 99` | ตั้งพอร์ตเป็น trunk และกำหนด native VLAN (untagged) — ต้องตรงกันทั้งสองฝั่ง |
+| Interface config, VLAN interface config | `ip address <cidr>` | `ip address 192.168.10.1/24` | ตั้ง IPv4 แบบ a.b.c.d/ความยาว ให้ routed port หรือ VLAN interface (SVI) — SVI ทำให้ switch เป็น gateway ของ VLAN |
+| Interface config, VLAN interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก interface |
+| Interface config, VLAN interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต |
 
 ### PC Terminal
 
@@ -202,7 +251,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 ```
 src/core/            # logic ล้วน (ไม่พึ่ง React) — ทดสอบด้วย Vitest
-  network.ts         # สถานะลิงก์, L2 domain (VLAN/loop-safe), routing, ping, คำอธิบายเหตุผล (ไทย)
+  network.ts         # สถานะลิงก์, L2 domain (VLAN/trunk/loop-safe), L3 interface (port/sub-interface/SVI), routing, ping, คำอธิบายเหตุผล (ไทย)
   cli/spec.ts        # ชนิดของ registry + ตัวตรวจ parameter
   cli/cisco.ts       # คำสั่ง + output ของ Cisco IOS
   cli/aruba.ts       # คำสั่ง + output ของ Aruba AOS-CX
@@ -210,7 +259,7 @@ src/core/            # logic ล้วน (ไม่พึ่ง React) — ท�
   cli/registry.ts    # รวมทะเบียน — แหล่งเดียวสำหรับ parser, ?, Command Library, README, tests
   cli/engine.ts      # parser/matcher (ย่อคำสั่ง, ambiguity), help, execute (ไม่เปลี่ยน config เมื่อ error)
   persist.ts         # zod schema + ตรวจอ้างอิงข้าม + localStorage + export/import
-  sample.ts          # Sample Lab
+  sample.ts          # Sample Lab (Small Office, Inter-VLAN)
 src/components/      # React UI (canvas = @xyflow/react)
 src/store.ts         # Zustand store — แหล่งข้อมูลเดียวที่ canvas, CLI, ping และ Inspector ใช้ร่วมกัน
 tests/               # Vitest        e2e/  # Playwright
@@ -222,15 +271,16 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 4 ไฟล์) | **140/140 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor 13 กรณี (config ไม่เปลี่ยน), ทุกตัวอย่างในทะเบียนคำสั่งรันได้จริง, ping/VLAN/gateway/loop, import ผิดรูปแบบ 14 กรณี, README ตรงกับทะเบียน |
+| `npm test` (Vitest, 5 ไฟล์) | **217/217 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์ (config ไม่เปลี่ยน), ทุกตัวอย่างในทะเบียนคำสั่งรันได้จริง, ping/VLAN/gateway/loop, trunk (allowed/native/access-vs-trunk mismatch), router-on-a-stick, SVI (Aruba routing, Cisco L2 mgmt), static/default route (ขาไป/ขากลับ/next hop ใช้ไม่ได้), import ผิดรูปแบบและไฟล์เก่า, README ตรงกับทะเบียน |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 12 flow) | **12/12 ผ่าน** — Sample Lab → ping → shutdown uplink → ping ล้มเหลว → no shutdown → สำเร็จ; PC-10 → VLAN 20; gateway ผิด; เพิ่ม PC ใหม่ + ต่อสาย + VLAN + IP + ping; drag จาก Palette/ต่อสายด้วยการลาก; CLI ผิด mode/vendor; reload; export/import/ไฟล์เสีย/New Lab confirm; ย่อแผง; Command Library |
+| `npm run e2e` (Playwright + Chromium, 17 flow) | **17/17 ผ่าน** — 12 flow เดิม (Sample Lab → ping → shutdown uplink → no shutdown, VLAN 20, gateway ผิด, เพิ่ม PC, drag, CLI ผิด mode/vendor, reload, export/import, ย่อแผง, Command Library) + 5 flow ใหม่ (Inter-VLAN lab ทำงานทันที, trunk allowed-vlan ผิด + Inspector อธิบาย + แก้, ลบ default route → ขากลับล้ม → กู้คืน, SVI บน Aruba เป็น gateway + Cisco L2 ปฏิเสธ static route, sub-interface ต้องมี encapsulation ก่อน IP) |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 
 ## ข้อจำกัดที่ยังมี
 
 - ดู “ยังไม่รองรับ” ด้านบน และหมายเหตุการตรวจ syntax
-- ผลทดสอบข้าม subnet ใน Sample Lab ต้องเพิ่ม interface/subnet ที่สองด้วยตนเอง (ครอบคลุมใน unit test; ไม่มีตัวอย่างในแอป)
+- Cisco `dynamic auto` ไม่เจรจา trunk (ถือเป็น access) — ต้องตั้ง `switchport mode trunk` ทั้งสองฝั่งให้ชัดเจน
+- SVI บน Aruba เริ่มต้นเป็น up (ยังไม่ยืนยันกับของจริง)
 - ทดสอบ UI เฉพาะ desktop; ไม่ได้ปรับสำหรับมือถือ
 - bundle ใหญ่ ~600 kB (ยังไม่ได้ code-split)

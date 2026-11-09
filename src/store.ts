@@ -13,7 +13,7 @@ import {
 } from './core/lab';
 import { ping, type PingResult } from './core/network';
 import { loadStored, saveStored, serializeExport, parseImport } from './core/persist';
-import { buildSampleLab } from './core/sample';
+import { buildInterVlanLab, buildSampleLab } from './core/sample';
 import { emptyLab } from './core/lab';
 import type { DeviceKind, Endpoint, Lab } from './core/types';
 
@@ -28,7 +28,7 @@ export interface TermLine {
 
 export type Pending =
   | { kind: 'new' }
-  | { kind: 'sample' }
+  | { kind: 'sample'; which: 'office' | 'intervlan' }
   | { kind: 'import'; lab: Lab; fileName: string };
 
 interface State {
@@ -225,9 +225,9 @@ export const useStore = create<State>((set, get) => {
       const p = get().confirm;
       if (!p) return;
       if (p.kind === 'new') replaceLab(emptyLab('New Lab'));
-      else if (p.kind === 'sample') replaceLab(buildSampleLab());
+      else if (p.kind === 'sample') replaceLab(p.which === 'intervlan' ? buildInterVlanLab() : buildSampleLab());
       else replaceLab(p.lab);
-      set({ notice: { kind: 'ok', text: p.kind === 'import' ? `นำเข้า ${p.fileName} สำเร็จ` : p.kind === 'new' ? 'สร้าง Lab ใหม่แล้ว' : 'เปิด Sample Lab แล้ว' } });
+      set({ notice: { kind: 'ok', text: p.kind === 'import' ? `นำเข้า ${p.fileName} สำเร็จ` : p.kind === 'new' ? 'สร้าง Lab ใหม่แล้ว' : p.which === 'intervlan' ? 'เปิด Sample Lab: Inter-VLAN แล้ว' : 'เปิด Sample Lab แล้ว' } });
     },
     cancelReplace: () => set({ confirm: null }),
     exportLab: () => {

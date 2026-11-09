@@ -34,9 +34,25 @@ export function promptFor(dev: Device): string {
   const m = dev.cli.mode;
   if (v === 'pc') return 'C:\\>';
   if (v === 'cisco') {
-    return m === 'user' ? `${n}>` : m === 'priv' ? `${n}#` : m === 'config' ? `${n}(config)#` : m === 'config-if' ? `${n}(config-if)#` : `${n}(config-vlan)#`;
+    const t: Record<string, string> = {
+      user: `${n}>`,
+      priv: `${n}#`,
+      config: `${n}(config)#`,
+      'config-if': `${n}(config-if)#`,
+      'config-subif': `${n}(config-subif)#`,
+      'config-svi': `${n}(config-if)#`,
+      'config-vlan': `${n}(config-vlan)#`,
+    };
+    return t[m] ?? `${n}#`;
   }
-  return m === 'priv' ? `${n}#` : m === 'config' ? `${n}(config)#` : m === 'config-if' ? `${n}(config-if)#` : `${n}(config-vlan-${dev.cli.ctxVlan ?? ''})#`;
+  const a: Record<string, string> = {
+    priv: `${n}#`,
+    config: `${n}(config)#`,
+    'config-if': `${n}(config-if)#`,
+    'config-svi': `${n}(config-if-vlan)#`,
+    'config-vlan': `${n}(config-vlan-${dev.cli.ctxVlan ?? ''})#`,
+  };
+  return a[m] ?? `${n}#`;
 }
 
 // ───────── tokenizing & matching ─────────
@@ -67,7 +83,7 @@ function tokenize(line: string, vendor: Vendor): RawTok[] {
       nx &&
       /^[A-Za-z]+$/.test(t.text) &&
       ['gigabitethernet', 'fastethernet'].some((p) => p.startsWith(t.text.toLowerCase())) &&
-      /^\d+(\/\d+)*$/.test(nx.text)
+      /^\d+(\/\d+)*(\.\d+)?$/.test(nx.text)
     ) {
       merged.push({ text: t.text + nx.text, start: t.start });
       i++;

@@ -62,3 +62,15 @@ export function subnetsOverlap(ip1: string, m1: string, ip2: string, m2: string)
   if (a === null || b === null) return false;
   return ((a & mask) >>> 0) === ((b & mask) >>> 0);
 }
+
+export function prefixToMask(prefix: number): string {
+  const n = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return ipToString(n);
+}
+
+/** "10.0.0.1/24" → { ip, mask } or null */
+export function parseCidr(text: string): { ip: string; mask: string; prefix: number } | null {
+  const m = /^(\d+\.\d+\.\d+\.\d+)\/(\d{1,2})$/.exec(text);
+  if (!m || parseIp(m[1]) === null || Number(m[2]) > 32) return null;
+  return { ip: m[1], mask: prefixToMask(Number(m[2])), prefix: Number(m[2]) };
+}

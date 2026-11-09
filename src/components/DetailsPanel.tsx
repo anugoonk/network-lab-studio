@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getDevice, linkAt, peerOf } from '../core/lab';
-import { PORT_LINE_TH, linkStatus, portLine } from '../core/network';
+import { maskToPrefix, networkOf } from '../core/ip';
+import { formatVlanList, getDevice, linkAt, peerOf, subName } from '../core/lab';
+import { PORT_LINE_TH, l3Interfaces, linkStatus, portLine } from '../core/network';
 import { PROFILES, shortPort } from '../core/profiles';
 import type { Device } from '../core/types';
 import { useStore } from '../store';
@@ -43,6 +44,77 @@ function PcConfig({ device }: { device: Device }) {
       <button className="primary" onClick={apply} data-testid="pc-apply">
         ใช้ค่านี้
       </button>
+    </section>
+  );
+}
+
+function L3Section({ device }: { device: Device }) {
+  const lab = useStore((st) => st.lab);
+  const l3 = l3Interfaces(lab, device);
+  const up = l3.filter((i) => i.up);
+  return (
+    <section className="card" data-testid="l3-section">
+      <h4>Layer 3</h4>
+      {(device.subifs.length > 0 || device.svis.length > 0) && (
+        <table className="ports">
+          <thead>
+            <tr>
+              <th>Interface</th>
+              <th>VLAN</th>
+              <th>IP</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {device.subifs.map((x) => {
+              const ifc = l3.find((i) => i.name === subName(x));
+              return (
+                <tr key={subName(x)}>
+                  <td>{subName(x).replace('GigabitEthernet', 'Gi')}</td>
+                  <td>{x.vlan ?? 'ยังไม่ตั้ง dot1Q'}</td>
+                  <td>{x.ip ? `${x.ip}/${maskToPrefix(x.mask!)}` : '–'}</td>
+                  <td><span className={`pill ${ifc?.up ? 'up' : 'down'}`}>{ifc?.up ? 'up' : 'down'}</span></td>
+                </tr>
+              );
+            })}
+            {device.svis.map((x) => {
+              const ifc = l3.find((i) => i.kind === 'svi' && i.vlan === x.vlan);
+              return (
+                <tr key={`svi${x.vlan}`}>
+                  <td>Vlan{x.vlan} (SVI)</td>
+                  <td>{x.vlan}</td>
+                  <td>{x.ip ? `${x.ip}/${maskToPrefix(x.mask!)}` : '–'}</td>
+                  <td><span className={`pill ${ifc?.up ? 'up' : 'down'}`}>{ifc?.up ? 'up' : x.adminUp ? 'down' : 'shutdown'}</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      {device.routes.length > 0 && (
+        <>
+          <h4 style={{ marginTop: 8 }}>Static route</h4>
+          <table className="ports">
+            <tbody>
+              {device.routes.map((r) => {
+                const ok = up.some((i) => networkOf(i.ip, i.mask) === networkOf(r.nextHop, i.mask));
+                return (
+                  <tr key={`${r.net}/${r.mask}/${r.nextHop}`}>
+                    <td>{r.net === '0.0.0.0' && r.mask === '0.0.0.0' ? 'default (0.0.0.0/0)' : `${r.net}/${maskToPrefix(r.mask)}`}</td>
+                    <td>via {r.nextHop}</td>
+                    <td><span className={`pill ${ok ? 'up' : 'down'}`}>{ok ? 'ใช้งานได้' : 'next hop ถึงไม่ได้'}</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
+      {device.kind === 'cisco-switch' && (
+        <p className="muted small">
+          L2 switch: SVI ใช้เป็น management IP เท่านั้น ไม่ route ระหว่าง VLAN{device.gateway ? ` · default-gateway ${device.gateway}` : ''}
+        </p>
+      )}
     </section>
   );
 }
@@ -113,6 +185,10 @@ function DeviceDetails({ id }: { id: string }) {
         </section>
       )}
 
+      {(device.subifs.length > 0 || device.svis.length > 0 || device.routes.length > 0) && (
+        <L3Section device={device} />
+      )}
+
       <section className="card">
         <h4>พอร์ต ({device.ifaces.length})</h4>
         <div className="table-scroll">
@@ -141,7 +217,15 @@ function DeviceDetails({ id }: { id: string }) {
                     <td>{pd ? `${pd.name}:${shortPort(peer!.port)}` : '–'}</td>
                     {!p.isSwitch && <td>{i.ip ? `${i.ip}/${i.mask}` : '–'}</td>}
                     {p.isSwitch && (
-                      <td>{device.kind === 'aruba-switch' && i.routed ? 'routed' : `VLAN ${i.accessVlan}`}</td>
+                      <td title={i.trunk ? `allowed: ${formatVlanList(i.trunkAllowed)}` : undefined}>
+                        {device.kind === 'aruba-switch' && i.routed
+                          ? i.ip
+                            ? `routed ${i.ip}/${maskToPrefix(i.mask!)}`
+                            : 'routed'
+                          : i.trunk
+                            ? `trunk (native ${i.nativeVlan}; allowed ${formatVlanList(i.trunkAllowed)})`
+                            : `VLAN ${i.accessVlan}`}
+                      </td>
                     )}
                   </tr>
                 );

@@ -20,6 +20,33 @@ const ifaceSchema = z.object({
   accessVlan: z.number().int().min(1).max(4094),
   modeAccess: z.boolean(),
   routed: z.boolean(),
+  trunk: z.boolean().default(false),
+  trunkAllowed: z.array(z.number().int().min(1).max(4094)).nullable().default(null),
+  nativeVlan: z.number().int().min(1).max(4094).default(1),
+});
+
+const subifSchema = z.object({
+  parent: z.string(),
+  id: z.number().int().min(1).max(4094),
+  vlan: z.number().int().min(1).max(4094).nullable(),
+  adminUp: z.boolean(),
+  description: z.string().max(200),
+  ip: ipStr.nullable(),
+  mask: maskStr.nullable(),
+});
+
+const sviSchema = z.object({
+  vlan: z.number().int().min(1).max(4094),
+  adminUp: z.boolean(),
+  description: z.string().max(200),
+  ip: ipStr.nullable(),
+  mask: maskStr.nullable(),
+});
+
+const routeSchema = z.object({
+  net: ipStr,
+  mask: z.string().refine((s) => s === '0.0.0.0' || isValidMask(s), 'subnet mask ไม่ถูกต้อง'),
+  nextHop: ipStr,
 });
 
 const deviceSchema = z.object({
@@ -30,9 +57,12 @@ const deviceSchema = z.object({
   y: z.number().finite(),
   ifaces: z.array(ifaceSchema),
   vlans: z.array(z.object({ id: z.number().int().min(1).max(4094), name: z.string().min(1).max(32) })),
+  subifs: z.array(subifSchema).max(200).default([]),
+  svis: z.array(sviSchema).max(200).default([]),
+  routes: z.array(routeSchema).max(500).default([]),
   gateway: ipStr.nullable(),
   cli: z.object({
-    mode: z.enum(['user', 'priv', 'config', 'config-if', 'config-vlan', 'pc']),
+    mode: z.enum(['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'pc']),
     ctxIface: z.string().nullable(),
     ctxVlan: z.number().int().nullable(),
     history: z.array(z.string()).max(200),
@@ -51,9 +81,9 @@ const labSchema = z.object({
 });
 
 const MODES_BY_KIND: Record<DeviceKind, CliMode[]> = {
-  'cisco-router': ['user', 'priv', 'config', 'config-if'],
-  'cisco-switch': ['user', 'priv', 'config', 'config-if', 'config-vlan'],
-  'aruba-switch': ['priv', 'config', 'config-if', 'config-vlan'],
+  'cisco-router': ['user', 'priv', 'config', 'config-if', 'config-subif'],
+  'cisco-switch': ['user', 'priv', 'config', 'config-if', 'config-svi', 'config-vlan'],
+  'aruba-switch': ['priv', 'config', 'config-if', 'config-svi', 'config-vlan'],
   pc: ['pc'],
 };
 
@@ -75,7 +105,21 @@ function crossCheck(lab: Lab): string[] {
       if (new Set(d.vlans.map((v) => v.id)).size !== d.vlans.length) errs.push(`${d.name}: มี VLAN ซ้ำ`);
     } else if (d.vlans.length) errs.push(`${d.name}: อุปกรณ์ชนิดนี้ไม่มี VLAN database`);
     if (!MODES_BY_KIND[d.kind].includes(d.cli.mode)) errs.push(`${d.name}: CLI mode "${d.cli.mode}" ใช้ไม่ได้กับอุปกรณ์ชนิดนี้`);
-    if (d.cli.ctxIface && !names.includes(d.cli.ctxIface)) errs.push(`${d.name}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่`);
+    if (d.cli.ctxIface && !names.includes(d.cli.ctxIface) && !d.subifs.some((s) => `${s.parent}.${s.id}` === d.cli.ctxIface))
+      errs.push(`${d.name}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่`);
+    if (!p.isRouter && d.subifs.length) errs.push(`${d.name}: sub-interface ใช้ได้เฉพาะ router`);
+    if (!p.isSwitch && d.svis.length) errs.push(`${d.name}: SVI ใช้ได้เฉพาะ switch`);
+    if (d.kind !== 'cisco-router' && d.kind !== 'aruba-switch' && d.routes.length) errs.push(`${d.name}: อุปกรณ์ชนิดนี้ไม่รองรับ static route`);
+    const seen = new Set<string>();
+    for (const s of d.subifs) {
+      const key = `${s.parent}.${s.id}`;
+      if (!names.includes(s.parent)) errs.push(`${d.name}: sub-interface ${key} อ้างอิงพอร์ตแม่ที่ไม่มีอยู่`);
+      if (seen.has(key)) errs.push(`${d.name}: sub-interface ซ้ำ ${key}`);
+      seen.add(key);
+      if (!!s.ip !== !!s.mask) errs.push(`${d.name}/${key}: IP และ mask ต้องกำหนดคู่กัน`);
+    }
+    if (new Set(d.svis.map((v) => v.vlan)).size !== d.svis.length) errs.push(`${d.name}: SVI ซ้ำ`);
+    for (const v of d.svis) if (!!v.ip !== !!v.mask) errs.push(`${d.name}/Vlan${v.vlan}: IP และ mask ต้องกำหนดคู่กัน`);
     if (p.isHost && d.ifaces.some((i) => !!i.ip !== !!i.mask)) errs.push(`${d.name}: IP และ mask ต้องกำหนดคู่กัน`);
     for (const i of d.ifaces) if (!!i.ip !== !!i.mask) errs.push(`${d.name}/${i.name}: IP และ mask ต้องกำหนดคู่กัน`);
   }
