@@ -1,0 +1,172 @@
+import { z } from 'zod';
+import { isValidMask, parseIp } from './ip';
+import { NAME_RE } from './lab';
+import { PROFILES } from './profiles';
+import type { CliMode, DeviceKind, Lab } from './types';
+
+export const SCHEMA_VERSION = 1;
+export const STORAGE_KEY = 'nls.lab.v1';
+export const APP_ID = 'network-lab-studio';
+
+const ipStr = z.string().refine((s) => parseIp(s) !== null, 'IPv4 address ไม่ถูกต้อง');
+const maskStr = z.string().refine((s) => isValidMask(s), 'subnet mask ไม่ถูกต้อง');
+
+const ifaceSchema = z.object({
+  name: z.string(),
+  adminUp: z.boolean(),
+  description: z.string().max(200),
+  ip: ipStr.nullable(),
+  mask: maskStr.nullable(),
+  accessVlan: z.number().int().min(1).max(4094),
+  modeAccess: z.boolean(),
+  routed: z.boolean(),
+});
+
+const deviceSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(['cisco-router', 'cisco-switch', 'aruba-switch', 'pc']),
+  name: z.string().regex(NAME_RE, 'ชื่ออุปกรณ์ไม่ถูกต้อง'),
+  x: z.number().finite(),
+  y: z.number().finite(),
+  ifaces: z.array(ifaceSchema),
+  vlans: z.array(z.object({ id: z.number().int().min(1).max(4094), name: z.string().min(1).max(32) })),
+  gateway: ipStr.nullable(),
+  cli: z.object({
+    mode: z.enum(['user', 'priv', 'config', 'config-if', 'config-vlan', 'pc']),
+    ctxIface: z.string().nullable(),
+    ctxVlan: z.number().int().nullable(),
+    history: z.array(z.string()).max(200),
+  }),
+  startupConfig: z.string().nullable(),
+});
+
+const endpointSchema = z.object({ deviceId: z.string(), port: z.string() });
+
+const labSchema = z.object({
+  schemaVersion: z.literal(SCHEMA_VERSION),
+  name: z.string().max(120),
+  devices: z.array(deviceSchema).max(200),
+  links: z.array(z.object({ id: z.string().min(1), a: endpointSchema, b: endpointSchema })).max(1000),
+  counters: z.record(z.string(), z.number()),
+});
+
+const MODES_BY_KIND: Record<DeviceKind, CliMode[]> = {
+  'cisco-router': ['user', 'priv', 'config', 'config-if'],
+  'cisco-switch': ['user', 'priv', 'config', 'config-if', 'config-vlan'],
+  'aruba-switch': ['priv', 'config', 'config-if', 'config-vlan'],
+  pc: ['pc'],
+};
+
+/** Semantic checks that need cross-references (ports, devices, duplicates). */
+function crossCheck(lab: Lab): string[] {
+  const errs: string[] = [];
+  const ids = new Set<string>();
+  for (const d of lab.devices) {
+    if (ids.has(d.id)) errs.push(`รหัสอุปกรณ์ซ้ำ: ${d.id}`);
+    ids.add(d.id);
+    const p = PROFILES[d.kind];
+    const names = d.ifaces.map((i) => i.name);
+    if (names.length !== p.portNames.length || p.portNames.some((n) => !names.includes(n))) {
+      errs.push(`${d.name}: รายการพอร์ตไม่ตรงกับรุ่น ${p.label}`);
+    }
+    if (new Set(names).size !== names.length) errs.push(`${d.name}: มีพอร์ตชื่อซ้ำ`);
+    if (p.isSwitch) {
+      if (!d.vlans.some((v) => v.id === 1)) errs.push(`${d.name}: ต้องมี VLAN 1`);
+      if (new Set(d.vlans.map((v) => v.id)).size !== d.vlans.length) errs.push(`${d.name}: มี VLAN ซ้ำ`);
+    } else if (d.vlans.length) errs.push(`${d.name}: อุปกรณ์ชนิดนี้ไม่มี VLAN database`);
+    if (!MODES_BY_KIND[d.kind].includes(d.cli.mode)) errs.push(`${d.name}: CLI mode "${d.cli.mode}" ใช้ไม่ได้กับอุปกรณ์ชนิดนี้`);
+    if (d.cli.ctxIface && !names.includes(d.cli.ctxIface)) errs.push(`${d.name}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่`);
+    if (p.isHost && d.ifaces.some((i) => !!i.ip !== !!i.mask)) errs.push(`${d.name}: IP และ mask ต้องกำหนดคู่กัน`);
+    for (const i of d.ifaces) if (!!i.ip !== !!i.mask) errs.push(`${d.name}/${i.name}: IP และ mask ต้องกำหนดคู่กัน`);
+  }
+  const used = new Set<string>();
+  const linkIds = new Set<string>();
+  for (const l of lab.links) {
+    if (linkIds.has(l.id)) errs.push(`รหัสสายซ้ำ: ${l.id}`);
+    linkIds.add(l.id);
+    for (const e of [l.a, l.b]) {
+      const d = lab.devices.find((x) => x.id === e.deviceId);
+      if (!d) {
+        errs.push(`สาย ${l.id} อ้างอิงอุปกรณ์ที่ไม่มีอยู่ (${e.deviceId})`);
+        continue;
+      }
+      if (!d.ifaces.some((i) => i.name === e.port)) errs.push(`สาย ${l.id} อ้างอิงพอร์ตที่ไม่มีอยู่ (${d.name} ${e.port})`);
+      const key = `${e.deviceId}|${e.port}`;
+      if (used.has(key)) errs.push(`พอร์ต ${e.port} ของ ${d.name} ถูกใช้กับหลายสาย`);
+      used.add(key);
+    }
+    if (l.a.deviceId === l.b.deviceId) errs.push(`สาย ${l.id} เชื่อมอุปกรณ์เข้ากับตัวเอง`);
+  }
+  return errs;
+}
+
+export type ParseResult = { ok: true; lab: Lab } | { ok: false; error: string };
+
+export function validateLab(data: unknown): ParseResult {
+  const r = labSchema.safeParse(data);
+  if (!r.success) {
+    const issue = r.error.issues[0];
+    return { ok: false, error: `โครงสร้างไฟล์ไม่ถูกต้อง: ${issue.path.join('.') || '(root)'} — ${issue.message}` };
+  }
+  const lab = r.data as Lab;
+  const errs = crossCheck(lab);
+  if (errs.length) return { ok: false, error: `ข้อมูล Lab ไม่สอดคล้องกัน: ${errs.slice(0, 3).join('; ')}${errs.length > 3 ? ` (+${errs.length - 3})` : ''}` };
+  return { ok: true, lab };
+}
+
+export function serializeExport(lab: Lab): string {
+  return JSON.stringify({ app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), lab }, null, 2);
+}
+
+export function parseImport(text: string): ParseResult {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, error: 'ไฟล์ไม่ใช่ JSON ที่ถูกต้อง' };
+  }
+  if (typeof raw !== 'object' || raw === null) return { ok: false, error: 'ไฟล์ไม่ใช่ Lab ของ Network Lab Studio' };
+  const o = raw as Record<string, unknown>;
+  if (o.app !== APP_ID) return { ok: false, error: 'ไฟล์ไม่ใช่ Lab ของ Network Lab Studio (ไม่พบ app id)' };
+  if (o.schemaVersion !== SCHEMA_VERSION) {
+    return { ok: false, error: `schema version ${String(o.schemaVersion)} ไม่รองรับ (รองรับเฉพาะ version ${SCHEMA_VERSION})` };
+  }
+  return validateLab(o.lab);
+}
+
+// ───────── local storage ─────────
+
+export interface Stored {
+  lab: Lab;
+  /** content signature at the time of the last export / new / sample load */
+  savedSig: string | null;
+}
+
+export function loadStored(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): Stored | null {
+  try {
+    const t = storage?.getItem(STORAGE_KEY);
+    if (!t) return null;
+    const o = JSON.parse(t);
+    const r = validateLab(o.lab);
+    if (!r.ok) return null;
+    return { lab: r.lab, savedSig: typeof o.savedSig === 'string' ? o.savedSig : null };
+  } catch {
+    return null;
+  }
+}
+
+export function saveStored(stored: Stored, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): void {
+  try {
+    storage?.setItem(STORAGE_KEY, JSON.stringify(stored));
+  } catch {
+    /* storage full / blocked — ignore */
+  }
+}
+
+function safeStorage(): Storage | undefined {
+  try {
+    return typeof localStorage === 'undefined' ? undefined : localStorage;
+  } catch {
+    return undefined;
+  }
+}

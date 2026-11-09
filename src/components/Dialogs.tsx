@@ -1,0 +1,126 @@
+import { useEffect, useState } from 'react';
+import { portInUse } from '../core/lab';
+import { useStore } from '../store';
+
+export function ConnectDialog() {
+  const dlg = useStore((s) => s.connectDialog);
+  const lab = useStore((s) => s.lab);
+  const close = useStore((s) => s.closeConnect);
+  const connect = useStore((s) => s.connect);
+  const say = useStore((s) => s.say);
+  const [aId, setA] = useState('');
+  const [bId, setB] = useState('');
+  const [aPort, setAPort] = useState('');
+  const [bPort, setBPort] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+
+  const firstFree = (deviceId: string) => {
+    const d = lab.devices.find((x) => x.id === deviceId);
+    return d?.ifaces.find((i) => !portInUse(lab, deviceId, i.name))?.name ?? '';
+  };
+
+  useEffect(() => {
+    if (!dlg) return;
+    const a = dlg.a ?? lab.devices[0]?.id ?? '';
+    const b = dlg.b ?? lab.devices.find((d) => d.id !== a)?.id ?? '';
+    setA(a);
+    setB(b);
+    setAPort(firstFree(a));
+    setBPort(firstFree(b));
+    setErr(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dlg]);
+
+  if (!dlg) return null;
+  const portSelect = (deviceId: string, value: string, onChange: (v: string) => void, testId: string) => {
+    const d = lab.devices.find((x) => x.id === deviceId);
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}>
+        {d?.ifaces.map((i) => {
+          const used = portInUse(lab, deviceId, i.name);
+          return (
+            <option key={i.name} value={i.name} disabled={used}>
+              {i.name}
+              {used ? ' (มีสายแล้ว)' : ''}
+            </option>
+          );
+        })}
+      </select>
+    );
+  };
+  const deviceSelect = (value: string, onChange: (v: string) => void, testId: string) => (
+    <select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}>
+      {lab.devices.map((d) => (
+        <option key={d.id} value={d.id}>
+          {d.name}
+        </option>
+      ))}
+    </select>
+  );
+
+  const submit = () => {
+    const e = connect({ deviceId: aId, port: aPort }, { deviceId: bId, port: bPort });
+    if (e) setErr(e);
+    else {
+      say('ok', 'เชื่อมสายสำเร็จ');
+      close();
+    }
+  };
+
+  return (
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label="เชื่อมสาย">
+      <div className="modal">
+        <h3>เชื่อมสาย Ethernet</h3>
+        <p className="muted small">เลือกพอร์ตต้นทางและปลายทางให้ชัดเจน พอร์ตที่มีสายแล้วเลือกไม่ได้</p>
+        <div className="grid2">
+          <div>
+            <label>อุปกรณ์ต้นทาง</label>
+            {deviceSelect(aId, (v) => { setA(v); setAPort(firstFree(v)); }, 'connect-a-device')}
+            <label>พอร์ตต้นทาง</label>
+            {portSelect(aId, aPort, setAPort, 'connect-a-port')}
+          </div>
+          <div>
+            <label>อุปกรณ์ปลายทาง</label>
+            {deviceSelect(bId, (v) => { setB(v); setBPort(firstFree(v)); }, 'connect-b-device')}
+            <label>พอร์ตปลายทาง</label>
+            {portSelect(bId, bPort, setBPort, 'connect-b-port')}
+          </div>
+        </div>
+        {err && <div className="error-box" role="alert">{err}</div>}
+        <div className="modal-actions">
+          <button onClick={close}>ยกเลิก</button>
+          <button className="primary" onClick={submit} data-testid="connect-submit">
+            เชื่อมสาย
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ConfirmDialog() {
+  const p = useStore((s) => s.confirm);
+  const dirty = useStore((s) => s.isDirty());
+  const ok = useStore((s) => s.confirmReplace);
+  const cancel = useStore((s) => s.cancelReplace);
+  if (!p || !dirty) return null;
+  const what = p.kind === 'new' ? 'สร้าง Lab ใหม่ (ว่างเปล่า)' : p.kind === 'sample' ? 'เปิด Sample Lab' : `นำเข้าไฟล์ ${p.fileName}`;
+  return (
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label="ยืนยัน">
+      <div className="modal">
+        <h3>แทนที่งานปัจจุบัน?</h3>
+        <p>
+          งานปัจจุบันมีการแก้ไขที่ <b>ยังไม่ได้ Export</b> การ{what}จะแทนที่งานนี้
+        </p>
+        <div className="modal-actions">
+          <button onClick={cancel} data-testid="confirm-cancel">
+            ยกเลิก
+          </button>
+          <button className="danger" onClick={ok} data-testid="confirm-ok">
+            แทนที่
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
