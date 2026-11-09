@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('challenge sample: Check shows real results, fixing faults turns them green', async ({ page }) => {
-  await page.getByTestId('btn-sample3').click();
+  await page.getByTestId('select-challenge').selectOption('trouble');
   await expect(page.getByTestId('lab-name')).toContainText('Challenge');
   await expect(page.getByTestId('challenge-panel')).toBeVisible();
   await expect(page.getByTestId('challenge-title')).toContainText('ซ่อมเครือข่ายออฟฟิศ');

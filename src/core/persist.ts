@@ -97,6 +97,13 @@ const challengeSchema = z.object({
   title: z.string().max(120),
   goal: z.string().max(4000),
   checks: z.array(checkSchema).max(50),
+  start: z
+    .object({
+      devices: z.array(deviceSchema).max(200),
+      links: z.array(z.object({ id: z.string().min(1), a: endpointSchema, b: endpointSchema })).max(1000),
+      counters: z.record(z.string(), z.number()),
+    })
+    .optional(),
 });
 
 const labSchema = z.object({
@@ -154,6 +161,12 @@ function crossCheck(lab: Lab): string[] {
     for (const v of d.svis) if (!!v.ip !== !!v.mask) errs.push(`${d.name}/Vlan${v.vlan}: IP และ mask ต้องกำหนดคู่กัน`);
     if (p.isHost && d.ifaces.some((i) => !!i.ip !== !!i.mask)) errs.push(`${d.name}: IP และ mask ต้องกำหนดคู่กัน`);
     for (const i of d.ifaces) if (!!i.ip !== !!i.mask) errs.push(`${d.name}/${i.name}: IP และ mask ต้องกำหนดคู่กัน`);
+  }
+  if (lab.challenge?.start) {
+    const st = lab.challenge.start;
+    for (const e of crossCheck({ ...lab, devices: st.devices, links: st.links, counters: st.counters, challenge: undefined, guide: undefined })) {
+      errs.push(`จุดเริ่มต้นของโจทย์: ${e}`);
+    }
   }
   const checkIds = new Set<string>();
   for (const c of lab.challenge?.checks ?? []) {

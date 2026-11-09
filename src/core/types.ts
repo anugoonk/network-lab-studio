@@ -122,10 +122,17 @@ export type Check =
   | { id: string; kind: 'route'; label: string; deviceId: string; net: string; prefix: number }
   /** no IPv4 address is used twice inside one L2 domain */
   | { id: string; kind: 'no-dup-ip'; label: string };
+/** The Lab content a challenge starts from; "Reset" restores it. */
+export interface ChallengeStart {
+  devices: Device[];
+  links: Link[];
+  counters: Record<string, number>;
+}
 export interface Challenge {
   title: string;
   goal: string;
   checks: Check[];
+  start?: ChallengeStart;
 }
 
 /** Lab Guide: instructions / objective / resources shown beside the canvas (editable by the instructor). */

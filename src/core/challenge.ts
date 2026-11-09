@@ -5,7 +5,7 @@ import { getDevice, getIface, linkAt } from './lab';
 import { ipToString, maskToPrefix, networkOf, parseIp } from './ip';
 import { allowsVlan, l3Interfaces, linkStatus, ping } from './network';
 import { PROFILES } from './profiles';
-import type { Challenge, Check, Lab } from './types';
+import type { Challenge, ChallengeStart, Check, Lab } from './types';
 
 export const CHALLENGE_LIMITS = { checks: 50 } as const;
 
@@ -137,4 +137,17 @@ export function evaluateChallenge(lab: Lab, challenge: Challenge): ChallengeRepo
     if (r.pass) passed++;
   }
   return { results, passed, total: challenge.checks.length, allPassed: challenge.checks.length > 0 && passed === challenge.checks.length };
+}
+
+/** Snapshot of everything a learner can change (devices, cables, counters) — taken as a deep copy. */
+export function captureStart(lab: Lab): ChallengeStart {
+  return structuredClone({ devices: lab.devices, links: lab.links, counters: lab.counters });
+}
+
+/** The Lab with devices/cables/counters put back to the challenge's starting point (name, guide and checks kept). */
+export function applyStart(lab: Lab): Lab | null {
+  const start = lab.challenge?.start;
+  if (!start) return null;
+  const copy = structuredClone(start);
+  return { ...lab, devices: copy.devices, links: copy.links, counters: copy.counters };
 }

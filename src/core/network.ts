@@ -224,7 +224,11 @@ export function l2Domain(
     }
     const pi = getIface(pd, peer.port);
     if (!pi) return;
-    if (arubaSw(pd) && pi.routed) return;
+    if (arubaSw(pd) && pi.routed) {
+      // an AOS-CX routed port is an L3 endpoint (e.g. a router-to-switch uplink), not part of the switched domain
+      for (const ifc of l3Interfaces(lab, pd)) if (ifc.kind === 'port' && ifc.port === peer.port && tag === null) reach(ifc, via);
+      return;
+    }
     let v: number;
     if (pi.trunk) {
       v = tag === null ? pi.nativeVlan : tag;

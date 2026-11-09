@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CHALLENGE_LIMITS, defaultLabel, emptyChallenge, nextCheckId } from '../core/challenge';
+import { CHALLENGE_LIMITS, captureStart, defaultLabel, emptyChallenge, nextCheckId } from '../core/challenge';
 import { parseIp } from '../core/ip';
 import { configSignature, getDevice } from '../core/lab';
 import { PROFILES } from '../core/profiles';
@@ -24,6 +24,7 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
   const lab = useStore((s) => s.lab);
   const update = useStore((s) => s.updateChallenge);
   const setChallenge = useStore((s) => s.setChallenge);
+  const setStart = useStore((s) => s.setChallengeStart);
   const devices = lab.devices;
   const [kind, setKind] = useState<Kind>('ping');
   const [devId, setDevId] = useState('');
@@ -160,6 +161,18 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
         <button onClick={add} disabled={full} data-testid="challenge-add">+ เพิ่ม Check</button>
       </div>
       {err && <div className="error-box" role="alert">{err}</div>}
+      <h4 className="guide-edit-h">จุดเริ่มต้นของโจทย์ (สำหรับปุ่มรีเซ็ต)</h4>
+      <p className="muted small" data-testid="challenge-start-status">
+        {challenge.start
+          ? `บันทึกไว้แล้ว: ${challenge.start.devices.length} อุปกรณ์, ${challenge.start.links.length} สาย — ผู้เรียนกด "รีเซ็ตโจทย์" เพื่อกลับมาสถานะนี้`
+          : 'ยังไม่ได้บันทึก — ผู้เรียนจะรีเซ็ตโจทย์ไม่ได้'}
+      </p>
+      <div className="row">
+        <button onClick={() => setStart(true)} data-testid="challenge-set-start">ใช้สถานะ Lab ตอนนี้เป็นจุดเริ่มต้น</button>
+        {challenge.start && (
+          <button className="danger" onClick={() => setStart(false)} data-testid="challenge-clear-start">ล้างจุดเริ่มต้น</button>
+        )}
+      </div>
       <p className="muted small">
         Check ตรวจจาก Lab จริงทุกครั้งที่ผู้เรียนกด Check — “บรรทัดใน running-config” ตรวจข้อความตรงตัว (ไม่สนช่องว่างนำหน้า) ควรระวังว่าอาจเฉลยคำตอบให้ผู้เรียนที่เห็นรายการ Check
       </p>
@@ -175,6 +188,8 @@ function ChallengeView({ challenge }: { challenge: Challenge }) {
   const lab = useStore((s) => s.lab);
   const run = useStore((s) => s.challengeRun);
   const runChallenge = useStore((s) => s.runChallenge);
+  const reset = useStore((s) => s.resetChallenge);
+  const [confirming, setConfirming] = useState(false);
   const stale = !!run && run.sig !== configSignature(lab);
   const report = run?.report;
   const done = report?.allPassed && !stale;
@@ -196,6 +211,30 @@ function ChallengeView({ challenge }: { challenge: Challenge }) {
           </span>
         )}
       </div>
+      {challenge.start && (
+        <div className="row" data-testid="challenge-reset-row">
+          {!confirming ? (
+            <button onClick={() => setConfirming(true)} data-testid="challenge-reset" title="กลับไปสถานะเริ่มต้นของโจทย์ (ย้อนกลับด้วย Undo ได้)">
+              ↺ รีเซ็ตโจทย์
+            </button>
+          ) : (
+            <>
+              <span className="muted small">งานที่แก้ไว้จะหายจาก Lab (Undo ได้)</span>
+              <button
+                className="danger"
+                onClick={() => {
+                  reset();
+                  setConfirming(false);
+                }}
+                data-testid="challenge-reset-confirm"
+              >
+                ยืนยันรีเซ็ต
+              </button>
+              <button onClick={() => setConfirming(false)} data-testid="challenge-reset-cancel">ยกเลิก</button>
+            </>
+          )}
+        </div>
+      )}
       {challenge.checks.length === 0 && <p className="muted small">โจทย์นี้ยังไม่มี Check — กด "แก้ไข" เพื่อเพิ่ม</p>}
       {stale && (
         <p className="muted small" data-testid="challenge-stale">
@@ -227,6 +266,7 @@ function ChallengeView({ challenge }: { challenge: Challenge }) {
 
 export function ChallengePanel() {
   const challenge = useStore((s) => s.lab.challenge);
+  const lab = useStore((s) => s.lab);
   const setChallenge = useStore((s) => s.setChallenge);
   const setPanel = useStore((s) => s.setLeftPanel);
   const [editing, setEditing] = useState(false);
@@ -252,7 +292,7 @@ export function ChallengePanel() {
             <button
               className="primary"
               onClick={() => {
-                setChallenge(emptyChallenge());
+                setChallenge({ ...emptyChallenge(), start: captureStart(lab) });
                 setEditing(true);
               }}
               data-testid="challenge-create"

@@ -8,6 +8,7 @@ import { ConfirmDeleteDialog, ConfirmDialog, ConnectDialog } from './components/
 import { FileManager } from './components/FileManager';
 import { Inspector } from './components/Inspector';
 import { LeftDock } from './components/LeftDock';
+import { SAMPLES, type SampleKind } from './core/sample';
 import { useStore, type RightTab } from './store';
 
 function Header() {
@@ -57,7 +58,18 @@ function Header() {
         <button onClick={() => request({ kind: 'new' })} data-testid="btn-new">New Lab</button>
         <button onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">Open Sample Lab</button>
         <button onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">Sample: Inter-VLAN</button>
-        <button onClick={() => request({ kind: 'sample', which: 'trouble' })} data-testid="btn-sample3" title="โจทย์ซ่อมเครือข่ายพร้อมปุ่ม Check">Challenge</button>
+        <select
+          value=""
+          onChange={(e) => e.target.value && request({ kind: 'sample', which: e.target.value as SampleKind })}
+          aria-label="เปิดโจทย์ Challenge"
+          title="โจทย์ซ่อมเครือข่ายพร้อมปุ่ม Check"
+          data-testid="select-challenge"
+        >
+          <option value="">Challenge ▾</option>
+          {(Object.keys(SAMPLES) as SampleKind[]).filter((k) => SAMPLES[k].challenge).map((k) => (
+            <option key={k} value={k}>{SAMPLES[k].title}</option>
+          ))}
+        </select>
         <button onClick={exportLab} data-testid="btn-export">Export</button>
         <button onClick={() => fileRef.current?.click()} data-testid="btn-import">Import</button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} data-testid="import-file" />

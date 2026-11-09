@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { SAMPLES, type SampleKind } from '../core/sample';
 import { useStore } from '../store';
 import { Icon } from './Icons';
 
@@ -59,15 +60,11 @@ export function FileManager() {
         <button className="primary" onClick={() => createLab('blank')} data-testid="manager-new">
           <Icon name="plus" size={15} /> Lab ใหม่
         </button>
-        <button onClick={() => createLab('office')} data-testid="manager-new-office">
-          <Icon name="flask" size={15} /> + Sample: Small Office
-        </button>
-        <button onClick={() => createLab('intervlan')} data-testid="manager-new-intervlan">
-          <Icon name="flask" size={15} /> + Sample: Inter-VLAN
-        </button>
-        <button onClick={() => createLab('trouble')} data-testid="manager-new-trouble">
-          <Icon name="flask" size={15} /> + Challenge: Troubleshooting
-        </button>
+        {(Object.keys(SAMPLES) as SampleKind[]).map((k) => (
+          <button key={k} onClick={() => createLab(k)} title={SAMPLES[k].hint} data-testid={`manager-new-${k}`}>
+            <Icon name="flask" size={15} /> + {SAMPLES[k].challenge ? '' : 'Sample: '}{SAMPLES[k].title}
+          </button>
+        ))}
         <button onClick={() => fileRef.current?.click()} data-testid="manager-import">
           <Icon name="upload" size={15} /> นำเข้า JSON
         </button>

@@ -107,6 +107,12 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - **ข้อจำกัดที่ต้องรู้:** เป็นภาพ *steady-state* — สมมติว่าทุกอินเทอร์เฟซที่มี IP และลิงก์ up เคยส่งเฟรมแล้ว จึงไม่จำลองการเรียนรู้ทีละขั้น, aging, ARP แบบ on-demand หรือคอลัมน์ Age ที่แท้จริง (Age แสดง `-` สำหรับ IP ของตัวเอง และ `0` สำหรับรายการอื่น)
 - **ตรวจ IP ซ้ำ:** นับเฉพาะ IP เดียวกันบนอินเทอร์เฟซที่อยู่ L2 domain เดียวกันและลิงก์ up (IP เดียวกันคนละ VLAN/คนละส่วนที่ route กัน ไม่นับ); แสดงป้าย "⚠ IP ซ้ำ" บน canvas และรายการในแท็บ Inspector; IOS พิมพ์ `%IP-4-DUPADDR: Duplicate address … on <interface>, sourced by <MAC>` หลัง `ip address` / `no shutdown` ที่ทำให้เกิดการซ้ำ; `ipconfig` ของ PC แสดง `(Duplicate)` ต่อท้าย IP
 - **Challenge mode:** ผู้สอนเพิ่ม Check ได้ 7 ชนิด — ping ได้/ไม่ได้, ลิงก์ up, บรรทัดใน running-config, trunk ส่ง VLAN, พอร์ตเปิด/ปิด, มีเส้นทางใน routing table, ไม่มี IP ซ้ำ — ทุกชนิดตรวจจาก Lab จริง และผลที่แสดงไม่เฉลยสาเหตุ (ข้อควรระวัง: Check แบบ "บรรทัดใน running-config" อ่านแล้วอาจเฉลยคำตอบ ใช้ตามความเหมาะสม)
+- **โจทย์ Challenge สำเร็จรูป 3 ข้อ** (เมนู `Challenge ▾` บนแถบบน และปุ่มใน Lab Manager) — ทุกข้อมี Guide, Check และจุดเริ่มต้นสำหรับรีเซ็ต:
+  1. **Inter-VLAN เสีย** — trunk ไม่อนุญาต VLAN 20, R2 ไม่มี default route, gateway ของ PC-C ผิด
+  2. **IP ซ้ำ + VLAN ผิด + พอร์ตปิด** (Small Office) — ใช้ `show mac address-table` / `show ip arp` / Inspector หาเครื่องที่ผิด
+  3. **Campus + ISP** — ใช้ Layer 3 Switch (DSW1, AOS-CX) เป็น gateway, Cisco access switch, ISP router, Server, Laptop และ AP: SVI VLAN 20 ถูก shutdown, DSW1 ไม่มี default route, ISP1 ไม่มี route ขากลับของ VLAN 10 — ปัญหาซ้อนกัน แก้ทีละชั้นจึงจะเห็นชั้นถัดไป
+- **รีเซ็ตโจทย์:** ปุ่ม "↺ รีเซ็ตโจทย์" (ถามยืนยันก่อน) คืนอุปกรณ์/สาย/config/ตำแหน่งเป็นสถานะเริ่มต้นของโจทย์ — เก็บ Guide และ Check ไว้, ล้างผลตรวจและ transcript, รีเซ็ต session CLI ของอุปกรณ์ที่ config เปลี่ยน และ **ย้อนกลับด้วย Undo ได้ในขั้นเดียว** จุดเริ่มต้นถูกบันทึกในไฟล์ Lab (Export/Import ไปด้วย และตรวจความถูกต้องตอน import); ผู้สอนสร้างโจทย์เองจะได้จุดเริ่มต้นเป็นสถานะ Lab ตอนกด "สร้างโจทย์" และกด "ใช้สถานะ Lab ตอนนี้เป็นจุดเริ่มต้น" ซ้ำได้ใน Editor
+- **บั๊กที่พบระหว่างทำโจทย์ที่ 3 และแก้แล้ว:** พอร์ต routed ของ AOS-CX ที่ต่อกับ router โดยตรง (uplink /30) ไม่ถูกนับเป็นปลายทาง L3 ทำให้ ping ขากลับจาก router มาหา L3 switch ล้มทั้งที่ config ถูก
 - **สถานะการตรวจ output:** `show ip arp` (Cisco) ตรวจกับเอกสารทางการแล้ว (หัวคอลัมน์, `-` = local); `show mac address-table` ตรวจกับตัวอย่างจาก Cisco Community (ไม่ใช่เอกสารทางการ); `%IP-4-DUPADDR` ตรวจกับ Cisco Community KB; **Aruba `show arp` / `show mac-address-table`, Windows `arp -a` และ `(Duplicate)` เขียนจากความจำ ยังไม่ได้ยืนยัน** — ระยะห่างคอลัมน์เป็นการประมาณ
 
 
@@ -320,9 +326,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 10 ไฟล์) | **367/367 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
+| `npm test` (Vitest, 11 ไฟล์) | **384/384 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 41 flow) | **41/41 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด (ลาก/ต่อสาย/พอร์ต 24), Challenge, undo/redo, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 46 flow) | **46/46 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต, undo/redo, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 

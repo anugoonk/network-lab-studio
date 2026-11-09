@@ -1,5 +1,6 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
-import { interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
+import { captureStart } from './challenge';
+import { campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
 import type { Check, Device, Lab } from './types';
 
 export const SAMPLE_NAME = 'Small Office – Cisco & Aruba';
@@ -208,5 +209,158 @@ export function buildTroubleshootLab(): Lab {
       checks,
     },
   };
-  return lab;
+  return withStart(lab);
 }
+
+/** remembers the (faulty) starting state so the learner can press "Reset" */
+function withStart(lab: Lab): Lab {
+  return { ...lab, challenge: { ...lab.challenge!, start: captureStart(lab) } };
+}
+
+// ───────────────────────── Challenge 2: duplicate IP + wrong VLAN + shut port ─────────────────────────
+
+export const DUPIP_NAME = 'Challenge: IP ซ้ำ + VLAN ผิด + พอร์ตปิด – Small Office';
+
+/** Small Office with three faults: PC-04 reuses PC-02's address, PC-08 sits in VLAN 20, PC-09's switch port is shut. */
+export function buildDupIpLab(): Lab {
+  let lab: Lab = { ...buildSampleLab(), name: DUPIP_NAME };
+  const id = (name: string) => lab.devices.find((d) => d.name === name)!.id;
+  lab = updateDevice(lab, id('PC-04'), (d) => ({ ...d, ifaces: d.ifaces.map((i) => ({ ...i, ip: '192.168.1.102' })) }));
+  lab = updateDevice(lab, id('SW2'), (d) => ({
+    ...d,
+    ifaces: d.ifaces.map((i) => (i.name === '1/1/3' ? { ...i, accessVlan: 20 } : i.name === '1/1/4' ? { ...i, adminUp: false } : i)),
+  }));
+  const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
+  const checks: Check[] = [
+    ping(1, 'PC-01', '192.168.1.1', 'PC-01 ติดต่อ gateway (R1) ได้'),
+    ping(2, 'PC-08', '192.168.1.1', 'PC-08 ติดต่อ gateway (R1) ได้'),
+    ping(3, 'PC-09', '192.168.1.1', 'PC-09 ติดต่อ gateway (R1) ได้'),
+    { id: 'c4', kind: 'no-dup-ip', label: 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน' },
+  ];
+  return withStart({
+    ...lab,
+    guide: dupIpGuide(),
+    challenge: {
+      title: 'หาเครื่องที่ IP ซ้ำ และเครื่องที่ต่อไม่ติด',
+      goal: 'ผู้ใช้แจ้งว่ามีเครื่องในออฟฟิศต่อเครือข่ายไม่ได้ และบางเครื่อง "ติดๆ ดับๆ" ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย',
+      checks,
+    },
+  });
+}
+
+// ───────────────────────── Challenge 3: campus + ISP (L3 switch, new devices) ─────────────────────────
+
+export const CAMPUS_NAME = 'Challenge: Campus + ISP – L3 Switch, Server, AP';
+
+/**
+ * Distribution L3 switch (DSW1, AOS-CX) with SVIs as gateways, a Cisco access switch, a router standing in for the ISP and a server.
+ * Faults: (1) DSW1 interface vlan 20 is shut down, (2) DSW1 has no default route, (3) ISP1 has no route back to 192.168.10.0/24.
+ */
+export function buildCampusLab(): Lab {
+  let lab = emptyLab(CAMPUS_NAME);
+  let n = 0;
+  const mk = (kind: Device['kind'], name: string, x: number, y: number) => {
+    const d = createDevice(kind, `d${++n}`, name, x, y);
+    lab = { ...lab, devices: [...lab.devices, d] };
+    return d;
+  };
+  const isp = mk('isp-router', 'ISP1', 380, 20);
+  const srv = mk('server', 'SRV-01', 720, 20);
+  const dsw = mk('l3-switch', 'DSW1', 380, 190);
+  const sw1 = mk('cisco-switch', 'SW1', 380, 360);
+  const pc = mk('pc', 'PC-01', 200, 530);
+  const lap = mk('laptop', 'LAP-01', 380, 530);
+  const ap = mk('wireless-ap', 'AP1', 560, 530);
+
+  const setIface = (devId: string, port: string, patch: Record<string, unknown>) => {
+    lab = updateDevice(lab, devId, (d) => ({ ...d, ifaces: d.ifaces.map((i) => (i.name === port ? { ...i, ...patch } : i)) }));
+  };
+  const host = (d: Device, ip: string, gw: string) => {
+    lab = updateDevice(lab, d.id, (x) => ({ ...x, gateway: gw, ifaces: x.ifaces.map((i) => ({ ...i, ip, mask: '255.255.255.0' })) }));
+  };
+  const vlans = (def: string) => [
+    { id: 1, name: def },
+    { id: 10, name: 'USERS' },
+    { id: 20, name: 'LAPTOPS' },
+  ];
+
+  // ISP: server side + customer side, one static route back to the campus (the one for VLAN 10 is missing — fault 3)
+  setIface(isp.id, 'GigabitEthernet0/0', { adminUp: true, ip: '203.0.113.1', mask: '255.255.255.0' });
+  setIface(isp.id, 'GigabitEthernet0/1', { adminUp: true, ip: '10.1.1.1', mask: '255.255.255.252' });
+  lab = updateDevice(lab, isp.id, (d) => ({ ...d, routes: [{ net: '192.168.20.0', mask: '255.255.255.0', nextHop: '10.1.1.2' }] }));
+  host(srv, '203.0.113.10', '203.0.113.1');
+
+  // DSW1: routed uplink, trunk to SW1, SVIs as gateways (VLAN 20 shut — fault 1), no default route (fault 2)
+  lab = updateDevice(lab, dsw.id, (d) => ({
+    ...d,
+    vlans: vlans('DEFAULT_VLAN_1'),
+    svis: [
+      { vlan: 10, adminUp: true, description: '', ip: '192.168.10.1', mask: '255.255.255.0' },
+      { vlan: 20, adminUp: false, description: '', ip: '192.168.20.1', mask: '255.255.255.0' },
+    ],
+  }));
+  setIface(dsw.id, '1/1/24', { adminUp: true, routed: true, ip: '10.1.1.2', mask: '255.255.255.252' });
+  setIface(dsw.id, '1/1/1', { adminUp: true, routed: false, trunk: true, trunkAllowed: [10, 20] });
+
+  // SW1: trunk to DSW1, access ports
+  lab = updateDevice(lab, sw1.id, (d) => ({ ...d, vlans: vlans('default') }));
+  setIface(sw1.id, 'GigabitEthernet0/1', { trunk: true, trunkAllowed: [10, 20] });
+  setIface(sw1.id, 'FastEthernet0/1', { accessVlan: 10, modeAccess: true });
+  setIface(sw1.id, 'FastEthernet0/2', { accessVlan: 20, modeAccess: true });
+  setIface(sw1.id, 'FastEthernet0/3', { accessVlan: 10, modeAccess: true });
+  host(pc, '192.168.10.11', '192.168.10.1');
+  host(lap, '192.168.20.11', '192.168.20.1');
+
+  const link = (aId: string, ap_: string, bId: string, bp: string) => {
+    const r = addLink(lab, { deviceId: aId, port: ap_ }, { deviceId: bId, port: bp });
+    if (r.error) throw new Error(r.error);
+    lab = r.lab;
+  };
+  link(isp.id, 'GigabitEthernet0/0', srv.id, 'Ethernet0');
+  link(isp.id, 'GigabitEthernet0/1', dsw.id, '1/1/24');
+  link(dsw.id, '1/1/1', sw1.id, 'GigabitEthernet0/1');
+  link(sw1.id, 'FastEthernet0/1', pc.id, 'Ethernet0');
+  link(sw1.id, 'FastEthernet0/2', lap.id, 'Ethernet0');
+  link(sw1.id, 'FastEthernet0/3', ap.id, 'Ethernet0');
+  lab = { ...lab, counters: { ...lab.counters, __id: n, ISP: 1, DSW: 1, SW: 1, 'SRV-': 1, 'PC-': 1, 'LAP-': 1, AP: 1 } };
+
+  const ping = (k: number, from: Device, to: string, label: string): Check => ({ id: `c${k}`, kind: 'ping', label, from: from.id, to, expect: 'success' });
+  const checks: Check[] = [
+    ping(1, pc, '192.168.10.1', 'PC-01 ติดต่อ gateway (DSW1 VLAN 10) ได้'),
+    ping(2, lap, '192.168.20.1', 'LAP-01 ติดต่อ gateway (DSW1 VLAN 20) ได้'),
+    ping(3, pc, '203.0.113.10', 'PC-01 ติดต่อ SRV-01 (ฝั่ง ISP) ได้'),
+    ping(4, lap, '203.0.113.10', 'LAP-01 ติดต่อ SRV-01 (ฝั่ง ISP) ได้'),
+    { id: 'c5', kind: 'link-up', label: 'DSW1 1/1/24 (ลิงก์ไป ISP1) up', deviceId: dsw.id, port: '1/1/24' },
+    { id: 'c6', kind: 'no-dup-ip', label: 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน' },
+  ];
+  return withStart({
+    ...lab,
+    guide: campusGuide(),
+    challenge: {
+      title: 'ซ่อมเครือข่าย Campus ที่ออกอินเทอร์เน็ตไม่ได้',
+      goal: 'เพิ่ง cutover โครงสร้างใหม่ (L3 switch เป็น gateway, ISP จำลองด้านบน) ผู้ใช้ใน VLAN ใดก็ออกไปหา server ฝั่ง ISP ไม่ได้ ให้หาสาเหตุทุกชั้นแล้วแก้ให้ทุก Check ผ่าน — มีปัญหามากกว่าหนึ่งจุด และบางจุดจะเห็นก็ต่อเมื่อแก้จุดก่อนหน้าแล้ว',
+      checks,
+    },
+  });
+}
+
+// ───────────────────────── catalog ─────────────────────────
+
+export type SampleKind = 'office' | 'intervlan' | 'trouble' | 'dupip' | 'campus';
+
+export interface SampleInfo {
+  /** short name used on buttons and in confirmations */
+  title: string;
+  /** one-line description (tooltip) */
+  hint: string;
+  challenge: boolean;
+  build: () => Lab;
+}
+
+export const SAMPLES: Record<SampleKind, SampleInfo> = {
+  office: { title: 'Small Office', hint: 'Cisco + Aruba, VLAN, ping', challenge: false, build: buildSampleLab },
+  intervlan: { title: 'Inter-VLAN', hint: 'Trunk, router-on-a-stick, static route, SVI', challenge: false, build: buildInterVlanLab },
+  trouble: { title: 'Challenge 1: Inter-VLAN เสีย', hint: 'trunk allowed + default route + gateway ผิด (3 จุด)', challenge: true, build: buildTroubleshootLab },
+  dupip: { title: 'Challenge 2: IP ซ้ำ + VLAN ผิด', hint: 'ใช้ show mac address-table / show ip arp หาเครื่องที่ผิด (3 จุด)', challenge: true, build: buildDupIpLab },
+  campus: { title: 'Challenge 3: Campus + ISP', hint: 'L3 switch, server, AP — ปัญหาซ้อนกันหลายชั้น (3 จุด)', challenge: true, build: buildCampusLab },
+};

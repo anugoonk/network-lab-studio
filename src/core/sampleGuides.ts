@@ -158,3 +158,90 @@ export function troubleshootGuide(): Guide {
     resources: REFERENCES,
   };
 }
+
+export function dupIpGuide(): Guide {
+  return {
+    title: 'Troubleshooting — IP ซ้ำ, VLAN ผิด และพอร์ตปิด',
+    objective: [
+      'เมื่อจบโจทย์นี้ ผู้เรียนจะสามารถ:',
+      '- ใช้ตาราง MAC และ ARP หาว่าเครื่องไหนอยู่พอร์ตไหน/VLAN ไหน และ IP ซ้ำกับใคร',
+      '- แยกอาการ "ต่อไม่ติดเลย" (VLAN ผิด/พอร์ตปิด) ออกจาก "ติดๆ ดับๆ" (IP ซ้ำ)',
+    ].join('\n'),
+    sections: [
+      {
+        heading: 'สถานการณ์',
+        body: [
+          'ออฟฟิศ Small Office (ดูรายละเอียดที่ Open Sample Lab) ผู้ใช้แจ้งว่า',
+          '- เครื่องหนึ่งฝั่ง SW2 ต่อเครือข่ายไม่ได้เลย แม้สายต่ออยู่',
+          '- อีกเครื่องไฟลิงก์ดับ',
+          '- ระบบแจ้งเตือนว่ามี IP ซ้ำอยู่ในเครือข่าย',
+        ].join('\n'),
+      },
+      {
+        heading: 'เครื่องมือที่ช่วยได้',
+        body: [
+          '- Inspector → **ตรวจ IP ซ้ำ** และป้าย ⚠ บนอุปกรณ์',
+          '- SW1 (Cisco): `show mac address-table` — MAC ของแต่ละเครื่องอยู่ VLAN/พอร์ตไหน',
+          '- SW2 (Aruba): `show mac-address-table`, `show interface brief`, `show vlan`',
+          '- R1: `show ip arp` — เห็นว่า IP หนึ่งตอบด้วย MAC ใดบ้าง',
+          '- PC: `ipconfig`, `arp -a`',
+        ].join('\n'),
+      },
+      {
+        heading: 'กติกา',
+        body: [
+          '1. กด **Check** เพื่อดูว่ายังไม่ผ่านข้อไหน (บอกแค่ผ่าน/ไม่ผ่าน)',
+          '2. ห้ามลบหรือเปลี่ยนสาย แก้ได้เฉพาะ config/IP ของอุปกรณ์',
+          '3. ถ้าแก้พังจนไปต่อไม่ได้ กด **รีเซ็ตโจทย์** เพื่อกลับสถานะเริ่มต้น (ย้อนกลับด้วย Undo ได้)',
+        ].join('\n'),
+      },
+    ],
+    resources: REFERENCES,
+  };
+}
+
+export function campusGuide(): Guide {
+  return {
+    title: 'Campus + ISP — L3 Switch เป็น gateway',
+    objective: [
+      'เมื่อจบโจทย์นี้ ผู้เรียนจะสามารถ:',
+      '- ไล่ปัญหาแบบหลายชั้น: gateway (SVI) → default route → route ขากลับที่ฝั่ง ISP',
+      '- ใช้ Lab Inspector อ่านว่า ping ล้มที่ขาไปหรือขากลับ',
+      '- ตั้งค่า SVI และ default route บน L3 switch (AOS-CX) และ static route บน router (IOS)',
+    ].join('\n'),
+    sections: [
+      {
+        heading: 'ผังเครือข่าย',
+        body: [
+          '- **DSW1** (Layer 3 Switch, AOS-CX): `vlan10` = 192.168.10.1/24, `vlan20` = 192.168.20.1/24 เป็น gateway · `1/1/1` trunk ไป SW1 · `1/1/24` = 10.1.1.2/30 ไป ISP1',
+          '- **SW1** (Cisco access): `Gi0/1` trunk ไป DSW1 · `Fa0/1` PC-01 (VLAN 10) · `Fa0/2` LAP-01 (VLAN 20) · `Fa0/3` AP1 (อุปกรณ์วาดอย่างเดียว ไม่มี CLI)',
+          '- **ISP1** (router จำลอง ISP): `Gi0/1` = 10.1.1.1/30 · `Gi0/0` = 203.0.113.1/24 ไป **SRV-01** 203.0.113.10',
+        ].join('\n'),
+      },
+      {
+        heading: 'สถานการณ์',
+        body: [
+          'เพิ่ง cutover โครงสร้างใหม่ ผู้ใช้ทุก VLAN เข้า SRV-01 ไม่ได้ และผู้ใช้ VLAN 20 แม้แต่ gateway ก็ยังไม่ตอบ',
+          'มีปัญหามากกว่าหนึ่งจุด บางจุดจะเห็นก็ต่อเมื่อแก้จุดก่อนหน้าแล้ว',
+        ].join('\n'),
+      },
+      {
+        heading: 'ใบ้ (อ่านเมื่อติดจริง ๆ)',
+        body: [
+          '- ใช้ `show ip interface brief` และ `show ip route` ที่ DSW1 / ISP1 ก่อนเดา',
+          '- ping ที่ผ่านขาไปแต่ไม่กลับ = ฝั่งปลายทางไม่รู้เส้นทางกลับ',
+          '- คำสั่ง Aruba ใช้ CIDR (`ip route 0.0.0.0/0 <next-hop>`) ส่วน Cisco ใช้ mask',
+        ].join('\n'),
+      },
+      {
+        heading: 'กติกา',
+        body: [
+          '1. กด **Check** เพื่อดูผลรวม (บอกแค่ผ่าน/ไม่ผ่าน ไม่บอกสาเหตุ)',
+          '2. ห้ามลบหรือเปลี่ยนสาย',
+          '3. กด **รีเซ็ตโจทย์** เพื่อกลับสถานะเริ่มต้นได้ทุกเมื่อ',
+        ].join('\n'),
+      },
+    ],
+    resources: REFERENCES,
+  };
+}

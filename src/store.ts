@@ -23,9 +23,9 @@ import {
   serializeExport,
   type LabEntry,
 } from './core/persist';
-import { buildInterVlanLab, buildSampleLab, buildTroubleshootLab } from './core/sample';
-import { emptyHistory, recordChange, redoStep, undoStep, type History } from './core/history';
-import { emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
+import { SAMPLES, buildSampleLab, type SampleKind } from './core/sample';
+import { emptyHistory, reconcileCli, recordChange, redoStep, undoStep, type History } from './core/history';
+import { applyStart, captureStart, emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
 import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
@@ -33,7 +33,7 @@ export type RightTab = 'details' | 'console' | 'inspector';
 export type View = 'lab' | 'library' | 'manager';
 /** what is expanded on the left of the canvas: the labelled menu, the Lab Guide, or just the icon rail */
 export type LeftPanel = 'menu' | 'guide' | 'challenge' | null;
-export type SampleKind = 'office' | 'intervlan' | 'trouble';
+export type { SampleKind };
 
 /** last Check run; `sig` is the Lab config it was run against (so stale results can be flagged) */
 export interface ChallengeRun {
@@ -100,6 +100,10 @@ interface State {
   challengeRun: ChallengeRun | null;
   runChallenge: () => void;
   setChallenge: (c: Challenge | undefined) => void;
+  /** put devices/cables back to the challenge's starting state (undoable); false when the lab has none */
+  resetChallenge: () => boolean;
+  /** use the lab as it is now as the challenge's starting state / forget the saved start */
+  setChallengeStart: (on: boolean) => void;
   updateChallenge: (fn: (c: Challenge) => Challenge) => void;
   toggleMenu: () => void;
   /** header toggle: collapse whatever is expanded on the left, or expand the menu */
@@ -148,7 +152,7 @@ interface State {
 }
 
 function makeLab(kind: 'blank' | SampleKind): Lab {
-  return kind === 'office' ? buildSampleLab() : kind === 'intervlan' ? buildInterVlanLab() : kind === 'trouble' ? buildTroubleshootLab() : emptyLab('New Lab');
+  return kind === 'blank' ? emptyLab('New Lab') : SAMPLES[kind].build();
 }
 
 function initial(): { lab: Lab; savedSig: string | null; activeId: string; updatedAt: number; others: LabEntry[] } {
@@ -309,6 +313,25 @@ export const useStore = create<State>((set, get) => {
       else delete next.challenge;
       set({ lab: next, challengeRun: null });
     },
+    resetChallenge: () => {
+      const s = get();
+      const target = applyStart(s.lab);
+      if (!target) return false;
+      const next = reconcileCli(target, s.lab);
+      const sel = s.selection;
+      const alive = !sel || (sel.type === 'device' ? next.devices.some((d) => d.id === sel.id) : next.links.some((l) => l.id === sel.id));
+      // a normal Lab change: the history subscriber records it, so "Reset" can be undone
+      set({ lab: next, challengeRun: null, transcripts: {}, lastPing: null, selection: alive ? sel : null });
+      return true;
+    },
+    setChallengeStart: (on) => {
+      const lab = get().lab;
+      if (!lab.challenge) return;
+      const challenge = { ...lab.challenge };
+      if (on) challenge.start = captureStart(lab);
+      else delete challenge.start;
+      setLab({ ...lab, challenge });
+    },
     updateChallenge: (fn) => {
       const lab = get().lab;
       setLab({ ...lab, challenge: fn(lab.challenge ?? emptyChallenge()) });
@@ -448,11 +471,9 @@ export const useStore = create<State>((set, get) => {
               ? `นำเข้า ${p.fileName} สำเร็จ`
               : p.kind === 'new'
                 ? 'สร้าง Lab ใหม่แล้ว'
-                : p.which === 'intervlan'
-                  ? 'เปิด Sample Lab: Inter-VLAN แล้ว'
-                  : p.which === 'trouble'
-                    ? 'เปิดโจทย์ Challenge: Troubleshooting แล้ว'
-                    : 'เปิด Sample Lab แล้ว',
+                : SAMPLES[p.which].challenge
+                  ? `เปิดโจทย์ ${SAMPLES[p.which].title} แล้ว`
+                  : `เปิด Sample Lab: ${SAMPLES[p.which].title} แล้ว`,
         },
       });
     },
