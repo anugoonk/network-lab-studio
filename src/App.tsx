@@ -21,6 +21,10 @@ function Header() {
   const rightOpen = useStore((s) => s.rightOpen);
   const toggleLeft = useStore((s) => s.toggleLeft);
   const toggleRight = useStore((s) => s.toggleRight);
+  const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
+  const canUndo = useStore((s) => s.history.past.length > 0);
+  const canRedo = useStore((s) => s.history.future.length > 0);
   const flow = useReactFlow();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +52,8 @@ function Header() {
         </button>
       </nav>
       <div className="actions">
+        <button onClick={undo} disabled={!canUndo} title="ย้อนกลับ (Ctrl+Z)" aria-label="Undo" data-testid="btn-undo">↶ Undo</button>
+        <button onClick={redo} disabled={!canRedo} title="ทำซ้ำ (Ctrl+Y)" aria-label="Redo" data-testid="btn-redo">↷ Redo</button>
         <button onClick={() => request({ kind: 'new' })} data-testid="btn-new">New Lab</button>
         <button onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">Open Sample Lab</button>
         <button onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">Sample: Inter-VLAN</button>
@@ -136,6 +142,23 @@ function Notice() {
 export default function App() {
   const view = useStore((s) => s.view);
   const rightOpen = useStore((s) => s.rightOpen);
+  useEffect(() => {
+    // Ctrl/Cmd+Z = undo, Ctrl+Y or Ctrl/Cmd+Shift+Z = redo — but never inside a text field (it has its own undo)
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      const st = useStore.getState();
+      if (st.view !== 'lab') return;
+      if (k === 'z' && !e.shiftKey) st.undo();
+      else if (k === 'y' || (k === 'z' && e.shiftKey)) st.redo();
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   return (
     <ReactFlowProvider>
       <div className="app">

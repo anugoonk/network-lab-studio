@@ -24,6 +24,7 @@ import {
   type LabEntry,
 } from './core/persist';
 import { buildInterVlanLab, buildSampleLab, buildTroubleshootLab } from './core/sample';
+import { emptyHistory, recordChange, redoStep, undoStep, type History } from './core/history';
 import { emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
 import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
 
@@ -63,6 +64,11 @@ export interface EntrySummary {
 
 interface State {
   lab: Lab;
+  /** undo/redo stacks of the open Lab (session only); `labEpoch` changes whenever a different Lab is loaded */
+  history: History;
+  labEpoch: number;
+  undo: () => void;
+  redo: () => void;
   savedSig: string | null;
   /** id of the lab currently open; `others` holds every other saved lab */
   activeId: string;
@@ -177,6 +183,8 @@ function download(filename: string, text: string) {
 
 const fileName = (lab: Lab) => `${lab.name.replace(/[^\w-]+/g, '_') || 'lab'}.nls.json`;
 
+let applyingHistory = false;
+
 export const useStore = create<State>((set, get) => {
   const setLab = (lab: Lab) => set({ lab });
 
@@ -188,6 +196,7 @@ export const useStore = create<State>((set, get) => {
 
   const loadEntry = (e: LabEntry, others: LabEntry[]) => {
     set({
+      labEpoch: get().labEpoch + 1,
       lab: e.lab,
       savedSig: e.savedSig,
       activeId: e.id,
@@ -205,8 +214,20 @@ export const useStore = create<State>((set, get) => {
     });
   };
 
+  const applyHistory = (lab: Lab, history: History) => {
+    applyingHistory = true;
+    try {
+      const sel = get().selection;
+      const alive = !sel || (sel.type === 'device' ? lab.devices.some((d) => d.id === sel.id) : lab.links.some((l) => l.id === sel.id));
+      set({ lab, history, selection: alive ? sel : null });
+    } finally {
+      applyingHistory = false;
+    }
+  };
+
   const replaceLab = (lab: Lab) => {
     set({
+      labEpoch: get().labEpoch + 1,
       lab,
       savedSig: contentSignature(lab),
       activeUpdatedAt: Date.now(),
@@ -222,6 +243,18 @@ export const useStore = create<State>((set, get) => {
 
   return {
     lab: init.lab,
+    history: emptyHistory(),
+    labEpoch: 0,
+    undo: () => {
+      const s = get();
+      const r = undoStep(s.history, s.lab);
+      if (r) applyHistory(r.lab, r.history);
+    },
+    redo: () => {
+      const s = get();
+      const r = redoStep(s.history, s.lab);
+      if (r) applyHistory(r.lab, r.history);
+    },
     savedSig: init.savedSig,
     activeId: init.activeId,
     activeUpdatedAt: init.updatedAt,
@@ -526,6 +559,17 @@ function persistNow() {
     entries: [{ id: st.activeId, name: st.lab.name, updatedAt: st.activeUpdatedAt, savedSig: st.savedSig, lab: st.lab }, ...st.others],
   });
 }
+
+// undo/redo recording: every user-made Lab change is pushed onto the history; loading another Lab resets it
+useStore.subscribe((s, prev) => {
+  if (s.lab === prev.lab || applyingHistory) return;
+  if (s.labEpoch !== prev.labEpoch) {
+    useStore.setState({ history: emptyHistory() });
+    return;
+  }
+  const h = recordChange(s.history, prev.lab, s.lab, Date.now());
+  if (h !== s.history) useStore.setState({ history: h });
+});
 
 useStore.subscribe((s, prev) => {
   if (s.lab === prev.lab && s.savedSig === prev.savedSig && s.others === prev.others && s.activeId === prev.activeId) return;
