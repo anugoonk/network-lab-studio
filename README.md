@@ -100,6 +100,16 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 โจทย์ฝึกอยู่ใน Lab Guide ของ Lab นี้ (ตัด VLAN ออกจาก allowed list, ลบ default route แล้วดูขากลับล้ม, ตั้ง SVI บน SW2 ให้เป็น gateway)
 
+## ตาราง ARP / MAC, ตรวจ IP ซ้ำ และ Challenge mode
+
+- **คำสั่งใหม่:** Cisco `show ip arp` (router/switch) และ `show mac address-table` (switch); Aruba `show arp` และ `show mac-address-table`; PC `arp -a`
+- **คำนวณจาก topology + config ปัจจุบันทุกครั้ง** (ไม่ใช่ข้อความตายตัว): MAC ของแต่ละพอร์ตสร้างจาก hash ของรหัสอุปกรณ์ + ชื่อพอร์ต (คงที่ข้ามการบันทึก/โหลด); switch เรียนรู้ MAC ตาม VLAN และพอร์ตขาเข้าจริง (trunk, router-on-a-stick, SVI); ย้ายพอร์ตไป VLAN อื่น / shutdown / ถอดสาย แล้วตารางเปลี่ยนทันที
+- **ข้อจำกัดที่ต้องรู้:** เป็นภาพ *steady-state* — สมมติว่าทุกอินเทอร์เฟซที่มี IP และลิงก์ up เคยส่งเฟรมแล้ว จึงไม่จำลองการเรียนรู้ทีละขั้น, aging, ARP แบบ on-demand หรือคอลัมน์ Age ที่แท้จริง (Age แสดง `-` สำหรับ IP ของตัวเอง และ `0` สำหรับรายการอื่น)
+- **ตรวจ IP ซ้ำ:** นับเฉพาะ IP เดียวกันบนอินเทอร์เฟซที่อยู่ L2 domain เดียวกันและลิงก์ up (IP เดียวกันคนละ VLAN/คนละส่วนที่ route กัน ไม่นับ); แสดงป้าย "⚠ IP ซ้ำ" บน canvas และรายการในแท็บ Inspector; IOS พิมพ์ `%IP-4-DUPADDR: Duplicate address … on <interface>, sourced by <MAC>` หลัง `ip address` / `no shutdown` ที่ทำให้เกิดการซ้ำ; `ipconfig` ของ PC แสดง `(Duplicate)` ต่อท้าย IP
+- **Challenge mode:** ผู้สอนเพิ่ม Check ได้ 7 ชนิด — ping ได้/ไม่ได้, ลิงก์ up, บรรทัดใน running-config, trunk ส่ง VLAN, พอร์ตเปิด/ปิด, มีเส้นทางใน routing table, ไม่มี IP ซ้ำ — ทุกชนิดตรวจจาก Lab จริง และผลที่แสดงไม่เฉลยสาเหตุ (ข้อควรระวัง: Check แบบ "บรรทัดใน running-config" อ่านแล้วอาจเฉลยคำตอบ ใช้ตามความเหมาะสม)
+- **สถานะการตรวจ output:** `show ip arp` (Cisco) ตรวจกับเอกสารทางการแล้ว (หัวคอลัมน์, `-` = local); `show mac address-table` ตรวจกับตัวอย่างจาก Cisco Community (ไม่ใช่เอกสารทางการ); `%IP-4-DUPADDR` ตรวจกับ Cisco Community KB; **Aruba `show arp` / `show mac-address-table`, Windows `arp -a` และ `(Duplicate)` เขียนจากความจำ ยังไม่ได้ยืนยัน** — ระยะห่างคอลัมน์เป็นการประมาณ
+
+
 ## ขอบเขต
 
 **รองรับ**
@@ -130,10 +140,21 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 พฤติกรรมเริ่มต้นที่เลียนแบบของจริง (ตามที่เข้าใจ ยังไม่ได้ยืนยันกับเอกสาร): พอร์ต router (Cisco) และพอร์ต AOS-CX เริ่มต้นเป็น **shutdown**; พอร์ต Catalyst เริ่มต้นเป็น up (VLAN 1); พอร์ต AOS-CX เริ่มต้นเป็น **routed** จึงต้องสั่ง `no routing` ก่อนใช้ `vlan access`; Cisco `switchport access vlan N` จะสร้าง VLAN ให้อัตโนมัติพร้อมข้อความเตือนตาม IOS 15.0
 
-> **สถานะการตรวจสอบ syntax (ตรงตามจริง):** ไม่สามารถเข้าถึงเอกสารทางการของ HPE Aruba (AOS-CX Command Reference) และ Cisco ได้ในรอบพัฒนานี้ จึงตรวจได้เพียงบางส่วนจากแหล่งรอง (ฟอรัม Airheads/Aruba Community และ mirror ของ AOS-CX 10.10 Layer-2 guide): ยืนยันได้ว่า `vlan access <id>` คู่กับ `no shutdown` / `no routing` เป็นรูปแบบที่ใช้จริง และคอลัมน์ของ `show interface brief` (Port, Native VLAN, Mode, Type, Enabled, Status, Reason, Speed, Description) กับ Reason "Administratively down" ตรงกับของจริง
-> - ข้อควรระวัง: บางรุ่น AOS-CX (เช่น 6200) ไม่ต้องสั่ง `no routing` เพราะพอร์ตเริ่มต้นเป็น L2 — simulator ยึดพฤติกรรม routed-by-default ตามรุ่นอ้างอิงด้านบนเพื่อให้ผู้เรียนฝึกขั้นตอนนี้
-> - **คำสั่งที่เพิ่มรอบที่ 2 (trunk, sub-interface, SVI, static route) ยังไม่ได้ตรวจเทียบเอกสารทางการเช่นกัน:** Cisco `switchport trunk ...`, `encapsulation dot1Q`, `ip route` เป็นรูปแบบมาตรฐานที่ใช้กันทั่วไป ส่วน Aruba `vlan trunk allowed/native`, `interface vlan N`, `ip address a.b.c.d/len`, `ip route a.b.c.d/len next-hop` เขียนตามความรู้เกี่ยวกับ AOS-CX 10.x; **สถานะเริ่มต้นของ SVI บน AOS-CX (simulator ตั้งเป็น up)** และข้อความ error ของคำสั่งเหล่านี้ยังไม่ยืนยัน
-> - **ยังไม่ได้ตรวจเทียบเอกสารทางการ:** layout ของ `show vlan` (AOS-CX), ข้อความ error ของ AOS-CX (`% Unknown command.` ฯลฯ) และ output ของคำสั่ง Cisco ทั้งหมด (เขียนตามความรู้เกี่ยวกับ IOS 15.x) เป็นการประมาณ ไม่ใช่การคัดลอกทุกอักขระ — ควรตรวจเทียบก่อนใช้สอนจริง
+> **สถานะการตรวจสอบ syntax และ output (อัปเดต 2026-11-09, ตรงตามจริง)** — แบ่งตามระดับหลักฐาน:
+>
+> **ตรวจกับเอกสารทางการของ Cisco แล้ว (cisco.com — Catalyst 2960/2960-X config & command reference, IOS IP Routing reference):**
+> - `switchport trunk allowed vlan {add | all | except | remove}` และรูปแบบ vlan-list ไม่มีช่องว่าง; ค่าเริ่มต้น "ทุก VLAN" (1-4094); native VLAN เริ่มต้น 1
+> - `show interfaces trunk` มี 4 ตารางและหัวคอลัมน์ตรงกับของจริง (Port/Mode/Encapsulation/Status/Native vlan; Vlans allowed on trunk; … allowed and active in management domain; … in spanning tree forwarding state and not pruned)
+> - `show ip route`: legend บรรทัดแรก (`Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP`), `Gateway of last resort`, การจัดกลุ่มตาม classful network (`… is variably subnetted, N subnets, M masks` / `… is subnetted, N subnets`) และรูปแบบบรรทัด static `S  net [1/0] via next-hop` — แก้ให้ตรงตามนี้แล้วในรอบนี้
+> - **ที่ยังเป็นการประมาณ:** ระยะห่างคอลัมน์ของ `show interfaces status` / `show vlan brief` (เอกสาร 2960 ไม่มีตัวอย่างตารางให้เทียบ), `show version`, ข้อความ ping/error ของ IOS (ตรงตามที่รู้จักทั่วไป แต่ยังไม่ได้เทียบกับหน้าเอกสาร)
+>
+> **Aruba AOS-CX — เอกสารทางการเข้าไม่ได้:** เซิร์ฟเวอร์ `arubanetworking.hpe.com` ตอบ HTTP 403 และหน้า `support.hpe.com` ไม่คืนเนื้อหา จึงตรวจได้เพียง (1) สรุปจากผลค้นหาที่อ้างหน้าเอกสาร AOS-CX CLI Bank และ (2) transcript จริงจาก "AOS-CX Simulator VSX Lab Guide" (arubase.club) ซึ่งเป็น output จากสวิตช์ AOS-CX จริง:
+> - ยืนยัน: `vlan trunk allowed <list|all>` / `no vlan trunk allowed <list>`, `vlan trunk native <id>`, `vlan access <id>` คู่กับ `no routing`, running-config แบบ `vlan 1,100` / `interface 1/1/1` / `no shutdown` / `no routing` / `vlan access 100`, `interface vlan100` + `ip address a.b.c.d/len`, ชื่อ prompt `config-if-vlan` และคอลัมน์ `show vlan` (VLAN, Name, Status, Reason, Type, Interfaces) กับการยุบพอร์ตเป็นช่วง
+> - **แก้แล้วในรอบนี้:** `show ip interface brief` ใช้ layout จริง (`Interface / IP Address / Interface Status` + `link/admin`, พอร์ต routed ที่ไม่มี IP แสดง `No Address`, พอร์ต L2 ไม่แสดง) — ระยะห่างคอลัมน์ยังเป็นการประมาณเพราะ PDF ทำให้ช่องว่างเพี้ยน
+> - **ข้อควรระวัง:** บทความ blog ของบุคคลที่สามรายงานว่า `vlan trunk allowed` บน AOS-CX **เพิ่ม** VLAN เข้ารายการเดิมแทนที่จะแทนที่ทั้งรายการ (ต่างจาก Cisco ที่ไม่ใส่ `add` แล้วแทนที่) ส่วนเอกสารทางการที่เราเข้าถึงได้ระบุแค่ syntax; simulator ปัจจุบัน **แทนที่ทั้งรายการ** ซึ่งอาจไม่ตรงกับสวิตช์จริง — ยังไม่ได้ยืนยัน จึงไม่ได้แก้
+> - **ยังไม่ยืนยัน:** สถานะเริ่มต้นของ SVI (sim ตั้งเป็น up; เอกสารที่เข้าถึงได้เพียงแสดงตัวอย่างที่สั่ง `no shutdown` ชัดเจน), ข้อความ error ของ AOS-CX (`% Unknown command.` ฯลฯ), layout ของ `show ip route` (รุ่น 10.x ต่างกันมีทั้งแบบตารางและแบบ `via …`), ตัวอย่างผลลัพธ์ของ `ping` และ `show interface <port>`
+>
+> **คำแนะนำ:** ถ้าใช้สอนหรือเตรียมสอบ ให้ตรวจ output ที่ติดป้าย "ยังไม่ยืนยัน" กับอุปกรณ์/emulator จริงก่อน
 
 ## คำสั่งที่รองรับ
 
@@ -155,6 +176,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Privileged EXEC | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ใน NVRAM (หลัง write memory) |
 | User EXEC, Privileged EXEC | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน IOS อ้างอิง |
 | User EXEC, Privileged EXEC | `show ip interface brief` | `show ip interface brief` | สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย |
+| User EXEC, Privileged EXEC | `show ip arp` | `show ip arp` | ดูตาราง ARP (IP → MAC) ของอุปกรณ์ — แสดงเครื่องใน L2 domain เดียวกันที่ลิงก์ up (ไม่จำลองการเรียนรู้/หมดอายุ) Age "-" คือ IP ของตัวเอง |
 | User EXEC, Privileged EXEC | `show ip route` | `show ip route` | ดูตาราง routing: C/L (connected), S (static), S* (default route) |
 | User EXEC, Privileged EXEC | `ping <ip-address>` | `ping 192.168.1.101` | ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง |
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
@@ -185,6 +207,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Privileged EXEC | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ใน NVRAM (หลัง write memory) |
 | User EXEC, Privileged EXEC | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน IOS อ้างอิง |
 | User EXEC, Privileged EXEC | `show ip interface brief` | `show ip interface brief` | สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย |
+| User EXEC, Privileged EXEC | `show ip arp` | `show ip arp` | ดูตาราง ARP (IP → MAC) ของอุปกรณ์ — แสดงเครื่องใน L2 domain เดียวกันที่ลิงก์ up (ไม่จำลองการเรียนรู้/หมดอายุ) Age "-" คือ IP ของตัวเอง |
+| User EXEC, Privileged EXEC | `show mac address-table` | `show mac address-table` | ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging; STATIC CPU = MAC ของ SVI ตัวเอง) |
 | User EXEC, Privileged EXEC | `show interfaces status` | `show interfaces status` | ดูสถานะพอร์ตของ switch (connected / notconnect / disabled) และ VLAN (trunk แสดงเป็น trunk) |
 | User EXEC, Privileged EXEC | `show interfaces trunk` | `show interfaces trunk` | ดูพอร์ตที่เป็น trunk, native VLAN และ VLAN ที่อนุญาต/ใช้งานอยู่ |
 | User EXEC, Privileged EXEC | `show vlan brief` | `show vlan brief` | ดู VLAN ทั้งหมดและพอร์ต access ที่อยู่ในแต่ละ VLAN (trunk ไม่แสดงในตารางนี้) |
@@ -231,6 +255,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Manager | `show interface <interface>` | `show interface 1/1/1` | ดูรายละเอียดพอร์ตเดียว เช่น show interface 1/1/24 (รวม allowed VLAN ของ trunk) |
 | Manager | `show vlan` | `show vlan` | ดู VLAN ทั้งหมดและพอร์ตที่เป็นสมาชิก (access และ trunk ที่อนุญาต VLAN นั้น; เฉพาะพอร์ตที่ no routing) |
 | Manager | `show ip interface brief` | `show ip interface brief` | สรุป IP ของ routed port และ VLAN interface (SVI) พร้อมสถานะ up/down |
+| Manager | `show arp` | `show arp` | ดูตาราง ARP (IP → MAC) ของ switch — เฉพาะ SVI/พอร์ต routed ที่ up; แสดงเครื่องใน L2 domain เดียวกัน (ไม่จำลองการเรียนรู้/หมดอายุ) |
+| Manager | `show mac-address-table` | `show mac-address-table` | ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging) |
 | Manager | `show ip route` | `show ip route` | ดูตาราง routing: C/L (connected), S (static) |
 | Manager | `ping <ip-address>` | `ping 192.168.1.1` | ทดสอบ ping จาก switch (ที่มี SVI/routed port) ไปยัง IPv4 ปลายทาง |
 | Manager | `write memory` | `write memory` | บันทึก running-config เป็น startup-config |
@@ -262,6 +288,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 |---|---|---|---|
 | Terminal | `ipconfig` | `ipconfig` | แสดง IPv4, subnet mask และ default gateway ของ PC |
 | Terminal | `ping <ipv4>` | `ping 192.168.1.110` | ทดสอบ reachability ไปยัง IPv4 ปลายทาง (ผลเปลี่ยนตามสาย พอร์ต VLAN และ gateway ปัจจุบัน) |
+| Terminal | `arp -a` | `arp -a` | ดูตาราง ARP ของ PC (IP → MAC ของเครื่องใน L2 เดียวกัน ไม่จำลองการเรียนรู้/หมดอายุ) |
 | Terminal | `cls` | `cls` | ล้างหน้าจอ Terminal |
 | Terminal | `help` | `help` | แสดงคำสั่งที่ PC รองรับ |
 
@@ -293,9 +320,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 6 ไฟล์) | **236/236 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์ (config ไม่เปลี่ยน), ทุกตัวอย่างในทะเบียนคำสั่งรันได้จริง, ping/VLAN/trunk/router-on-a-stick/SVI/static route, import ผิดรูปแบบและไฟล์เก่า, Guide (parser, ลิงก์ปลอดภัย, schema), workspace หลาย Lab (migrate, ข้ามข้อมูลเสีย), การทำงานของ Lab Manager, README ตรงกับทะเบียน |
+| `npm test` (Vitest, 10 ไฟล์) | **367/367 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 28 flow) | **28/28 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก 17 flow + Lab Guide (แสดง, แก้ไขและคงอยู่หลัง reload/Export, ลิงก์ `javascript:` ไม่เป็นลิงก์, ลบ/สร้างใหม่), เมนูซ้าย (ขยาย, Nodes, ซ่อนป้าย, Lab details, เปลี่ยนชื่อ Lab, Close lab), Lab Manager (สลับ Lab โดยงานไม่หาย, ค้นหา, ทำสำเนา, ลบพร้อมยืนยัน, ลบ Lab ที่เปิดอยู่, นำเข้า/ไฟล์เสีย/reload) |
+| `npm run e2e` (Playwright + Chromium, 41 flow) | **41/41 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด (ลาก/ต่อสาย/พอร์ต 24), Challenge, undo/redo, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 

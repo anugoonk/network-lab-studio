@@ -21,6 +21,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
 import { getDevice, getIface } from '../core/lab';
+import { duplicateIpsCached } from '../core/l2tables';
 import { linkStatus } from '../core/network';
 import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import { useStore } from '../store';
@@ -31,6 +32,7 @@ import type { DeviceKind } from '../core/types';
 function DeviceNode({ id, selected }: NodeProps) {
   const d = useStore((s) => s.lab.devices.find((x) => x.id === id));
   const openConsole = useStore((s) => s.openConsole);
+  const dup = useStore((s) => duplicateIpsCached(s.lab).find((x) => x.members.some((m) => m.deviceId === id)));
   if (!d) return null;
   const p = PROFILES[d.kind];
   const ip = d.ifaces.find((i) => i.ip && (p.isHost || i.adminUp))?.ip;
@@ -45,6 +47,11 @@ function DeviceNode({ id, selected }: NodeProps) {
       <DeviceIcon kind={d.kind} size={52} />
       <div className="node-name">{d.name}</div>
       <div className="node-sub">{sub}</div>
+      {dup && (
+        <div className="node-dup" title={`IP ${dup.ip} ซ้ำกับอุปกรณ์อื่นใน L2 เดียวกัน`} data-testid={`dup-${d.name}`}>
+          ⚠ IP ซ้ำ
+        </div>
+      )}
       <Handle type="source" position={Position.Right} id="c" className="node-handle" title="ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย" />
     </div>
   );

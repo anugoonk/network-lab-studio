@@ -111,7 +111,17 @@ export interface Lab {
 /** Challenge mode: checks evaluated against the live Lab when the learner presses Check. */
 export type Check =
   | { id: string; kind: 'ping'; label: string; from: string; to: string; expect: 'success' | 'fail' }
-  | { id: string; kind: 'link-up'; label: string; deviceId: string; port: string };
+  | { id: string; kind: 'link-up'; label: string; deviceId: string; port: string }
+  /** the device's running-config contains (or does not contain) this exact line, ignoring indentation */
+  | { id: string; kind: 'config-line'; label: string; deviceId: string; text: string; expect: 'present' | 'absent' }
+  /** a trunk port carries (or does not carry) a VLAN */
+  | { id: string; kind: 'trunk-vlan'; label: string; deviceId: string; port: string; vlan: number; expect: 'allowed' | 'blocked' }
+  /** a port is administratively up / shut down */
+  | { id: string; kind: 'port-admin'; label: string; deviceId: string; port: string; expect: 'up' | 'down' }
+  /** the device has a usable (installed) route to net/prefix: connected or static with a reachable next hop */
+  | { id: string; kind: 'route'; label: string; deviceId: string; net: string; prefix: number }
+  /** no IPv4 address is used twice inside one L2 domain */
+  | { id: string; kind: 'no-dup-ip'; label: string };
 export interface Challenge {
   title: string;
   goal: string;

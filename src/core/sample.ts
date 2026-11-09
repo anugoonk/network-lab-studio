@@ -197,6 +197,7 @@ export function buildTroubleshootLab(): Lab {
     ping(3, 'PC-C', '192.168.20.11', 'PC-C ติดต่อ PC-B (ข้าม VLAN ผ่าน R1) ได้'),
     ping(4, 'PC-A', '172.16.0.10', 'PC-A ติดต่อ PC-E (ผ่าน R1 และ R2) ได้'),
     { id: 'c5', kind: 'link-up', label: 'R1 Gi0/0 ลิงก์ up', deviceId: id('R1'), port: 'GigabitEthernet0/0' },
+    { id: 'c6', kind: 'no-dup-ip', label: 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน' },
   ];
   lab = {
     ...lab,

@@ -5,9 +5,10 @@
  * AOS-CX switches route between their VLAN interfaces (SVIs) and routed ports, and support static routes.
  * Output tables are simplified approximations of the real layout.
  */
+import { arpTable, fmtMacColon, macTable } from '../l2tables';
 import { ipToString, isHostAddress, maskToPrefix, networkOf, parseCidr, parseIp, subnetsOverlap } from '../ip';
 import { NAME_RE, formatVlanList, getIface, parseVlanList } from '../lab';
-import { allowsVlan, l3Interfaces, ping, portLine } from '../network';
+import { allowsVlan, ping, portLine, sviLineUp, l3Interfaces } from '../network';
 import type { Device, Iface, Lab } from '../types';
 import { cmd, curTarget, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 
@@ -118,11 +119,53 @@ function showInterface(lab: Lab, dev: Device, i: Iface): string[] {
   ];
 }
 
+/**
+ * Layout follows output captured from a real AOS-CX switch (HPE/Aruba "AOS-CX Simulator VSX Lab" guide):
+ * header "Interface / IP Address / Interface Status" + "link/admin"; routed ports without an address show
+ * "No Address"; VLAN interfaces are named vlanN; L2 (switched) ports are not listed.
+ * Column spacing is approximate (the PDF flattened it).
+ */
 function showIpIntBrief(lab: Lab, dev: Device): string[] {
-  const out = ['Interface        IP Address          Status'];
-  for (const i of l3Interfaces(lab, dev)) {
-    out.push(`${(i.kind === 'svi' ? `vlan${i.vlan}` : i.name).padEnd(17)}${`${i.ip}/${maskToPrefix(i.mask)}`.padEnd(20)}${i.up ? 'up' : 'down'}`);
+  const out = ['Interface         IP Address             Interface Status', '                                         link/admin'];
+  const row = (name: string, addr: string, link: boolean, admin: boolean) =>
+    `${name.padEnd(18)}${addr.padEnd(23)}${link ? 'up' : 'down'}/${admin ? 'up' : 'down'}`;
+  for (const i of dev.ifaces.filter((x) => x.routed)) {
+    const line = portLine(lab, dev, i);
+    out.push(row(i.name, i.ip && i.mask ? `${i.ip}/${maskToPrefix(i.mask)}` : 'No Address', line === 'up', i.adminUp));
   }
+  for (const v of [...dev.svis].sort((a, b) => a.vlan - b.vlan)) {
+    out.push(row(`vlan${v.vlan}`, v.ip && v.mask ? `${v.ip}/${maskToPrefix(v.mask)}` : 'No Address', v.adminUp && sviLineUp(lab, dev, v.vlan), v.adminUp));
+  }
+  return out;
+}
+
+/**
+ * `show mac-address-table` / `show arp` layouts are written from memory of AOS-CX 10.x (official reference was
+ * unreachable) — column spacing is approximate. Content is derived from the live topology (see l2tables.ts).
+ */
+function showMacAddressTable(lab: Lab, dev: Device): string[] {
+  const rows = macTable(lab, dev).filter((r) => r.port !== 'CPU');
+  const out = [
+    'MAC age-time            : 300 seconds',
+    `Number of MAC addresses : ${rows.length}`,
+    '',
+    'MAC Address          VLAN     Type                      Port',
+    '--------------------------------------------------------------',
+  ];
+  for (const r of rows) out.push(`${fmtMacColon(r.mac).padEnd(21)}${String(r.vlan).padEnd(9)}${'dynamic'.padEnd(26)}${r.port}`);
+  return out;
+}
+
+function showArp(lab: Lab, dev: Device): string[] {
+  const macs = macTable(lab, dev);
+  const entries = arpTable(lab, dev).filter((e) => !e.own);
+  const out = ['IPv4 Address     MAC                Port         Physical Port         State', '-'.repeat(79)];
+  for (const e of entries) {
+    const vlan = /^vlan(\d+)$/i.exec(e.iface);
+    const phys = vlan ? (macs.find((m) => m.mac === e.mac && m.vlan === Number(vlan[1]))?.port ?? '--') : e.iface;
+    out.push(`${e.ip.padEnd(17)}${fmtMacColon(e.mac).padEnd(19)}${e.iface.toLowerCase().padEnd(13)}${phys.padEnd(22)}reachable`);
+  }
+  out.push(`Total Number Of ARP Entries Listed: ${entries.length}.`);
   return out;
 }
 
@@ -279,6 +322,18 @@ const specs: CommandSpec[] = [
     helpEn: 'Show brief IP interface information', descTh: 'สรุป IP ของ routed port และ VLAN interface (SVI) พร้อมสถานะ up/down', topic: 'IP',
     example: 'show ip interface brief', verify: 'show ip interface brief', verifyTh: 'SVI ต้อง up เมื่อ VLAN มีพอร์ตที่ up',
     run: (c) => ({ lines: showIpIntBrief(c.lab, c.dev) }),
+  }),
+  cmd({
+    id: 'aruba.show.arp', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show arp',
+    helpEn: 'Show ARP table', descTh: 'ดูตาราง ARP (IP → MAC) ของ switch — เฉพาะ SVI/พอร์ต routed ที่ up; แสดงเครื่องใน L2 domain เดียวกัน (ไม่จำลองการเรียนรู้/หมดอายุ)', topic: 'Layer 2',
+    example: 'show arp', verify: 'show mac-address-table', verifyTh: 'IP เดียวกันที่มี MAC ต่างกันบ่งชี้ IP ซ้ำ',
+    run: (c) => ({ lines: showArp(c.lab, c.dev) }),
+  }),
+  cmd({
+    id: 'aruba.show.mac', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show mac-address-table',
+    helpEn: 'Show MAC address table', descTh: 'ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging)', topic: 'Layer 2',
+    example: 'show mac-address-table', verify: 'show vlan', verifyTh: 'MAC ต้องอยู่ VLAN เดียวกับ access VLAN ของพอร์ตที่เสียบเครื่อง',
+    run: (c) => ({ lines: showMacAddressTable(c.lab, c.dev) }),
   }),
   cmd({
     id: 'aruba.show.iproute', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show ip route',

@@ -1,49 +1,93 @@
 import { useState } from 'react';
 import { CHALLENGE_LIMITS, defaultLabel, emptyChallenge, nextCheckId } from '../core/challenge';
-import { configSignature, getDevice } from '../core/lab';
 import { parseIp } from '../core/ip';
+import { configSignature, getDevice } from '../core/lab';
+import { PROFILES } from '../core/profiles';
 import type { Challenge, Check } from '../core/types';
 import { useStore } from '../store';
 import { GuideText } from './GuidePanel';
 import { Icon } from './Icons';
 
+type Kind = Check['kind'];
+
+const KIND_LABEL: Record<Kind, string> = {
+  ping: 'ping ได้ / ไม่ได้',
+  'link-up': 'ลิงก์ up',
+  'config-line': 'บรรทัดใน running-config',
+  'trunk-vlan': 'trunk ส่ง VLAN',
+  'port-admin': 'พอร์ตเปิด / ปิด (shutdown)',
+  route: 'มีเส้นทาง (routing table)',
+  'no-dup-ip': 'ไม่มี IP ซ้ำ',
+};
+
 function CheckEditor({ challenge }: { challenge: Challenge }) {
   const lab = useStore((s) => s.lab);
   const update = useStore((s) => s.updateChallenge);
   const setChallenge = useStore((s) => s.setChallenge);
-  const hosts = lab.devices;
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [expect, setExpect] = useState<'success' | 'fail'>('success');
+  const devices = lab.devices;
+  const [kind, setKind] = useState<Kind>('ping');
+  const [devId, setDevId] = useState('');
   const [port, setPort] = useState('');
-  const [portDev, setPortDev] = useState('');
+  const [to, setTo] = useState('');
+  const [text, setText] = useState('');
+  const [vlan, setVlan] = useState('');
+  const [prefix, setPrefix] = useState('24');
+  const [expect, setExpect] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const full = challenge.checks.length >= CHALLENGE_LIMITS.checks;
 
-  const add = (c: Check) => {
-    update((ch) => ({ ...ch, checks: [...ch.checks, c] }));
+  const dev = getDevice(lab, devId || devices[0]?.id || '');
+  const needsDevice = kind !== 'no-dup-ip';
+  const needsPort = kind === 'link-up' || kind === 'trunk-vlan' || kind === 'port-admin';
+  const expectOptions: Record<string, [string, string][]> = {
+    ping: [['success', 'ต้อง ping ได้'], ['fail', 'ต้อง ping ไม่ได้']],
+    'config-line': [['present', 'ต้องมีบรรทัดนี้'], ['absent', 'ต้องไม่มีบรรทัดนี้']],
+    'trunk-vlan': [['allowed', 'ต้องส่ง VLAN นี้ได้'], ['blocked', 'ต้องไม่ส่ง VLAN นี้']],
+    'port-admin': [['up', 'ต้องเปิดอยู่'], ['down', 'ต้องถูก shutdown']],
+  };
+  const expects = expectOptions[kind];
+  const expectValue = expects ? (expects.some(([v]) => v === expect) ? expect : expects[0][0]) : '';
+
+  const add = () => {
+    if (needsDevice && !dev) return setErr('ยังไม่มีอุปกรณ์ใน Lab');
+    const id = nextCheckId(challenge);
+    const portName = port && dev?.ifaces.some((i) => i.name === port) ? port : dev?.ifaces[0]?.name ?? '';
+    let c: Check;
+    switch (kind) {
+      case 'ping':
+        if (parseIp(to.trim()) === null) return setErr('IPv4 ปลายทางไม่ถูกต้อง');
+        c = { id, kind, label: '', from: dev!.id, to: to.trim(), expect: expectValue as 'success' | 'fail' };
+        break;
+      case 'link-up':
+        c = { id, kind, label: '', deviceId: dev!.id, port: portName };
+        break;
+      case 'config-line':
+        if (!text.trim()) return setErr('ใส่บรรทัด config ที่ต้องการตรวจ');
+        c = { id, kind, label: '', deviceId: dev!.id, text: text.trim(), expect: expectValue as 'present' | 'absent' };
+        break;
+      case 'trunk-vlan': {
+        const v = Number(vlan);
+        if (!Number.isInteger(v) || v < 1 || v > 4094) return setErr('VLAN ต้องเป็นเลข 1-4094');
+        c = { id, kind, label: '', deviceId: dev!.id, port: portName, vlan: v, expect: expectValue as 'allowed' | 'blocked' };
+        break;
+      }
+      case 'port-admin':
+        c = { id, kind, label: '', deviceId: dev!.id, port: portName, expect: expectValue as 'up' | 'down' };
+        break;
+      case 'route': {
+        const p = Number(prefix);
+        if (parseIp(to.trim()) === null) return setErr('IPv4 network ไม่ถูกต้อง');
+        if (!Number.isInteger(p) || p < 0 || p > 32) return setErr('prefix ต้องเป็นเลข 0-32');
+        c = { id, kind, label: '', deviceId: dev!.id, net: to.trim(), prefix: p };
+        break;
+      }
+      case 'no-dup-ip':
+        c = { id, kind, label: '' };
+        break;
+    }
+    update((ch) => ({ ...ch, checks: [...ch.checks, { ...c, label: defaultLabel(lab, c) }] }));
     setErr(null);
   };
-
-  const addPing = () => {
-    const src = from || hosts[0]?.id;
-    if (!src) return setErr('ยังไม่มีอุปกรณ์ใน Lab');
-    if (parseIp(to.trim()) === null) return setErr('IPv4 ปลายทางไม่ถูกต้อง');
-    const c: Check = { id: nextCheckId(challenge), kind: 'ping', label: '', from: src, to: to.trim(), expect };
-    add({ ...c, label: defaultLabel(lab, c) });
-    setTo('');
-  };
-
-  const addLinkUp = () => {
-    const dev = getDevice(lab, portDev || hosts[0]?.id || '');
-    if (!dev) return setErr('ยังไม่มีอุปกรณ์ใน Lab');
-    const p = port || dev.ifaces[0].name;
-    if (!dev.ifaces.some((i) => i.name === p)) return setErr('ไม่พบพอร์ต');
-    const c: Check = { id: nextCheckId(challenge), kind: 'link-up', label: '', deviceId: dev.id, port: p };
-    add({ ...c, label: defaultLabel(lab, c) });
-  };
-
-  const portDevice = getDevice(lab, portDev || hosts[0]?.id || '');
 
   return (
     <div className="guide-edit" data-testid="challenge-editor">
@@ -52,7 +96,9 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
       <label htmlFor="ch-goal">เป้าหมาย / สถานการณ์</label>
       <textarea id="ch-goal" rows={4} value={challenge.goal} maxLength={4000} onChange={(e) => update((c) => ({ ...c, goal: e.target.value }))} data-testid="challenge-goal-input" />
 
-      <h4 className="guide-edit-h">Check ({challenge.checks.length}/{CHALLENGE_LIMITS.checks})</h4>
+      <h4 className="guide-edit-h">
+        Check ({challenge.checks.length}/{CHALLENGE_LIMITS.checks})
+      </h4>
       {challenge.checks.map((c, i) => (
         <div className="guide-edit-card" key={c.id}>
           <input
@@ -62,7 +108,7 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
             onChange={(e) => update((ch) => ({ ...ch, checks: ch.checks.map((x) => (x.id === c.id ? { ...x, label: e.target.value } : x)) }))}
           />
           <div className="row">
-            <span className="muted small">{c.kind === 'ping' ? 'ping' : 'link-up'}</span>
+            <span className="muted small">{KIND_LABEL[c.kind]}</span>
             <span className="spacer" />
             <button className="danger" onClick={() => update((ch) => ({ ...ch, checks: ch.checks.filter((x) => x.id !== c.id) }))} aria-label={`ลบ Check ${i + 1}`} data-testid={`challenge-del-${c.id}`}>
               ลบ
@@ -71,38 +117,52 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
         </div>
       ))}
 
-      <h4 className="guide-edit-h">เพิ่ม Check: ping</h4>
+      <h4 className="guide-edit-h">เพิ่ม Check</h4>
+      <select value={kind} onChange={(e) => { setKind(e.target.value as Kind); setErr(null); }} aria-label="ชนิด Check" data-testid="challenge-kind">
+        {(Object.keys(KIND_LABEL) as Kind[]).map((k) => (
+          <option key={k} value={k}>{KIND_LABEL[k]}</option>
+        ))}
+      </select>
+      {needsDevice && (
+        <div className="row">
+          <select value={dev?.id ?? ''} onChange={(e) => { setDevId(e.target.value); setPort(''); }} aria-label="อุปกรณ์" data-testid="challenge-device">
+            {devices.map((d) => (
+              <option key={d.id} value={d.id}>{d.name} — {PROFILES[d.kind].label}</option>
+            ))}
+          </select>
+          {needsPort && (
+            <select value={port || dev?.ifaces[0]?.name || ''} onChange={(e) => setPort(e.target.value)} aria-label="พอร์ต" data-testid="challenge-port">
+              {dev?.ifaces.map((i) => (
+                <option key={i.name} value={i.name}>{i.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+      {(kind === 'ping' || kind === 'route') && (
+        <div className="row">
+          <input placeholder={kind === 'ping' ? 'IPv4 ปลายทาง' : 'network เช่น 172.16.0.0'} value={to} onChange={(e) => setTo(e.target.value)} aria-label={kind === 'ping' ? 'IPv4 ปลายทาง' : 'network'} data-testid="challenge-to" />
+          {kind === 'route' && <input placeholder="/24" value={prefix} onChange={(e) => setPrefix(e.target.value)} aria-label="prefix length" style={{ width: 60 }} data-testid="challenge-prefix" />}
+        </div>
+      )}
+      {kind === 'config-line' && (
+        <input placeholder="เช่น ip route 0.0.0.0 0.0.0.0 10.0.0.1" value={text} onChange={(e) => setText(e.target.value)} aria-label="บรรทัด config" data-testid="challenge-text" />
+      )}
+      {kind === 'trunk-vlan' && <input placeholder="VLAN ID" value={vlan} onChange={(e) => setVlan(e.target.value)} aria-label="VLAN ID" data-testid="challenge-vlan" />}
       <div className="row">
-        <select value={from || hosts[0]?.id || ''} onChange={(e) => setFrom(e.target.value)} aria-label="ping จาก" data-testid="challenge-from">
-          {hosts.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-        </select>
-        <input placeholder="IPv4 ปลายทาง" value={to} onChange={(e) => setTo(e.target.value)} aria-label="IPv4 ปลายทาง" data-testid="challenge-to" />
-      </div>
-      <div className="row">
-        <select value={expect} onChange={(e) => setExpect(e.target.value as 'success' | 'fail')} aria-label="ผลที่คาดหวัง" data-testid="challenge-expect">
-          <option value="success">ต้อง ping ได้</option>
-          <option value="fail">ต้อง ping ไม่ได้</option>
-        </select>
-        <button onClick={addPing} disabled={full} data-testid="challenge-add-ping">+ เพิ่ม</button>
-      </div>
-
-      <h4 className="guide-edit-h">เพิ่ม Check: ลิงก์ up</h4>
-      <div className="row">
-        <select value={portDev || hosts[0]?.id || ''} onChange={(e) => { setPortDev(e.target.value); setPort(''); }} aria-label="อุปกรณ์" data-testid="challenge-port-dev">
-          {hosts.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-        </select>
-        <select value={port || portDevice?.ifaces[0]?.name || ''} onChange={(e) => setPort(e.target.value)} aria-label="พอร์ต" data-testid="challenge-port">
-          {portDevice?.ifaces.map((i) => (
-            <option key={i.name} value={i.name}>{i.name}</option>
-          ))}
-        </select>
-        <button onClick={addLinkUp} disabled={full} data-testid="challenge-add-link">+ เพิ่ม</button>
+        {expects && (
+          <select value={expectValue} onChange={(e) => setExpect(e.target.value)} aria-label="ผลที่คาดหวัง" data-testid="challenge-expect">
+            {expects.map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+        )}
+        <button onClick={add} disabled={full} data-testid="challenge-add">+ เพิ่ม Check</button>
       </div>
       {err && <div className="error-box" role="alert">{err}</div>}
+      <p className="muted small">
+        Check ตรวจจาก Lab จริงทุกครั้งที่ผู้เรียนกด Check — “บรรทัดใน running-config” ตรวจข้อความตรงตัว (ไม่สนช่องว่างนำหน้า) ควรระวังว่าอาจเฉลยคำตอบให้ผู้เรียนที่เห็นรายการ Check
+      </p>
 
       <div className="guide-danger">
         <button className="danger" onClick={() => setChallenge(undefined)} data-testid="challenge-delete">ลบโจทย์นี้</button>

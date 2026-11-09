@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { duplicateIpsCached } from '../core/l2tables';
 import { getDevice } from '../core/lab';
 import { allAddresses, l3Interfaces, linkStatus, type PingResult } from '../core/network';
 import { shortPort } from '../core/profiles';
@@ -32,6 +33,27 @@ function ResultView({ r }: { r: PingResult }) {
       </ul>
       <p className="muted small">คำอธิบายนี้มาจากผลคำนวณของ simulator สำหรับผู้เรียน — ไม่ใช่ output ของ terminal</p>
     </div>
+  );
+}
+
+function DuplicateIps() {
+  const lab = useStore((s) => s.lab);
+  const dups = duplicateIpsCached(lab);
+  return (
+    <section className="card" data-testid="dup-section">
+      <h4>ตรวจ IP ซ้ำ</h4>
+      {dups.length === 0 ? (
+        <p className="muted small" data-testid="dup-none">ไม่พบ IP ซ้ำใน L2 domain เดียวกัน (ตรวจเฉพาะอุปกรณ์ที่ลิงก์ up; การใช้ IP เดียวกันคนละ VLAN/คนละ subnet ไม่นับ)</p>
+      ) : (
+        <ul className="explain" data-testid="dup-list">
+          {dups.map((d) => (
+            <li key={d.ip}>
+              <b>{d.ip}</b> ใช้ซ้ำโดย {d.members.map((m) => `${m.deviceName} (${m.ifaceName})`).join(', ')} — ARP ของเครื่องอื่นจะสลับไปมาระหว่าง MAC ทั้งสอง ให้เปลี่ยน IP ของเครื่องใดเครื่องหนึ่ง
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -83,6 +105,8 @@ export function Inspector() {
           ทดสอบ
         </button>
       </section>
+
+      <DuplicateIps />
 
       <section className="card">
         <h4>ผลล่าสุด {lastPing ? '' : '(ยังไม่มี)'}</h4>

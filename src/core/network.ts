@@ -120,7 +120,7 @@ export interface L3If {
   up: boolean;
 }
 
-function sviLineUp(lab: Lab, sw: Device, vlan: number): boolean {
+export function sviLineUp(lab: Lab, sw: Device, vlan: number): boolean {
   if (!sw.vlans.some((v) => v.id === vlan)) return false;
   return sw.ifaces.some((i) => portCarries(sw, i, vlan) && i.adminUp && linkUp(lab, sw, i.name));
 }
@@ -187,7 +187,12 @@ export interface Reached {
 }
 
 /** All L3 interfaces that share a broadcast domain with `src` right now. Loop-safe (visited set). */
-export function l2Domain(lab: Lab, src: L3If): Reached[] {
+export function l2Domain(
+  lab: Lab,
+  src: L3If,
+  /** called once per (switch, VLAN) the frame reaches, with the port it entered on (null = source is that switch's own SVI) */
+  onSwitch?: (sw: Device, vlan: number, ingress: string | null) => void,
+): Reached[] {
   const out: Reached[] = [];
   const visited = new Set<string>();
   const queue: { sw: Device; vlan: number; via: string[] }[] = [];
@@ -197,10 +202,11 @@ export function l2Domain(lab: Lab, src: L3If): Reached[] {
     if (!isSrc(ifc)) out.push({ ifc, via });
   };
 
-  const enterNode = (sw: Device, vlan: number, via: string[]) => {
+  const enterNode = (sw: Device, vlan: number, via: string[], ingress: string | null) => {
     const key = `${sw.id}|${vlan}`;
     if (visited.has(key)) return;
     visited.add(key);
+    onSwitch?.(sw, vlan, ingress);
     queue.push({ sw, vlan, via: [...via, sw.id] });
   };
 
@@ -228,13 +234,13 @@ export function l2Domain(lab: Lab, src: L3If): Reached[] {
       v = pi.accessVlan;
     }
     if (!pd.vlans.some((x) => x.id === v)) return;
-    enterNode(pd, v, via);
+    enterNode(pd, v, via, peer.port);
   };
 
   if (src.kind === 'svi') {
     const sw = getDevice(lab, src.deviceId);
     if (!sw || !src.up) return out;
-    enterNode(sw, src.vlan!, []);
+    enterNode(sw, src.vlan!, [], null);
   } else {
     const link = linkAt(lab, src.deviceId, src.port!);
     if (!link || !linkStatus(lab, link).up) return out;

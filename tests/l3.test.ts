@@ -146,7 +146,8 @@ describe('router-on-a-stick sub-interfaces', () => {
     expect(r[2].output.join('\n')).toContain(' encapsulation dot1Q 20');
     expect(r[2].output.join('\n')).toContain('ip route 172.16.0.0 255.255.255.0 10.0.0.2');
     expect(r[3].output.join('\n')).toMatch(/C\s+192\.168\.10\.0\/24 is directly connected, GigabitEthernet0\/0\.10/);
-    expect(r[3].output.join('\n')).toMatch(/S\s+172\.16\.0\.0\/24 \[1\/0\] via 10\.0\.0\.2/);
+    expect(r[3].output.join('\n')).toMatch(/S\s+172\.16\.0\.0 \[1\/0\] via 10\.0\.0\.2/);
+    expect(r[3].output.join('\n')).toContain('172.16.0.0/24 is subnetted, 1 subnets');
   });
 
   it('no interface removes a sub-interface; physical ports cannot be deleted', () => {

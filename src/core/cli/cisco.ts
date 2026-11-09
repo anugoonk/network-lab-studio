@@ -4,6 +4,7 @@
  * Output formats are close to, but simplified from, the real devices.
  * Note: the L2 switch has no `ip routing` — an SVI is a management address only (use `ip default-gateway`).
  */
+import { arpTable, duplicateIps, fmtMacCisco, macTable } from '../l2tables';
 import { ipToString, isHostAddress, maskToPrefix, networkOf, parseIp, subnetsOverlap } from '../ip';
 import { NAME_RE, formatVlanList, getIface, parseVlanList, subName } from '../lab';
 import { PROFILES, shortPort } from '../profiles';
@@ -122,7 +123,7 @@ function showInterfacesStatus(lab: Lab, dev: Device): string[] {
         status.padEnd(13),
         (i.trunk ? 'trunk' : String(i.accessVlan)).padEnd(11),
         (up ? 'a-full' : 'auto').padEnd(8),
-        (up ? (giga ? 'a-1000' : 'a-100') : 'auto').padEnd(6),
+        (up ? (giga ? 'a-1000' : 'a-100') : 'auto').padEnd(7),
         giga ? '10/100/1000BaseTX' : '10/100BaseTX',
       ]
         .join('')
@@ -180,6 +181,49 @@ function showIpIntBrief(lab: Lab, dev: Device): string[] {
   return out;
 }
 
+/** syslog-style warning when the interface now shares an address with another one in its L2 domain (IOS prints this when the duplicate answers ARP) */
+function dupLines(c: Ctx, ifName: string): string[] {
+  const out: string[] = [];
+  for (const d of duplicateIps(c.lab)) {
+    if (!d.members.some((m) => m.deviceId === c.dev.id && m.ifaceName === ifName)) continue;
+    for (const m of d.members.filter((x) => x.deviceId !== c.dev.id)) {
+      out.push(`%IP-4-DUPADDR: Duplicate address ${d.ip} on ${ifName}, sourced by ${fmtMacCisco(m.mac)}`);
+    }
+  }
+  return out;
+}
+
+function showIpArp(lab: Lab, dev: Device): string[] {
+  const out = ['Protocol  Address          Age (min)  Hardware Addr   Type   Interface'];
+  const rows = arpTable(lab, dev).sort((a, b) => a.iface.localeCompare(b.iface) || Number(!a.own) - Number(!b.own) || a.ip.localeCompare(b.ip, undefined, { numeric: true }));
+  for (const r of rows) {
+    out.push(`Internet  ${r.ip.padEnd(16)}${(r.own ? '-' : '0').padStart(10)}  ${fmtMacCisco(r.mac)}  ARPA   ${r.iface}`);
+  }
+  return out;
+}
+
+function showMacTable(lab: Lab, dev: Device): string[] {
+  const rows = macTable(lab, dev);
+  const out = ['          Mac Address Table', '-------------------------------------------', '', 'Vlan    Mac Address       Type        Ports', '----    -----------       --------    -----'];
+  for (const r of rows) out.push(`${String(r.vlan).padStart(4)}    ${fmtMacCisco(r.mac)}    ${r.type.padEnd(12)}${r.port === 'CPU' ? 'CPU' : shortPort(r.port)}`);
+  out.push(`Total Mac Addresses for this criterion: ${rows.length}`);
+  return out;
+}
+
+/** classful network (A/B/C) of an address: [base, prefix length] — IOS groups `show ip route` entries by it */
+function classful(ip: number): [number, number] {
+  const first = Math.floor(ip / 2 ** 24);
+  const len = first < 128 ? 8 : first < 192 ? 16 : 24;
+  return [Math.floor(ip / 2 ** (32 - len)) * 2 ** (32 - len), len];
+}
+
+interface RouteRow {
+  net: number;
+  prefix: number;
+  code: 'C' | 'L' | 'S' | 'S*';
+  tail: string; // text after the network: "is directly connected, Gi0/1" or "[1/0] via 10.0.0.2"
+}
+
 function showIpRoute(lab: Lab, dev: Device): string[] {
   const up = l3Interfaces(lab, dev).filter((i) => i.up);
   const installed = dev.routes
@@ -194,14 +238,35 @@ function showIpRoute(lab: Lab, dev: Device): string[] {
     def ? `Gateway of last resort is ${def.r.nextHop} to network 0.0.0.0` : 'Gateway of last resort is not set',
     '',
   ];
+  const rows: RouteRow[] = [];
   for (const i of up) {
-    const net = ipToString(networkOf(i.ip, i.mask)!);
-    out.push(`C        ${net}/${maskToPrefix(i.mask)} is directly connected, ${i.name}`);
-    out.push(`L        ${i.ip}/32 is directly connected, ${i.name}`);
+    rows.push({ net: networkOf(i.ip, i.mask)!, prefix: maskToPrefix(i.mask), code: 'C', tail: `is directly connected, ${i.name}` });
+    rows.push({ net: parseIp(i.ip)!, prefix: 32, code: 'L', tail: `is directly connected, ${i.name}` });
   }
   for (const { r } of installed) {
     const isDef = r.net === '0.0.0.0' && r.mask === '0.0.0.0';
-    out.push(`${isDef ? 'S*' : 'S '}       ${r.net}/${maskToPrefix(r.mask)} [1/0] via ${r.nextHop}`);
+    rows.push({ net: parseIp(r.net)!, prefix: maskToPrefix(r.mask), code: isDef ? 'S*' : 'S', tail: `[1/0] via ${r.nextHop}` });
+  }
+  // default route is printed on its own, first; everything else is grouped by classful network (as IOS does)
+  for (const r of rows.filter((x) => x.code === 'S*')) out.push(`S*    ${ipToString(r.net)}/${r.prefix} ${r.tail}`);
+  const groups = new Map<number, { len: number; rows: RouteRow[] }>();
+  for (const r of rows.filter((x) => x.code !== 'S*')) {
+    const [base, len] = classful(r.net);
+    const g = groups.get(base) ?? { len, rows: [] };
+    g.rows.push(r);
+    groups.set(base, g);
+  }
+  for (const base of [...groups.keys()].sort((a, b) => a - b)) {
+    const g = groups.get(base)!;
+    g.rows.sort((a, b) => a.net - b.net || a.prefix - b.prefix);
+    const masks = new Set(g.rows.map((x) => x.prefix));
+    if (masks.size > 1) {
+      out.push(`      ${ipToString(base)}/${g.len} is variably subnetted, ${g.rows.length} subnets, ${masks.size} masks`);
+      for (const r of g.rows) out.push(`${r.code}        ${ipToString(r.net)}/${r.prefix} ${r.tail}`);
+    } else {
+      out.push(`      ${ipToString(base)}/${[...masks][0]} is subnetted, ${g.rows.length} subnets`);
+      for (const r of g.rows) out.push(`${r.code}        ${ipToString(r.net)} ${r.tail}`);
+    }
   }
   return out;
 }
@@ -344,6 +409,18 @@ const specs: CommandSpec[] = [
     helpEn: 'Brief summary of IP status and configuration', descTh: 'สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย', topic: 'Interface',
     example: 'show ip interface brief', verify: 'show ip interface brief', verifyTh: 'ดู Status=up และ Protocol=up',
     run: (c) => ({ lines: showIpIntBrief(c.lab, c.dev) }),
+  }),
+  cmd({
+    id: 'cisco.show.iparp', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv'], syntax: 'show ip arp',
+    helpEn: 'IP ARP table', descTh: 'ดูตาราง ARP (IP → MAC) ของอุปกรณ์ — แสดงเครื่องใน L2 domain เดียวกันที่ลิงก์ up (ไม่จำลองการเรียนรู้/หมดอายุ) Age "-" คือ IP ของตัวเอง', topic: 'Layer 2',
+    example: 'show ip arp', verify: 'show ip arp', verifyTh: 'IP เดียวกันที่มี MAC ต่างกันบ่งชี้ IP ซ้ำ; ไม่เห็นเครื่องปลายทางแปลว่าไม่อยู่ L2 เดียวกัน (VLAN/trunk/สาย)',
+    run: (c) => ({ lines: showIpArp(c.lab, c.dev) }),
+  }),
+  cmd({
+    id: 'cisco.show.mac', vendor: 'cisco', deviceTypes: SW, modes: ['user', 'priv'], syntax: 'show mac address-table',
+    helpEn: 'MAC address table', descTh: 'ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging; STATIC CPU = MAC ของ SVI ตัวเอง)', topic: 'Layer 2',
+    example: 'show mac address-table', verify: 'show vlan brief', verifyTh: 'MAC ต้องอยู่ VLAN ที่ตรงกับ access VLAN ของพอร์ตที่เสียบเครื่อง',
+    run: (c) => ({ lines: showMacTable(c.lab, c.dev) }),
   }),
   cmd({
     id: 'cisco.show.iproute', vendor: 'cisco', deviceTypes: RT, modes: ['user', 'priv'], syntax: 'show ip route',
@@ -543,7 +620,7 @@ const specs: CommandSpec[] = [
       const t = curTarget(c);
       if (!t) return { error: ['% No interface selected'] };
       t.adminUp = true;
-      return { lines: [`%LINK-3-UPDOWN: Interface ${targetName(c)}, changed state to up`] };
+      return { lines: [`%LINK-3-UPDOWN: Interface ${targetName(c)}, changed state to up`, ...dupLines(c, targetName(c))] };
     },
   }),
   cmd({
@@ -710,7 +787,7 @@ const specs: CommandSpec[] = [
       if (clash) return { error: [`% ${ipToString(networkOf(ip, mask)!)} overlaps with ${clash}`] };
       t.ip = ip;
       t.mask = mask;
-      return {};
+      return { lines: dupLines(c, targetName(c)) };
     },
   }),
   cmd({
@@ -726,7 +803,7 @@ const specs: CommandSpec[] = [
       if (clash) return { error: [`% ${ipToString(networkOf(ip, mask)!)} overlaps with ${clash}`] };
       t.ip = ip;
       t.mask = mask;
-      return {};
+      return { lines: dupLines(c, targetName(c)) };
     },
   }),
   cmd({

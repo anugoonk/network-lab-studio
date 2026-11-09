@@ -1,4 +1,5 @@
 /** PC terminal profile (Windows-style `ipconfig` and `ping <IPv4>`). Runs only against the simulated lab. */
+import { arpTable, duplicateIps, fmtMacDash } from '../l2tables';
 import { ping, portLine } from '../network';
 import { parseIp } from '../ip';
 import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
@@ -15,7 +16,8 @@ function ipconfig(c: Ctx): RunResult {
     return { lines: out };
   }
   out.push('   Connection-specific DNS Suffix  . :');
-  out.push(`   IPv4 Address. . . . . . . . . . . : ${nic.ip ?? '0.0.0.0'}`);
+  const dup = nic.ip !== null && duplicateIps(c.lab).some((d) => d.ip === nic.ip && d.members.some((m) => m.deviceId === c.dev.id));
+  out.push(`   IPv4 Address. . . . . . . . . . . : ${nic.ip ?? '0.0.0.0'}${dup ? '(Duplicate)' : ''}`);
   out.push(`   Subnet Mask . . . . . . . . . . . : ${nic.mask ?? '0.0.0.0'}`);
   out.push(`   Default Gateway . . . . . . . . . : ${c.dev.gateway ?? ''}`);
   return { lines: out };
@@ -44,6 +46,17 @@ function pingCmd(c: Ctx): RunResult {
   return { lines };
 }
 
+function arpCmd(c: Ctx): RunResult {
+  const nic = c.dev.ifaces[0];
+  const rows = arpTable(c.lab, c.dev).filter((e) => !e.own);
+  if (!rows.length) return { lines: ['No ARP Entries Found.'] };
+  const out = ['', `Interface: ${nic.ip ?? '0.0.0.0'} --- 0x4`, '  Internet Address      Physical Address      Type'];
+  for (const e of rows.sort((a, b) => a.ip.localeCompare(b.ip, undefined, { numeric: true }))) {
+    out.push(`  ${e.ip.padEnd(22)}${fmtMacDash(e.mac).padEnd(22)}dynamic`);
+  }
+  return { lines: out };
+}
+
 const specs: CommandSpec[] = [
   cmd({
     id: 'pc.ipconfig', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'ipconfig',
@@ -56,6 +69,12 @@ const specs: CommandSpec[] = [
     helpEn: 'Send ICMP echo requests', descTh: 'ทดสอบ reachability ไปยัง IPv4 ปลายทาง (ผลเปลี่ยนตามสาย พอร์ต VLAN และ gateway ปัจจุบัน)', topic: 'Troubleshooting',
     example: 'ping 192.168.1.110', verify: 'ping 192.168.1.1', verifyTh: 'Reply = สำเร็จ, Request timed out = ไม่ถึง',
     run: pingCmd,
+  }),
+  cmd({
+    id: 'pc.arp', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'arp -a',
+    helpEn: 'Display ARP cache', descTh: 'ดูตาราง ARP ของ PC (IP → MAC ของเครื่องใน L2 เดียวกัน ไม่จำลองการเรียนรู้/หมดอายุ)', topic: 'Layer 2',
+    example: 'arp -a', verify: 'ping 192.168.1.1', verifyTh: 'ไม่เห็น gateway ในตาราง แปลว่า PC ไม่อยู่ L2 เดียวกับ gateway',
+    run: arpCmd,
   }),
   cmd({
     id: 'pc.cls', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'cls',

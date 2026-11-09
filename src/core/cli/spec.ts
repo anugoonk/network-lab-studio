@@ -11,8 +11,8 @@ export interface Tok {
   ptype?: PType;
 }
 
-export type Topic = 'Mode' | 'Interface' | 'VLAN' | 'IP' | 'Troubleshooting' | 'Config';
-export const TOPICS: Topic[] = ['Mode', 'Interface', 'VLAN', 'IP', 'Troubleshooting', 'Config'];
+export type Topic = 'Mode' | 'Interface' | 'VLAN' | 'IP' | 'Troubleshooting' | 'Config' | 'Layer 2';
+export const TOPICS: Topic[] = ['Mode', 'Interface', 'VLAN', 'IP', 'Layer 2', 'Troubleshooting', 'Config'];
 
 export interface Ctx {
   /** mutable working copy — handlers may edit it; discarded when the command errors */

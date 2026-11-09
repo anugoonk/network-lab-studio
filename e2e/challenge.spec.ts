@@ -24,7 +24,7 @@ test('challenge sample: Check shows real results, fixing faults turns them green
   // nothing is evaluated until the learner presses Check
   await expect(page.getByTestId('check-c1')).toHaveAttribute('data-state', 'todo');
   await page.getByTestId('challenge-check').click();
-  await expect(page.getByTestId('challenge-score')).toContainText('2/5');
+  await expect(page.getByTestId('challenge-score')).toContainText('3/6');
   await expect(page.getByTestId('check-c1')).toHaveAttribute('data-state', 'pass');
   await expect(page.getByTestId('check-c2')).toHaveAttribute('data-state', 'fail');
   await expect(page.getByTestId('check-c2')).toContainText('ผลจริง: ping ไม่สำเร็จ');
@@ -37,7 +37,7 @@ test('challenge sample: Check shows real results, fixing faults turns them green
   await expect(page.getByTestId('challenge-stale')).toBeVisible();
   await page.getByTestId('challenge-check').click();
   await expect(page.getByTestId('check-c2')).toHaveAttribute('data-state', 'pass');
-  await expect(page.getByTestId('challenge-score')).toContainText('3/5');
+  await expect(page.getByTestId('challenge-score')).toContainText('4/6');
   await expect(page.getByTestId('challenge-stale')).toHaveCount(0);
 
   // fix 2: R2 default route
@@ -49,7 +49,7 @@ test('challenge sample: Check shows real results, fixing faults turns them green
   await page.getByTestId('pc-gw').fill('192.168.10.1');
   await page.getByTestId('pc-apply').click();
   await page.getByTestId('challenge-check').click();
-  await expect(page.getByTestId('challenge-score')).toContainText('5/5');
+  await expect(page.getByTestId('challenge-score')).toContainText('6/6');
   await expect(page.getByTestId('challenge-done')).toBeVisible();
 });
 
@@ -65,10 +65,10 @@ test('instructor creates a challenge, adds a check, and it survives reload', asy
   await page.getByTestId('menu-challenge').click();
   await page.getByTestId('challenge-edit-toggle').click();
   await page.getByTestId('challenge-to').fill('999.1.1.1');
-  await page.getByTestId('challenge-add-ping').click();
+  await page.getByTestId('challenge-add').click();
   await expect(page.getByRole('alert')).toContainText('IPv4');
   await page.getByTestId('challenge-to').fill('10.0.0.9');
-  await page.getByTestId('challenge-add-ping').click();
+  await page.getByTestId('challenge-add').click();
   await expect(page.getByTestId('challenge-del-c1')).toBeVisible();
   await page.getByTestId('challenge-edit-toggle').click();
   await page.getByTestId('challenge-check').click();

@@ -86,6 +86,11 @@ const guideSchema = z.object({
 const checkSchema = z.discriminatedUnion('kind', [
   z.object({ id: z.string().min(1), kind: z.literal('ping'), label: z.string().max(200), from: z.string().min(1), to: ipStr, expect: z.enum(['success', 'fail']) }),
   z.object({ id: z.string().min(1), kind: z.literal('link-up'), label: z.string().max(200), deviceId: z.string().min(1), port: z.string().min(1) }),
+  z.object({ id: z.string().min(1), kind: z.literal('config-line'), label: z.string().max(200), deviceId: z.string().min(1), text: z.string().min(1).max(200), expect: z.enum(['present', 'absent']) }),
+  z.object({ id: z.string().min(1), kind: z.literal('trunk-vlan'), label: z.string().max(200), deviceId: z.string().min(1), port: z.string().min(1), vlan: z.number().int().min(1).max(4094), expect: z.enum(['allowed', 'blocked']) }),
+  z.object({ id: z.string().min(1), kind: z.literal('port-admin'), label: z.string().max(200), deviceId: z.string().min(1), port: z.string().min(1), expect: z.enum(['up', 'down']) }),
+  z.object({ id: z.string().min(1), kind: z.literal('route'), label: z.string().max(200), deviceId: z.string().min(1), net: ipStr, prefix: z.number().int().min(0).max(32) }),
+  z.object({ id: z.string().min(1), kind: z.literal('no-dup-ip'), label: z.string().max(200) }),
 ]);
 
 const challengeSchema = z.object({
@@ -154,10 +159,11 @@ function crossCheck(lab: Lab): string[] {
   for (const c of lab.challenge?.checks ?? []) {
     if (checkIds.has(c.id)) errs.push(`รหัส check ซ้ำ: ${c.id}`);
     checkIds.add(c.id);
+    if (c.kind === 'no-dup-ip') continue;
     const devId = c.kind === 'ping' ? c.from : c.deviceId;
     const cd = lab.devices.find((x) => x.id === devId);
     if (!cd) errs.push(`Check "${c.label}" อ้างอิงอุปกรณ์ที่ไม่มีอยู่`);
-    else if (c.kind === 'link-up' && !cd.ifaces.some((i) => i.name === c.port)) errs.push(`Check "${c.label}" อ้างอิงพอร์ตที่ไม่มีอยู่`);
+    else if ('port' in c && !cd.ifaces.some((i) => i.name === c.port)) errs.push(`Check "${c.label}" อ้างอิงพอร์ตที่ไม่มีอยู่`);
   }
   const used = new Set<string>();
   const linkIds = new Set<string>();
