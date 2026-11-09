@@ -133,6 +133,7 @@ export function contentSignature(lab: Lab): string {
     d: lab.devices.map((d) => ({ ...d, cli: undefined })),
     l: lab.links,
     g: lab.guide,
+    c: lab.challenge,
   });
 }
 

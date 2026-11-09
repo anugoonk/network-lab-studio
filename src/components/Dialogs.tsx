@@ -104,7 +104,7 @@ export function ConfirmDialog() {
   const ok = useStore((s) => s.confirmReplace);
   const cancel = useStore((s) => s.cancelReplace);
   if (!p || !dirty) return null;
-  const what = p.kind === 'new' ? 'สร้าง Lab ใหม่ (ว่างเปล่า)' : p.kind === 'sample' ? `เปิด Sample Lab ${p.which === 'intervlan' ? 'Inter-VLAN' : 'Small Office'}` : `นำเข้าไฟล์ ${p.fileName}`;
+  const what = p.kind === 'new' ? 'สร้าง Lab ใหม่ (ว่างเปล่า)' : p.kind === 'sample' ? `เปิด Sample Lab ${p.which === 'intervlan' ? 'Inter-VLAN' : p.which === 'trouble' ? 'Challenge (Troubleshooting)' : 'Small Office'}` : `นำเข้าไฟล์ ${p.fileName}`;
   return (
     <div className="modal-back" role="dialog" aria-modal="true" aria-label="ยืนยัน">
       <div className="modal">

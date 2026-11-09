@@ -65,6 +65,9 @@ export function FileManager() {
         <button onClick={() => createLab('intervlan')} data-testid="manager-new-intervlan">
           <Icon name="flask" size={15} /> + Sample: Inter-VLAN
         </button>
+        <button onClick={() => createLab('trouble')} data-testid="manager-new-trouble">
+          <Icon name="flask" size={15} /> + Challenge: Troubleshooting
+        </button>
         <button onClick={() => fileRef.current?.click()} data-testid="manager-import">
           <Icon name="upload" size={15} /> นำเข้า JSON
         </button>

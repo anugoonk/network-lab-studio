@@ -105,6 +105,17 @@ export interface Lab {
   links: Link[];
   counters: Record<string, number>;
   guide?: Guide;
+  challenge?: Challenge;
+}
+
+/** Challenge mode: checks evaluated against the live Lab when the learner presses Check. */
+export type Check =
+  | { id: string; kind: 'ping'; label: string; from: string; to: string; expect: 'success' | 'fail' }
+  | { id: string; kind: 'link-up'; label: string; deviceId: string; port: string };
+export interface Challenge {
+  title: string;
+  goal: string;
+  checks: Check[];
 }
 
 /** Lab Guide: instructions / objective / resources shown beside the canvas (editable by the instructor). */

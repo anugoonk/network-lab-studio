@@ -6,6 +6,7 @@ import {
   NAME_RE,
   addDevice,
   addLink,
+  configSignature,
   contentSignature,
   emptyLab,
   getDevice,
@@ -22,15 +23,22 @@ import {
   serializeExport,
   type LabEntry,
 } from './core/persist';
-import { buildInterVlanLab, buildSampleLab } from './core/sample';
-import type { DeviceKind, Endpoint, Guide, Lab } from './core/types';
+import { buildInterVlanLab, buildSampleLab, buildTroubleshootLab } from './core/sample';
+import { emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
+import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
 export type RightTab = 'details' | 'console' | 'inspector';
 export type View = 'lab' | 'library' | 'manager';
 /** what is expanded on the left of the canvas: the labelled menu, the Lab Guide, or just the icon rail */
-export type LeftPanel = 'menu' | 'guide' | null;
-export type SampleKind = 'office' | 'intervlan';
+export type LeftPanel = 'menu' | 'guide' | 'challenge' | null;
+export type SampleKind = 'office' | 'intervlan' | 'trouble';
+
+/** last Check run; `sig` is the Lab config it was run against (so stale results can be flagged) */
+export interface ChallengeRun {
+  report: ChallengeReport;
+  sig: string;
+}
 
 export interface TermLine {
   kind: 'cmd' | 'out' | 'hint' | 'sys';
@@ -82,6 +90,11 @@ interface State {
   setRightTab: (t: RightTab) => void;
   setLeftPanel: (p: LeftPanel) => void;
   toggleGuide: () => void;
+  toggleChallenge: () => void;
+  challengeRun: ChallengeRun | null;
+  runChallenge: () => void;
+  setChallenge: (c: Challenge | undefined) => void;
+  updateChallenge: (fn: (c: Challenge) => Challenge) => void;
   toggleMenu: () => void;
   /** header toggle: collapse whatever is expanded on the left, or expand the menu */
   toggleLeft: () => void;
@@ -129,7 +142,7 @@ interface State {
 }
 
 function makeLab(kind: 'blank' | SampleKind): Lab {
-  return kind === 'office' ? buildSampleLab() : kind === 'intervlan' ? buildInterVlanLab() : emptyLab('New Lab');
+  return kind === 'office' ? buildSampleLab() : kind === 'intervlan' ? buildInterVlanLab() : kind === 'trouble' ? buildTroubleshootLab() : emptyLab('New Lab');
 }
 
 function initial(): { lab: Lab; savedSig: string | null; activeId: string; updatedAt: number; others: LabEntry[] } {
@@ -183,6 +196,7 @@ export const useStore = create<State>((set, get) => {
       selection: null,
       transcripts: {},
       lastPing: null,
+      challengeRun: null,
       confirm: null,
       view: 'lab',
       rightTab: 'details',
@@ -199,8 +213,9 @@ export const useStore = create<State>((set, get) => {
       selection: null,
       transcripts: {},
       lastPing: null,
+      challengeRun: null,
       confirm: null,
-      leftPanel: lab.guide ? 'guide' : get().leftPanel === 'guide' ? 'menu' : get().leftPanel,
+      leftPanel: lab.challenge ? 'challenge' : lab.guide ? 'guide' : get().leftPanel === 'guide' ? 'menu' : get().leftPanel,
       fitNonce: get().fitNonce + 1,
     });
   };
@@ -221,6 +236,7 @@ export const useStore = create<State>((set, get) => {
     transcripts: {},
     pendingInput: null,
     lastPing: null,
+    challengeRun: null,
     notice: null,
     connectDialog: null,
     confirm: null,
@@ -247,6 +263,23 @@ export const useStore = create<State>((set, get) => {
     setRightTab: (rightTab) => set({ rightTab, rightOpen: true }),
     setLeftPanel: (leftPanel) => set({ leftPanel }),
     toggleGuide: () => set({ leftPanel: get().leftPanel === 'guide' ? null : 'guide', view: 'lab' }),
+    toggleChallenge: () => set({ leftPanel: get().leftPanel === 'challenge' ? null : 'challenge', view: 'lab' }),
+    runChallenge: () => {
+      const lab = get().lab;
+      if (!lab.challenge) return;
+      set({ challengeRun: { report: evaluateChallenge(lab, lab.challenge), sig: configSignature(lab) } });
+    },
+    setChallenge: (c) => {
+      const lab = get().lab;
+      const next = { ...lab };
+      if (c) next.challenge = c;
+      else delete next.challenge;
+      set({ lab: next, challengeRun: null });
+    },
+    updateChallenge: (fn) => {
+      const lab = get().lab;
+      setLab({ ...lab, challenge: fn(lab.challenge ?? emptyChallenge()) });
+    },
     toggleMenu: () => set({ leftPanel: get().leftPanel === 'menu' ? null : 'menu' }),
     toggleLeft: () => set({ leftPanel: get().leftPanel === null ? 'menu' : null }),
     toggleRight: () => set({ rightOpen: !get().rightOpen }),
@@ -384,7 +417,9 @@ export const useStore = create<State>((set, get) => {
                 ? 'สร้าง Lab ใหม่แล้ว'
                 : p.which === 'intervlan'
                   ? 'เปิด Sample Lab: Inter-VLAN แล้ว'
-                  : 'เปิด Sample Lab แล้ว',
+                  : p.which === 'trouble'
+                    ? 'เปิดโจทย์ Challenge: Troubleshooting แล้ว'
+                    : 'เปิด Sample Lab แล้ว',
         },
       });
     },

@@ -1,6 +1,6 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
-import { interVlanGuide, officeGuide } from './sampleGuides';
-import type { Device, Lab } from './types';
+import { interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
+import type { Check, Device, Lab } from './types';
 
 export const SAMPLE_NAME = 'Small Office – Cisco & Aruba';
 
@@ -170,5 +170,42 @@ export function buildInterVlanLab(): Lab {
   link(pcC.id, 'Ethernet0', sw2.id, '1/1/1');
   link(pcD.id, 'Ethernet0', sw2.id, '1/1/2');
   lab = { ...lab, counters: { ...lab.counters, __id: id, R: 2, SW: 2, 'PC-': 5 }, guide: interVlanGuide() };
+  return lab;
+}
+
+export const TROUBLE_NAME = 'Challenge: Troubleshooting – ออฟฟิศ Inter-VLAN เสีย';
+
+/**
+ * Third sample (challenge mode): the Inter-VLAN lab with three faults injected.
+ * Faults: (1) SW1 trunk to SW2 no longer allows VLAN 20, (2) R2 lost its default route,
+ * (3) PC-C has a wrong default gateway.
+ */
+export function buildTroubleshootLab(): Lab {
+  let lab = buildInterVlanLab();
+  lab = { ...lab, name: TROUBLE_NAME };
+  const id = (name: string) => lab.devices.find((d) => d.name === name)!.id;
+  lab = updateDevice(lab, id('SW1'), (d) => ({
+    ...d,
+    ifaces: d.ifaces.map((i) => (i.name === 'GigabitEthernet0/2' ? { ...i, trunkAllowed: [10] } : i)),
+  }));
+  lab = updateDevice(lab, id('R2'), (d) => ({ ...d, routes: [] }));
+  lab = updateDevice(lab, id('PC-C'), (d) => ({ ...d, gateway: '192.168.10.2' }));
+  const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
+  const checks: Check[] = [
+    ping(1, 'PC-A', '192.168.10.12', 'PC-A ติดต่อ PC-C (VLAN 10 เดียวกัน) ได้'),
+    ping(2, 'PC-B', '192.168.20.12', 'PC-B ติดต่อ PC-D (VLAN 20 เดียวกัน ข้าม trunk) ได้'),
+    ping(3, 'PC-C', '192.168.20.11', 'PC-C ติดต่อ PC-B (ข้าม VLAN ผ่าน R1) ได้'),
+    ping(4, 'PC-A', '172.16.0.10', 'PC-A ติดต่อ PC-E (ผ่าน R1 และ R2) ได้'),
+    { id: 'c5', kind: 'link-up', label: 'R1 Gi0/0 ลิงก์ up', deviceId: id('R1'), port: 'GigabitEthernet0/0' },
+  ];
+  lab = {
+    ...lab,
+    guide: troubleshootGuide(),
+    challenge: {
+      title: 'ซ่อมเครือข่ายออฟฟิศ',
+      goal: 'ผู้ใช้แจ้งว่าเครือข่ายมีหลายจุดใช้งานไม่ได้ ให้หาสาเหตุและแก้ไขจนทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสายที่ต่ออยู่',
+      checks,
+    },
+  };
   return lab;
 }

@@ -2,6 +2,7 @@ import { useReactFlow } from '@xyflow/react';
 import { useState } from 'react';
 import { PROFILES } from '../core/profiles';
 import { useStore } from '../store';
+import { ChallengePanel } from './ChallengePanel';
 import { GuidePanel } from './GuidePanel';
 import { Icon } from './Icons';
 import { Palette } from './Palette';
@@ -27,6 +28,7 @@ export function LeftDock() {
   const toggleMenu = useStore((s) => s.toggleMenu);
   const toggleGuide = useStore((s) => s.toggleGuide);
   const hasGuide = useStore((s) => !!s.lab.guide);
+  const toggleChallenge = useStore((s) => s.toggleChallenge);
   const hideLabels = useStore((s) => s.hideLabels);
   const toggleHide = useStore((s) => s.toggleHideLabels);
   const setView = useStore((s) => s.setView);
@@ -59,6 +61,7 @@ export function LeftDock() {
     { id: 'add', icon: 'plus', label: 'Add an object', onClick: () => openSection('add'), testId: 'menu-add', chevron: true, open: expanded && section === 'add' },
     { id: 'nodes', icon: 'nodes', label: `Nodes (${devices.length})`, onClick: () => openSection('nodes'), testId: 'menu-nodes', chevron: true, open: expanded && section === 'nodes' },
     { id: 'guide', icon: 'guide', label: 'Lab Guide', onClick: toggleGuide, active: panel === 'guide', testId: 'menu-guide' },
+    { id: 'challenge', icon: 'check', label: 'Challenge', onClick: toggleChallenge, active: panel === 'challenge', testId: 'menu-challenge' },
     {
       id: 'details',
       icon: 'details',
@@ -143,6 +146,7 @@ export function LeftDock() {
         ))}
       </nav>
       {panel === 'guide' && <GuidePanel />}
+      {panel === 'challenge' && <ChallengePanel />}
     </div>
   );
 }

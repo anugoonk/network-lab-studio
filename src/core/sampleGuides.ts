@@ -128,3 +128,33 @@ export function interVlanGuide(): Guide {
     resources: REFERENCES,
   };
 }
+
+export function troubleshootGuide(): Guide {
+  return {
+    title: 'Troubleshooting — ออฟฟิศ Inter-VLAN เสีย',
+    objective: [
+      'เมื่อจบโจทย์นี้ ผู้เรียนจะสามารถ:',
+      '- ไล่หาสาเหตุจากอาการ (ping ไม่ผ่าน) ทีละชั้น: สาย/พอร์ต → VLAN/trunk → gateway → route',
+      '- ใช้ `show` และ Lab Inspector ยืนยันสาเหตุก่อนแก้',
+    ].join('\n'),
+    sections: [
+      {
+        heading: 'สถานการณ์',
+        body: [
+          'Lab นี้คือเครือข่าย Inter-VLAN (ดูรายละเอียดที่ Sample: Inter-VLAN) แต่มีบางอย่างถูกแก้ผิดไป',
+          'ผู้ใช้แจ้งอาการ: บางเครื่องคุยกันไม่ได้ และบางเครื่องออกไปยังเครือข่ายอีกฝั่งไม่ได้',
+        ].join('\n'),
+      },
+      {
+        heading: 'กติกา',
+        body: [
+          '1. เปิดแผง **Challenge** แล้วกด **Check** เพื่อดูว่ายังไม่ผ่านข้อไหน',
+          '2. Check บอกเฉพาะ "ผ่าน/ไม่ผ่าน" ไม่บอกสาเหตุ — ต้องหาเอง',
+          '3. ห้ามลบหรือเปลี่ยนสาย แก้ได้เฉพาะ config ของอุปกรณ์',
+          '4. กด Check ซ้ำได้ไม่จำกัด',
+        ].join('\n'),
+      },
+    ],
+    resources: REFERENCES,
+  };
+}
