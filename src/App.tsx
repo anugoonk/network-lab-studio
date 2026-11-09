@@ -151,9 +151,31 @@ function Notice() {
   );
 }
 
+function AutosaveWarning() {
+  const ok = useStore((s) => s.autosaveOk);
+  const exportLab = useStore((s) => s.exportLab);
+  if (ok) return null;
+  return (
+    <div className="notice error autosave-warning" role="alert" data-testid="autosave-warning">
+      ⚠ เบราว์เซอร์ไม่ยอมให้บันทึกอัตโนมัติ (private mode, พื้นที่เต็ม หรือถูกบล็อก) — ปิดหน้านี้แล้วงานจะหาย กด{' '}
+      <button onClick={exportLab} data-testid="autosave-export">Export</button> เพื่อเก็บเป็นไฟล์
+    </div>
+  );
+}
+
+/** tab title = lab name, with "●" while there are edits that were not exported yet */
+function useDocumentTitle() {
+  const name = useStore((s) => s.lab.name);
+  const dirty = useStore((s) => s.isDirty());
+  useEffect(() => {
+    document.title = `${dirty ? '● ' : ''}${name || 'Lab'} — Network Lab Studio`;
+  }, [name, dirty]);
+}
+
 export default function App() {
   const view = useStore((s) => s.view);
   const rightOpen = useStore((s) => s.rightOpen);
+  useDocumentTitle();
   useEffect(() => {
     // Ctrl/Cmd+Z = undo, Ctrl+Y or Ctrl/Cmd+Shift+Z = redo — but never inside a text field (it has its own undo)
     const onKey = (e: KeyboardEvent) => {
@@ -177,6 +199,7 @@ export default function App() {
         <Header />
         <Crumb />
         <Notice />
+        <AutosaveWarning />
         {/* the lab view stays mounted (hidden) so the canvas keeps its viewport when switching tabs */}
         <div className="main" style={{ display: view === 'lab' ? 'flex' : 'none' }}>
           <LeftDock />

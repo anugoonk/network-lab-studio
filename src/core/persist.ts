@@ -325,10 +325,13 @@ export function loadWorkspace(storage: Pick<Storage, 'getItem'> | undefined = sa
   return { activeId: id, entries: [{ id, name: legacy.lab.name, updatedAt: Date.now(), savedSig: legacy.savedSig, lab: legacy.lab }] };
 }
 
-export function saveWorkspace(ws: Workspace, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): void {
+/** returns false when the browser refused to store it (blocked / full / no storage) */
+export function saveWorkspace(ws: Workspace, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): boolean {
+  if (!storage) return false;
   try {
-    storage?.setItem(WORKSPACE_KEY, JSON.stringify(ws));
+    storage.setItem(WORKSPACE_KEY, JSON.stringify(ws));
+    return true;
   } catch {
-    /* storage full / blocked — ignore */
+    return false;
   }
 }

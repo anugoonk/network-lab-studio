@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { arubaRunningConfig } from './core/cli/aruba';
+import { ciscoRunningConfig } from './core/cli/cisco';
 import { executeLine, promptFor } from './core/cli/engine';
 import { emptyGuide } from './core/guide';
 import { isHostAddress, isValidMask, parseIp } from './core/ip';
@@ -15,6 +17,7 @@ import {
   updateDevice,
 } from './core/lab';
 import { ping, type PingResult } from './core/network';
+import { PROFILES } from './core/profiles';
 import {
   loadWorkspace,
   newLabId,
@@ -91,6 +94,10 @@ interface State {
   fitNonce: number;
 
   isDirty: () => boolean;
+  /** false when the last autosave was refused by the browser (private mode, storage full or blocked) */
+  autosaveOk: boolean;
+  /** copies the device's running-config to the clipboard and reports the result as a notice */
+  copyConfig: (deviceId: string) => Promise<void>;
   summaries: () => EntrySummary[];
   setView: (v: View) => void;
   setRightTab: (t: RightTab) => void;
@@ -281,6 +288,23 @@ export const useStore = create<State>((set, get) => {
     fitNonce: 0,
 
     isDirty: () => contentSignature(get().lab) !== get().savedSig,
+    autosaveOk: true,
+    copyConfig: async (deviceId) => {
+      const dev = getDevice(get().lab, deviceId);
+      if (!dev) return;
+      const p = PROFILES[dev.kind];
+      if (!p.hasCli || p.isHost) {
+        set({ notice: { kind: 'error', text: `${dev.name} ไม่มี running-config ให้คัดลอก` } });
+        return;
+      }
+      const text = (p.vendor === 'aruba' ? arubaRunningConfig(dev) : ciscoRunningConfig(dev)).join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        set({ notice: { kind: 'ok', text: `คัดลอก running-config ของ ${dev.name} แล้ว (${text.split('\n').length} บรรทัด)` } });
+      } catch {
+        set({ notice: { kind: 'error', text: 'คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้เขียน clipboard (ลองใช้ show running-config แล้วลากคลุมแทน)' } });
+      }
+    },
     summaries: () => {
       const s = get();
       const all = [activeEntry(), ...s.others];
@@ -575,10 +599,11 @@ function persistNow() {
     useStore.setState({ activeUpdatedAt: Date.now() });
   }
   const st = useStore.getState();
-  saveWorkspace({
+  const ok = saveWorkspace({
     activeId: st.activeId,
     entries: [{ id: st.activeId, name: st.lab.name, updatedAt: st.activeUpdatedAt, savedSig: st.savedSig, lab: st.lab }, ...st.others],
   });
+  if (ok !== st.autosaveOk) useStore.setState({ autosaveOk: ok });
 }
 
 // undo/redo recording: every user-made Lab change is pushed onto the history; loading another Lab resets it

@@ -11,6 +11,7 @@ export function Console() {
   const transcripts = useStore((s) => s.transcripts);
   const pending = useStore((s) => s.pendingInput);
   const clear = useStore((s) => s.clearTranscript);
+  const copyConfig = useStore((s) => s.copyConfig);
   const deviceId = sel?.type === 'device' ? sel.id : null;
   const device = deviceId ? getDevice(lab, deviceId) : undefined;
 
@@ -105,6 +106,11 @@ export function Console() {
       <div className="console-head">
         <b>{device.name}</b>
         <span className="muted small"> · {PROFILES[device.kind].label} · {isPc ? 'ipconfig / ping <IPv4>' : 'พิมพ์ ? เพื่อดูคำสั่ง'}</span>
+        {!isPc && (
+          <button className="link-btn" onClick={() => void copyConfig(device.id)} data-testid="console-copy-config">
+            คัดลอก config
+          </button>
+        )}
         <button className="link-btn" onClick={() => clear(device.id)}>
           ล้างหน้าจอ
         </button>

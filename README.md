@@ -100,6 +100,14 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 โจทย์ฝึกอยู่ใน Lab Guide ของ Lab นี้ (ตัด VLAN ออกจาก allowed list, ลบ default route แล้วดูขากลับล้ม, ตั้ง SVI บน SW2 ให้เป็น gateway)
 
+### การบันทึกงานและความปลอดภัยของข้อมูล
+
+- **Autosave:** ทุกการแก้ไขบันทึกลง `localStorage` ของเบราว์เซอร์อัตโนมัติ — การปิดหน้าไม่ทำให้งานหาย และจะ **ไม่มี** prompt "ออกจากหน้านี้?" ในกรณีปกติ
+- **เมื่อเบราว์เซอร์ไม่ยอมให้บันทึก** (private mode, พื้นที่เต็ม, ถูกบล็อก): แถบเตือนสีแดงปรากฏทันทีที่เปิดหน้า พร้อมปุ่ม Export และเบราว์เซอร์จะถามยืนยันก่อนปิดหน้าถ้ามีการแก้ไขที่ยังไม่ได้ Export
+- **ชื่อ tab ของเบราว์เซอร์** ตามชื่อ Lab และมี `●` นำหน้าเมื่อมีการแก้ไขที่ยังไม่ได้ Export ไฟล์ (เหมือนป้าย "● ยังไม่ได้ Export" ที่แถบตำแหน่ง) — งานยังบันทึกอัตโนมัติอยู่ ไม่ได้หมายความว่าจะหาย
+- **คัดลอก config:** ปุ่ม "คัดลอก config" ที่แผงรายละเอียดอุปกรณ์และหัว Console (router/switch เท่านั้น) คัดลอก running-config ไปที่ clipboard — ต้องให้เบราว์เซอร์อนุญาตการเขียน clipboard ไม่เช่นนั้นจะแจ้งให้ใช้ `show running-config` แทน
+
+
 ## ตาราง ARP / MAC, ตรวจ IP ซ้ำ และ Challenge mode
 
 - **คำสั่งใหม่:** Cisco `show ip arp` (router/switch) และ `show mac address-table` (switch); Aruba `show arp` และ `show mac-address-table`; PC `arp -a`
@@ -326,9 +334,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 11 ไฟล์) | **384/384 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
+| `npm test` (Vitest, 12 ไฟล์) | **387/387 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 46 flow) | **46/46 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต, undo/redo, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 51 flow) | **51/51 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต, undo/redo, autosave/คัดลอก config/ชื่อ tab, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 

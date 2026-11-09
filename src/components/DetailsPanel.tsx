@@ -124,6 +124,7 @@ function DeviceDetails({ id }: { id: string }) {
   const rename = useStore((s) => s.renameDevice);
   const del = useStore((s) => s.deleteSelection);
   const openConsole = useStore((s) => s.openConsole);
+  const copyConfig = useStore((s) => s.copyConfig);
   const device = getDevice(lab, id);
   const [name, setName] = useState(device?.name ?? '');
   const [err, setErr] = useState<string | null>(null);
@@ -161,6 +162,11 @@ function DeviceDetails({ id }: { id: string }) {
         />
         {err && <div className="error-box" role="alert">{err}</div>}
         <div className="row">
+          {p.hasCli && !p.isHost && (
+            <button onClick={() => void copyConfig(id)} title="คัดลอก running-config ไปที่ clipboard" data-testid="copy-config">
+              คัดลอก config
+            </button>
+          )}
           {p.hasCli && (
             <button className="primary" onClick={() => openConsole(id)} data-testid="open-console">
               เปิด {p.isHost ? 'Terminal' : 'Console'}
