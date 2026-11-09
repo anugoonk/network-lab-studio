@@ -74,7 +74,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
   const pa = { x: a.x + ux * off, y: a.y + uy * off };
   const pb = { x: b.x - ux * off, y: b.y - uy * off };
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  const color = st.up ? '#1a8f4c' : '#c62828';
+  const color = st.up ? '#2f6b86' : '#c62828';
   const trunkOf = (deviceId: string, port: string) => {
     const d = getDevice(lab, deviceId);
     return !!(d && getIface(d, port)?.trunk && !(d.kind === 'aruba-switch' && getIface(d, port)?.routed));
@@ -88,7 +88,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
         id={id}
         path={`M ${a.x} ${a.y} L ${b.x} ${b.y}`}
         interactionWidth={22}
-        style={{ stroke: color, strokeWidth: selected ? 5 : 3, strokeDasharray: st.up ? undefined : '8 6' }}
+        style={{ stroke: color, strokeWidth: selected ? 5 : 2.5, strokeDasharray: st.up ? undefined : '8 6' }}
       />
       <EdgeLabelRenderer>
         <div

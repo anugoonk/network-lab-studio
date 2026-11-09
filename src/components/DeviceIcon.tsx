@@ -6,7 +6,13 @@ export function DeviceIcon({ kind, size = 56 }: { kind: DeviceKind; size?: numbe
   if (kind === 'cisco-router') {
     return (
       <svg {...common}>
-        <circle cx="32" cy="32" r="26" fill="#1f5fbf" />
+        <defs>
+          <radialGradient id="rg" cx="40%" cy="35%" r="75%">
+            <stop offset="0" stopColor="#aab2b9" />
+            <stop offset="1" stopColor="#5f6870" />
+          </radialGradient>
+        </defs>
+        <circle cx="32" cy="32" r="26" fill="url(#rg)" />
         <g stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none">
           <path d="M32 12v14M26 18l6-6 6 6" />
           <path d="M32 52V38M26 46l6 6 6-6" />
@@ -17,10 +23,12 @@ export function DeviceIcon({ kind, size = 56 }: { kind: DeviceKind; size?: numbe
     );
   }
   if (kind === 'cisco-switch' || kind === 'aruba-switch') {
-    const fill = kind === 'cisco-switch' ? '#1f5fbf' : '#e8710a';
+    const fill = '#2f6f8f';
+    const accent = kind === 'aruba-switch' ? '#e8750a' : '#7fb8d3';
     return (
       <svg {...common}>
         <rect x="4" y="18" width="56" height="30" rx="5" fill={fill} />
+        <rect x="4" y="43" width="56" height="5" rx="2" fill={accent} />
         <g stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
           <path d="M14 29h20M29 24l5 5-5 5" />
           <path d="M50 38H30M35 33l-5 5 5 5" />

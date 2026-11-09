@@ -13,7 +13,7 @@ const ITEMS: { kind: DeviceKind; note: string }[] = [
 
 export const DRAG_MIME = 'application/x-nls-device';
 
-export function Palette() {
+export function Palette({ collapsed = false }: { collapsed?: boolean }) {
   const addDeviceAt = useStore((s) => s.addDeviceAt);
   const flow = useReactFlow();
 
@@ -29,13 +29,14 @@ export function Palette() {
   };
 
   return (
-    <aside className="palette" aria-label="Device Palette">
+    <aside className={`palette${collapsed ? ' collapsed' : ''}`} aria-label="Device Palette">
       <h2>อุปกรณ์</h2>
       <p className="muted small">ลากลงพื้นที่วาด หรือกดเพื่อเพิ่มกลางจอ</p>
       {ITEMS.map(({ kind, note }) => (
         <div
           key={kind}
           className="palette-item"
+          title={PROFILES[kind].label}
           draggable
           role="button"
           tabIndex={0}
@@ -47,7 +48,9 @@ export function Palette() {
           onClick={() => addAtCenter(kind)}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && addAtCenter(kind)}
         >
-          <DeviceIcon kind={kind} size={44} />
+          <span className="tile">
+            <DeviceIcon kind={kind} size={38} />
+          </span>
           <div>
             <div className="palette-name">{PROFILES[kind].label}</div>
             <div className="muted small">{note}</div>

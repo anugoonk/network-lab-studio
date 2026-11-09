@@ -12,8 +12,6 @@ import { useStore, type RightTab } from './store';
 function Header() {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
-  const dirty = useStore((s) => s.isDirty());
-  const name = useStore((s) => s.lab.name);
   const request = useStore((s) => s.requestReplace);
   const exportLab = useStore((s) => s.exportLab);
   const importText = useStore((s) => s.importText);
@@ -45,10 +43,6 @@ function Header() {
           Command Library
         </button>
       </nav>
-      <div className="lab-name" title={name} data-testid="lab-name">
-        {name}
-        {dirty && <span className="dirty" title="มีการแก้ไขที่ยังไม่ได้ Export"> ●</span>}
-      </div>
       <div className="actions">
         <button onClick={() => request({ kind: 'new' })} data-testid="btn-new">New Lab</button>
         <button onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">Open Sample Lab</button>
@@ -61,12 +55,34 @@ function Header() {
             <span className="sep" />
             <button onClick={() => openConnect()} data-testid="btn-connect">เชื่อมสาย</button>
             <button onClick={() => flow.fitView({ padding: 0.15, duration: 250 })} data-testid="btn-fit">Fit view</button>
-            <button onClick={toggleLeft} aria-pressed={leftOpen} data-testid="toggle-left">{leftOpen ? '◀ ซ่อน Palette' : '▶ Palette'}</button>
+            <button onClick={toggleLeft} aria-pressed={leftOpen} data-testid="toggle-left">{leftOpen ? '◀ ย่อ Palette' : '▶ ขยาย Palette'}</button>
             <button onClick={toggleRight} aria-pressed={rightOpen} data-testid="toggle-right">{rightOpen ? 'ซ่อนแผงขวา ▶' : '◀ แผงขวา'}</button>
           </>
         )}
       </div>
     </header>
+  );
+}
+
+function Crumb() {
+  const view = useStore((s) => s.view);
+  const dirty = useStore((s) => s.isDirty());
+  const name = useStore((s) => s.lab.name);
+  return (
+    <nav className="crumb" aria-label="ตำแหน่งปัจจุบัน">
+      <span>ตำแหน่งปัจจุบัน</span>
+      <span className="slash">/</span>
+      <span className="link">{view === 'lab' ? 'Lab' : 'Command Library'}</span>
+      <span className="slash">/</span>
+      <span className="here" title={name} data-testid="lab-name">
+        {name}
+      </span>
+      {dirty && (
+        <span className="dirty" title="มีการแก้ไขที่ยังไม่ได้ Export">
+          ● ยังไม่ได้ Export
+        </span>
+      )}
+    </nav>
   );
 }
 
@@ -120,9 +136,10 @@ export default function App() {
     <ReactFlowProvider>
       <div className="app">
         <Header />
+        <Crumb />
         <Notice />
         <div className="main" style={{ display: view === 'lab' ? 'flex' : 'none' }}>
-          {leftOpen && <Palette />}
+          <Palette collapsed={!leftOpen} />
           <Canvas />
           {rightOpen && <RightPanel />}
         </div>
