@@ -22,8 +22,9 @@ npm run preview      # เปิด production build  http://localhost:4173
 
 ```bash
 npm test                         # unit/integration tests (Vitest) — parser, network behaviour, import/export, README sync
-npx playwright install chromium  # ครั้งแรกเท่านั้น (หรือกำหนด PW_CHROMIUM=path\to\chrome.exe)
+npx playwright install chromium  # ครั้งแรก และทุกครั้งหลังอัปเกรด @playwright/test (เบราว์เซอร์ผูกกับเวอร์ชัน; หรือกำหนด PW_CHROMIUM=path/to/chrome.exe)
 npm run e2e                      # ทดสอบ flow หลักผ่าน UI จริงด้วย Playwright (build + preview ให้อัตโนมัติ)
+                                 # ถ้ามี server ค้างที่พอร์ต 4173 จะหยุดพร้อมข้อความ error (กันทดสอบกับโค้ดเก่า); ตั้ง PW_REUSE_SERVER=1 ถ้าตั้งใจใช้ server ที่เปิดเอง
 ```
 
 ## วิธีใช้งานโดยย่อ
