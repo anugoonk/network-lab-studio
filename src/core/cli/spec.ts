@@ -4,7 +4,7 @@ import { parseVlanList, subName } from '../lab';
 import { PROFILES } from '../profiles';
 import type { CliMode, Device, DeviceKind, Lab, Vendor } from '../types';
 
-export type PType = 'vlan' | 'vlanlist' | 'iface' | 'word' | 'text' | 'ip' | 'mask' | 'rmask' | 'cidr';
+export type PType = 'ifrange' | 'vlan' | 'vlanlist' | 'iface' | 'word' | 'text' | 'ip' | 'mask' | 'rmask' | 'cidr';
 export interface Tok {
   lit?: string;
   name?: string;
@@ -28,6 +28,8 @@ export interface RunResult {
   mode?: CliMode;
   ctxIface?: string | null;
   ctxVlan?: number | null;
+  /** set together with `mode`/`ctxIface` when entering `interface range` (leaving it is the default) */
+  ctxRange?: string[];
   clear?: boolean;
 }
 
@@ -69,6 +71,8 @@ const PARAM_TYPES: Record<string, PType> = {
   text: 'text',
   ipv4: 'word',
   command: 'text',
+  'port-range': 'text',
+  'if-range': 'ifrange',
 };
 
 export const PARAM_HELP: Record<string, string> = {
@@ -87,6 +91,8 @@ export const PARAM_HELP: Record<string, string> = {
   text: 'Text',
   ipv4: 'IPv4 address',
   command: 'Command to run',
+  'port-range': 'Interface range, e.g. fa0/1 - 4',
+  'if-range': 'Interface range, e.g. 1/1/1-1/1/4 or 1/1/1,1/1/3',
 };
 
 export function parseSyntax(syntax: string): Tok[] {
@@ -132,6 +138,60 @@ export function resolveIface(dev: Device, tok: string, vendor: Vendor): string |
   return `${base}.${id}`;
 }
 
+/** Most ports one `interface range` may select (IOS limits the number of comma-separated groups instead). */
+export const MAX_RANGE_PORTS = 48;
+
+/**
+ * Parses the text after `interface range` (Cisco: `fa0/1 - 4`, `fa0/1-4, gi0/1`, `fastethernet 0/1 - 2`)
+ * or after `interface` (AOS-CX: `1/1/1-1/1/4`, `1/1/1-4,1/1/10`) into the canonical port names, in order, without duplicates.
+ */
+export function parseIfRange(dev: Device, text: string, vendor: Vendor): { names: string[] } | { error: string } {
+  const bad = { error: 'invalid' };
+  const norm = text.trim().replace(/\s*([,-])\s*/g, '$1');
+  if (!norm) return bad;
+  const out: string[] = [];
+  let lastPrefix = '';
+  for (const rawItem of norm.split(',')) {
+    // "fastethernet 0/1" -> "fastethernet0/1"; a later item may omit the interface type (IOS repeats the previous one)
+    const item = rawItem.replace(/^([A-Za-z]+)\s+(?=\d)/, '$1');
+    if (vendor === 'aruba') {
+      const m = /^(\d+\/\d+)\/(\d+)(?:-(?:\d+\/\d+\/)?(\d+))?$/.exec(item);
+      if (!m) return bad;
+      const a = Number(m[2]);
+      const b = m[3] === undefined ? a : Number(m[3]);
+      if (a > b) return bad;
+      for (let n = a; n <= b; n++) {
+        const name = `${m[1]}/${n}`;
+        if (!dev.ifaces.some((i) => i.name === name)) return bad;
+        if (!out.includes(name)) out.push(name);
+      }
+    } else {
+      const m = /^([A-Za-z]+)?(\d+(?:\/\d+)*)\/(\d+)(?:-(?:[A-Za-z]*\d+(?:\/\d+)*\/)?(\d+))?$/.exec(item);
+      if (!m) return bad;
+      const prefix = m[1] ?? lastPrefix;
+      if (!prefix) return bad;
+      lastPrefix = prefix;
+      const a = Number(m[3]);
+      const b = m[4] === undefined ? a : Number(m[4]);
+      if (a > b) return bad;
+      for (let n = a; n <= b; n++) {
+        const name = resolveIface(dev, `${prefix}${m[2]}/${n}`, vendor);
+        if (!name || name.includes('.')) return bad;
+        if (!out.includes(name)) out.push(name);
+      }
+    }
+    if (out.length > MAX_RANGE_PORTS) return { error: 'too-many' };
+  }
+  return { names: out };
+}
+
+/** Shared handler of `interface range …` (Cisco) / `interface <a>-<b>` (AOS-CX). One port behaves like a plain `interface`. */
+export function enterInterfaceRange(c: Ctx, vendor: Vendor): RunResult {
+  const r = parseIfRange(c.dev, c.args[0], vendor);
+  if ('error' in r) return { error: [r.error === 'too-many' ? `% Too many interfaces in the range (max ${MAX_RANGE_PORTS}).` : '% Invalid interface range.'] };
+  return { mode: 'config-if', ctxIface: r.names[0], ctxVlan: null, ctxRange: r.names.length > 1 ? r.names : undefined };
+}
+
 /** Returns the stored argument value, or null when the token is invalid for the type. */
 export function checkParam(ptype: PType, tok: string, dev: Device, vendor: Vendor): string | null {
   switch (ptype) {
@@ -148,6 +208,8 @@ export function checkParam(ptype: PType, tok: string, dev: Device, vendor: Vendo
     }
     case 'iface':
       return resolveIface(dev, tok, vendor);
+    case 'ifrange':
+      return /^\d+\/\d+\/\d+(?:[-,]\d+(?:\/\d+\/\d+)?)+$/.test(tok) ? tok : null;
     case 'ip':
       return parseIp(tok) !== null ? tok : null;
     case 'mask':

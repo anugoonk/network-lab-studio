@@ -49,9 +49,12 @@ describe('802.1Q trunks', () => {
 
   it('Aruba trunk allowed list is enforced too', () => {
     let lab = lab0();
-    lab = run(lab, 'SW2', ['configure terminal', 'interface 1/1/24', 'vlan trunk allowed 10']).lab;
+    lab = run(lab, 'SW2', ['configure terminal', 'interface 1/1/24', 'no vlan trunk allowed 20']).lab;
     expect(p(lab, 'PC-A', '192.168.10.12').ok).toBe(true);
     expect(p(lab, 'PC-B', '192.168.20.12').ok).toBe(false);
+    lab = run(lab, 'SW2', ['vlan trunk allowed 20']).lab; // adds back (does not replace the list)
+    expect(p(lab, 'PC-A', '192.168.10.12').ok).toBe(true);
+    expect(p(lab, 'PC-B', '192.168.20.12').ok).toBe(true);
     lab = run(lab, 'SW2', ['vlan trunk allowed all']).lab;
     expect(p(lab, 'PC-B', '192.168.20.12').ok).toBe(true);
   });

@@ -242,3 +242,17 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 
 .hint-box { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 .hint-box .hint { padding: 6px 10px; font-size: 13px; color: #1c2429; background: #ffd9a8; border-radius: 6px; }
+
+.packet { position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; pointer-events: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85), 0 2px 6px rgba(0, 0, 0, 0.35); z-index: 5; }
+.packet.fwd { background: #1e88e5; }
+.packet.back { background: #2e9d4f; }
+.packet.fail { background: #c62828; }
+.canvas { position: relative; }
+.anim-toggle { position: absolute; top: 8px; right: 8px; z-index: 6; font-size: 12px; padding: 3px 9px; }
+
+.approx-note { margin: 4px 0; padding: 4px 8px; font-size: 12px; background: #fff4d6; color: #3a2f00; border-radius: 6px; }
+.approx-note summary { cursor: pointer; }
+.approx-note ul { margin: 4px 0 4px 18px; padding: 0; }
+
+.share-box { display: flex; gap: 8px; align-items: center; }
+.share-box input { flex: 1; min-width: 0; font-family: monospace; font-size: 12px; }

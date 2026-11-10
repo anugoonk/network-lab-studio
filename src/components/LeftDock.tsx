@@ -32,6 +32,7 @@ export function LeftDock() {
   const toggleChallenge = useStore((s) => s.toggleChallenge);
   const hideLabels = useStore((s) => s.hideLabels);
   const toggleHide = useStore((s) => s.toggleHideLabels);
+  const shareLab = useStore((s) => s.shareLab);
   const setView = useStore((s) => s.setView);
   const select = useStore((s) => s.select);
   const setRightTab = useStore((s) => s.setRightTab);
@@ -76,6 +77,7 @@ export function LeftDock() {
     },
     { id: 'manager', icon: 'manager', label: 'Lab Manager', onClick: () => setView('manager'), testId: 'menu-manager' },
     { id: 'library', icon: 'library', label: 'Command Library', onClick: () => setView('library'), testId: 'menu-library' },
+    { id: 'share', icon: 'share', label: 'แชร์ลิงก์ Lab', onClick: () => void shareLab(), testId: 'menu-share' },
     { id: 'cable', icon: 'cable', label: 'เชื่อมสาย', onClick: () => openConnect(), testId: 'menu-connect' },
     { id: 'fit', icon: 'fit', label: 'Fit view', onClick: () => fitLab(flow), testId: 'menu-fit' },
     { id: 'hide', icon: 'tag', label: hideLabels ? 'แสดงป้ายพอร์ต/สถานะ' : 'ซ่อนป้ายพอร์ต/สถานะ', onClick: toggleHide, active: hideLabels, testId: 'menu-hide-labels' },

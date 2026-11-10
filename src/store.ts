@@ -29,6 +29,7 @@ import {
   type LabEntry,
   type RejectedEntry,
 } from './core/persist';
+import { SHARE_LONG_LINK, encodeShare, parseShare } from './core/share';
 import { SAMPLES, buildSampleLab, type SampleKind } from './core/sample';
 import { emptyHistory, reconcileCli, recordChange, redoStep, undoStep, type History } from './core/history';
 import { applyStart, captureStart, emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
@@ -93,6 +94,13 @@ interface State {
   transcripts: Record<string, TermLine[]>;
   pendingInput: { deviceId: string; text: string; n: number } | null;
   lastPing: PingResult | null;
+  /** the ping the canvas should animate (`n` changes on every ping; `epoch` = the Lab it ran in) */
+  pingAnim: { n: number; epoch: number; r: PingResult } | null;
+  /** set when the clipboard was not available: the link to show for manual copying */
+  shareUrl: string | null;
+  clearShareUrl: () => void;
+  animatePackets: boolean;
+  toggleAnimatePackets: () => void;
   notice: { kind: 'ok' | 'error'; text: string } | null;
   connectDialog: { a?: string; b?: string } | null;
   confirm: Pending | null;
@@ -109,6 +117,10 @@ interface State {
   autosaveOk: boolean;
   /** copies the device's running-config to the clipboard and reports the result as a notice */
   copyConfig: (deviceId: string) => Promise<void>;
+  /** copy a link that opens this Lab (contents in the URL fragment) */
+  shareLab: () => Promise<void>;
+  /** open a Lab from the fragment of a share link, as a new Lab in the list */
+  openShared: (fragment: string) => Promise<boolean>;
   summaries: () => EntrySummary[];
   setView: (v: View) => void;
   setRightTab: (t: RightTab) => void;
@@ -167,6 +179,10 @@ interface State {
   cancelDelete: () => void;
   exportEntry: (id: string) => void;
   importAsEntry: (text: string, fileName: string) => string | null;
+}
+
+function nextAnim(s: { pingAnim: { n: number } | null; labEpoch: number }, r: PingResult) {
+  return { n: (s.pingAnim?.n ?? 0) + 1, epoch: s.labEpoch, r };
 }
 
 function makeLab(kind: 'blank' | SampleKind): Lab {
@@ -298,6 +314,11 @@ export const useStore = create<State>((set, get) => {
     transcripts: {},
     pendingInput: null,
     lastPing: null,
+    pingAnim: null,
+    shareUrl: null,
+    clearShareUrl: () => set({ shareUrl: null }),
+    animatePackets: true,
+    toggleAnimatePackets: () => set({ animatePackets: !get().animatePackets }),
     challengeRun: null,
     notice: null,
     connectDialog: null,
@@ -313,6 +334,37 @@ export const useStore = create<State>((set, get) => {
     downloadRejected: () => {
       const r = get().rejected;
       if (r.length) download('nls-recovered-labs.json', rejectedBundle(r));
+    },
+    shareLab: async () => {
+      const lab = get().lab;
+      if (lab.devices.length === 0) {
+        set({ notice: { kind: 'error', text: 'Lab ว่าง ไม่มีอะไรให้แชร์' } });
+        return;
+      }
+      const url = `${location.origin}${location.pathname}#${await encodeShare(lab)}`;
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {
+        /* no clipboard permission */
+      }
+      const long = url.length > SHARE_LONG_LINK ? ` — ลิงก์ยาว ${url.length.toLocaleString('en-US')} ตัวอักษร แอปแชทบางตัวอาจตัดลิงก์ ถ้าเปิดไม่ได้ให้ส่งไฟล์ Export แทน` : '';
+      if (copied) set({ notice: { kind: 'ok', text: `คัดลอกลิงก์แชร์ของ "${lab.name}" แล้ว${long}` } });
+      else {
+        set({ shareUrl: url, notice: { kind: 'error', text: `คัดลอกอัตโนมัติไม่ได้ — คัดลอกลิงก์จากกล่องที่แสดงเอง${long}` } });
+      }
+    },
+    openShared: async (fragment) => {
+      const r = await parseShare(fragment);
+      if (!r.ok) {
+        set({ notice: { kind: 'error', text: `เปิดลิงก์แชร์ไม่สำเร็จ (ไม่มีอะไรถูกเปลี่ยน): ${r.error}` } });
+        return false;
+      }
+      const e: LabEntry = { id: newLabId(), name: r.lab.name, updatedAt: Date.now(), savedSig: contentSignature(r.lab), lab: r.lab };
+      loadEntry(e, [...get().others, activeEntry()]);
+      set({ notice: { kind: 'ok', text: `เปิด "${r.lab.name}" จากลิงก์แชร์แล้ว (เพิ่มเป็น Lab ใหม่ในรายการ — Lab เดิมของคุณยังอยู่)` } });
+      return true;
     },
     copyConfig: async (deviceId) => {
       const dev = getDevice(get().lab, deviceId);
@@ -483,7 +535,10 @@ export const useStore = create<State>((set, get) => {
       set({ lab: res.lab, transcripts });
       // remember terminal pings for the Lab Inspector
       const m = /^ping\s+(\d+\.\d+\.\d+\.\d+)\s*$/i.exec(line.trim());
-      if (m && parseIp(m[1]) !== null) set({ lastPing: ping(res.lab, deviceId, m[1]) });
+      if (m && parseIp(m[1]) !== null) {
+        const r = ping(res.lab, deviceId, m[1]);
+        set({ lastPing: r, pingAnim: nextAnim(get(), r) });
+      }
     },
     clearTranscript: (deviceId) => set({ transcripts: { ...get().transcripts, [deviceId]: [] } }),
     insertIntoConsole: (deviceId, text) => {
@@ -497,7 +552,7 @@ export const useStore = create<State>((set, get) => {
     },
     runPing: (srcId, ip) => {
       const r = ping(get().lab, srcId, ip);
-      set({ lastPing: r });
+      set({ lastPing: r, pingAnim: nextAnim(get(), r) });
       return r;
     },
 

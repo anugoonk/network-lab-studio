@@ -167,6 +167,19 @@ function RejectedLabsWarning() {
   );
 }
 
+/** shown only when the clipboard refused the share link: the link to copy by hand */
+function ShareLinkBox() {
+  const url = useStore((s) => s.shareUrl);
+  const clear = useStore((s) => s.clearShareUrl);
+  if (!url) return null;
+  return (
+    <div className="notice share-box" role="status" data-testid="share-box">
+      <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="ลิงก์แชร์" data-testid="share-url" />
+      <button onClick={clear}>ปิด</button>
+    </div>
+  );
+}
+
 function AutosaveWarning() {
   const ok = useStore((s) => s.autosaveOk);
   const exportLab = useStore((s) => s.exportLab);
@@ -216,6 +229,7 @@ export default function App() {
         <Crumb />
         <Notice />
         <AutosaveWarning />
+        <ShareLinkBox />
         <RejectedLabsWarning />
         {/* the lab view stays mounted (hidden) so the canvas keeps its viewport when switching tabs */}
         <div className="main" style={{ display: view === 'lab' ? 'flex' : 'none' }}>

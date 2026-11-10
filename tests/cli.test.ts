@@ -87,10 +87,10 @@ describe('Cisco IOS mode handling', () => {
   });
 
   it('supports abbreviations and shows ambiguity', () => {
-    const r = run(sample(), 'SW1', ['en', 'conf t', 'int range fa0/1']);
+    const r = run(sample(), 'SW1', ['en', 'conf t', 'int rang fa0/1 - 2']);
     expect(r.results[0].ok).toBe(true);
     expect(r.results[1].ok).toBe(true);
-    expect(r.results[2].ok).toBe(false); // `interface range` is out of scope
+    expect(r.results[2].ok).toBe(true); // `interface range` (abbreviated) is supported
     const amb = run(sample(), 'SW1', ['e']);
     expect(amb.results[0].output[0]).toContain('% Ambiguous command');
   });

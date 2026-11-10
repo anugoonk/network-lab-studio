@@ -4,7 +4,8 @@
  * returns the new Lab (success) or the untouched Lab (error). Nothing here ever
  * touches a host shell — input is only matched against the registry.
  */
-import { PROFILES } from '../profiles';
+import { PROFILES, shortPort } from '../profiles';
+import { allAddresses } from '../network';
 import { getDevice } from '../lab';
 import type { Device, Lab, Vendor } from '../types';
 import { SPECS } from './registry';
@@ -32,13 +33,14 @@ export function promptFor(dev: Device): string {
   const v = PROFILES[dev.kind].vendor;
   const n = dev.name;
   const m = dev.cli.mode;
+  const range = m === 'config-if' && dev.cli.ctxRange && dev.cli.ctxRange.length > 1 ? dev.cli.ctxRange : undefined;
   if (v === 'pc') return 'C:\\>';
   if (v === 'cisco') {
     const t: Record<string, string> = {
       user: `${n}>`,
       priv: `${n}#`,
       config: `${n}(config)#`,
-      'config-if': `${n}(config-if)#`,
+      'config-if': range ? `${n}(config-if-range)#` : `${n}(config-if)#`,
       'config-subif': `${n}(config-subif)#`,
       'config-svi': `${n}(config-if)#`,
       'config-vlan': `${n}(config-vlan)#`,
@@ -48,7 +50,7 @@ export function promptFor(dev: Device): string {
   const a: Record<string, string> = {
     priv: `${n}#`,
     config: `${n}(config)#`,
-    'config-if': `${n}(config-if)#`,
+    'config-if': range ? `${n}(config-if-<${range[0]}-${range[range.length - 1]}>)#` : `${n}(config-if)#`,
     'config-svi': `${n}(config-if-vlan)#`,
     'config-vlan': `${n}(config-vlan-${dev.cli.ctxVlan ?? ''})#`,
   };
@@ -246,8 +248,11 @@ export interface Completion {
   options: string[];
 }
 
-/** Tab key: completes the last word to the only keyword that fits, or to the longest prefix common to the candidates. */
-export function completeLine(dev: Device, input: string): Completion {
+/**
+ * Tab key: completes the last word to the only keyword that fits, or to the longest prefix common to the candidates.
+ * Besides keywords it completes interface names, existing VLAN IDs and (for `ping`) the IPv4 addresses configured in the Lab.
+ */
+export function completeLine(dev: Device, input: string, lab?: Lab): Completion {
   const none: Completion = { value: input, options: [] };
   if (!PROFILES[dev.kind].hasCli) return none;
   const vendor = PROFILES[dev.kind].vendor;
@@ -263,13 +268,22 @@ export function completeLine(dev: Device, input: string): Completion {
   const words = new Map<string, string>(); // lower-case -> as written in the registry
   for (const c of cands) {
     if (c.textDone || c.pos >= c.spec.tokens.length) continue;
-    const lit = c.spec.tokens[c.pos].lit;
-    if (lit === undefined) continue;
-    if (partial && !lit.toLowerCase().startsWith(partial.text.toLowerCase())) continue;
-    if (!words.has(lit.toLowerCase())) words.set(lit.toLowerCase(), lit);
+    const t = c.spec.tokens[c.pos];
+    const want = partial?.text.toLowerCase() ?? '';
+    const offer = (w: string, alias?: string) => {
+      if (partial && !w.toLowerCase().startsWith(want) && !(alias && alias.toLowerCase().startsWith(want))) return;
+      if (!words.has(w.toLowerCase())) words.set(w.toLowerCase(), w);
+    };
+    if (t.lit !== undefined) offer(t.lit);
+    else if (t.ptype === 'iface' || t.ptype === 'ifrange') {
+      if (t.ptype === 'iface') for (const i of dev.ifaces) offer(i.name, vendor === 'cisco' ? shortPort(i.name) : undefined);
+    } else if (t.ptype === 'vlan') for (const v of dev.vlans) offer(String(v.id));
+    else if (lab && c.spec.id.endsWith('.ping')) {
+      for (const a of allAddresses(lab)) if (a.device.id !== dev.id) offer(a.ifc.ip);
+    }
   }
   if (!words.size) return none;
-  const list = [...words.values()].sort((a, b) => a.localeCompare(b));
+  const list = [...words.values()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const head = partial ? input.slice(0, partial.start) : input;
   if (list.length === 1) return { value: `${head}${list[0]} `, options: [] };
   let common = list[0];
@@ -311,10 +325,38 @@ function runOne(lab: Lab, dev: Device, line: string): One {
     dev.cli.mode = saved.mode;
     dev.cli.ctxIface = saved.ctxIface;
     dev.cli.ctxVlan = saved.ctxVlan;
+    dev.cli.ctxRange = saved.ctxRange;
     return inner;
+  }
+  const range = dev.cli.mode === 'config-if' ? dev.cli.ctxRange : undefined;
+  if (range && range.length > 1) {
+    // `interface range`: an ordinary interface command runs once per port; a command that changes mode/context (exit, end,
+    // interface …) runs once and leaves the range. Any error rejects the whole command (the caller discards the working copy).
+    let lines: string[] = [];
+    for (let k = 0; k < range.length; k++) {
+      dev.cli.ctxIface = range[k];
+      const res = r.spec.run({ lab, dev, args: r.args, line }) ?? {};
+      if (res.error) {
+        dev.cli.ctxIface = range[0];
+        return { ok: false, output: res.error };
+      }
+      if (k === 0) {
+        lines = res.lines ?? [];
+        if (res.mode !== undefined || res.ctxIface !== undefined || res.ctxVlan !== undefined) {
+          dev.cli.ctxRange = res.ctxRange;
+          if (res.mode) dev.cli.mode = res.mode;
+          if (res.ctxIface !== undefined) dev.cli.ctxIface = res.ctxIface;
+          if (res.ctxVlan !== undefined) dev.cli.ctxVlan = res.ctxVlan;
+          return { ok: true, output: lines, clear: res.clear };
+        }
+      }
+    }
+    dev.cli.ctxIface = range[0];
+    return { ok: true, output: lines };
   }
   const res = r.spec.run({ lab, dev, args: r.args, line }) ?? {};
   if (res.error) return { ok: false, output: res.error };
+  if (res.mode !== undefined || res.ctxIface !== undefined || res.ctxVlan !== undefined) dev.cli.ctxRange = res.ctxRange;
   if (res.mode) dev.cli.mode = res.mode;
   if (res.ctxIface !== undefined) dev.cli.ctxIface = res.ctxIface;
   if (res.ctxVlan !== undefined) dev.cli.ctxVlan = res.ctxVlan;

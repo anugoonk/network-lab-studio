@@ -10,7 +10,7 @@ import { ipToString, isHostAddress, maskToPrefix, networkOf, parseCidr, parseIp,
 import { NAME_RE, formatVlanList, getIface, parseVlanList } from '../lab';
 import { allowsVlan, ping, portLine, sviLineUp, l3Interfaces } from '../network';
 import type { Device, Iface, Lab } from '../types';
-import { cmd, curTarget, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
+import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 
 const SW = ['aruba-switch', 'l3-switch'] as const;
 const DT = [...SW];
@@ -414,6 +414,12 @@ const specs: CommandSpec[] = [
     run: (c) => ({ mode: 'config-if', ctxIface: c.args[0], ctxVlan: null }),
   }),
   cmd({
+    id: 'aruba.interface.range', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface <if-range>',
+    helpEn: 'Select a range of interfaces to configure', descTh: 'เลือกหลายพอร์ตพร้อมกัน เช่น interface 1/1/1-1/1/4 หรือ 1/1/1-4,1/1/10 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง', topic: 'Interface',
+    example: 'interface 1/1/1-1/1/4', verify: 'show running-config', verifyTh: 'prompt เป็น (config-if-<1/1/1-1/1/4>)# และคำสั่งถัดไปมีผลกับทุกพอร์ตในช่วง',
+    run: (c) => enterInterfaceRange(c, 'aruba'),
+  }),
+  cmd({
     id: 'aruba.interface.vlan', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface vlan <vlan-id>',
     helpEn: 'Configure a VLAN interface (SVI)', descTh: 'สร้าง/เข้า VLAN interface (SVI) ให้ switch route ระหว่าง VLAN — VLAN ต้องถูกสร้างไว้ก่อน', topic: 'IP',
     example: 'interface vlan 10', verify: 'show ip interface brief', verifyTh: 'ต้องเห็น vlan10 ในตาราง',
@@ -529,14 +535,35 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.trunk.allowed', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'vlan trunk allowed <vlan-list>',
-    helpEn: 'Set the VLANs allowed on the trunk', descTh: 'ตั้งพอร์ตเป็น trunk และกำหนด VLAN ที่อนุญาต เช่น 10,20,30-40', topic: 'VLAN',
+    helpEn: 'Add VLANs to the trunk allowed list', descTh: 'ตั้งพอร์ตเป็น trunk และ **เพิ่ม** VLAN ที่อนุญาต เช่น 10,20,30-40 — เพิ่มต่อจากรายการเดิม ไม่ได้แทนที่ทั้งรายการ (ตามข้อมูลที่พบ ยังไม่ได้ยืนยันกับเอกสารทางการ); ถ้าพอร์ตกำลังอนุญาตทุก VLAN (all) จะเหลือเฉพาะรายการที่ระบุ; ลบออกด้วย no vlan trunk allowed', topic: 'VLAN',
     example: 'vlan trunk allowed 10,20', verify: 'show interface 1/1/1', verifyTh: 'Mode ต้องเป็น trunk และเห็น Allowed VLAN List',
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
       if (i.routed) return { error: [L2_NEEDED(i.name)] };
+      const add = parseVlanList(c.args[0]) ?? [];
+      // appends to an explicit list; from "all" (or from a non-trunk port) it narrows to exactly the VLANs given
+      i.trunkAllowed = i.trunk && i.trunkAllowed !== null ? [...new Set([...i.trunkAllowed, ...add])].sort((a, b) => a - b) : add;
       i.trunk = true;
-      i.trunkAllowed = parseVlanList(c.args[0]);
+      return {};
+    },
+  }),
+  cmd({
+    id: 'aruba.trunk.allowed.no', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'no vlan trunk allowed <vlan-list>',
+    helpEn: 'Remove VLANs from the trunk allowed list', descTh: 'ลบ VLAN ออกจากรายการที่ trunk อนุญาต (ถ้าตอนนี้เป็น all จะกลายเป็น 1-4094 ยกเว้นที่ระบุ)', topic: 'VLAN',
+    example: 'no vlan trunk allowed 20', verify: 'show interface 1/1/1', verifyTh: 'VLAN ที่ลบต้องหายไปจาก Allowed VLAN List',
+    prepare: (d) => {
+      const i = d.ifaces.find((x) => x.name === '1/1/1');
+      if (i) Object.assign(i, { routed: false, trunk: true, trunkAllowed: [10, 20] });
+    },
+    run: (c) => {
+      const i = physIface(c);
+      if (!i) return { error: ['% No interface selected'] };
+      if (i.routed) return { error: [L2_NEEDED(i.name)] };
+      if (!i.trunk) return { error: [`Interface ${i.name} is not a trunk port.`] };
+      const rm = new Set(parseVlanList(c.args[0]) ?? []);
+      const cur = i.trunkAllowed ?? Array.from({ length: 4094 }, (_, k) => k + 1);
+      i.trunkAllowed = cur.filter((v) => !rm.has(v));
       return {};
     },
   }),

@@ -88,7 +88,7 @@ export function Console() {
     } else if (e.key === 'Tab') {
       // keep focus in the console; complete the last word like IOS / AOS-CX
       e.preventDefault();
-      const c = completeLine(device, value);
+      const c = completeLine(device, value, lab);
       if (c.value !== value) {
         setValue(c.value);
         setHistPos(null);
@@ -166,6 +166,18 @@ export function Console() {
           />
         </div>
       </div>
+      {PROFILES[device.kind].vendor === 'aruba' && (
+        <details className="approx-note" data-testid="aruba-note">
+          <summary>ℹ ผลลัพธ์ AOS-CX บางส่วนเป็นค่าประมาณ — กดดูรายการ</summary>
+          <ul>
+            <li><code>show arp</code> / <code>show mac-address-table</code>: รูปแบบและระยะห่างคอลัมน์เขียนจากความจำ ยังไม่ได้เทียบกับอุปกรณ์จริง</li>
+            <li><code>vlan trunk allowed</code>: จำลองให้ <b>เพิ่มต่อจากรายการเดิม</b> (ลบด้วย <code>no vlan trunk allowed</code>) ตามข้อมูลที่พบ แต่ยังยืนยันกับเอกสารทางการโดยตรงไม่ได้</li>
+            <li>prompt ตอนอยู่ใน <code>interface &lt;a&gt;-&lt;b&gt;</code> (range) เป็นรูปแบบโดยประมาณ</li>
+            <li>พฤติกรรมเริ่มต้น (พอร์ตเริ่มเป็น shutdown และ routed) เป็นไปตามความเข้าใจ ยังไม่ได้ยืนยันกับเอกสาร</li>
+          </ul>
+          <p>ควรตรวจกับเอกสาร/อุปกรณ์ Aruba จริงก่อนใช้เป็นข้อสอบหรือขั้นตอนในงานจริง</p>
+        </details>
+      )}
       <p className="muted small">Enter = รันคำสั่ง · Tab = เติมคำสั่ง · ↑/↓ = ย้อนประวัติ · ? = ดูคำสั่งที่ใช้ได้ (ไม่ต้องกด Enter)</p>
     </section>
   );

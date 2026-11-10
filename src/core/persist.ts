@@ -65,6 +65,7 @@ const deviceSchema = z.object({
     mode: z.enum(['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'pc']),
     ctxIface: z.string().nullable(),
     ctxVlan: z.number().int().nullable(),
+    ctxRange: z.array(z.string()).max(64).optional(),
     history: z.array(z.string()).max(200),
   }),
   startupConfig: z.string().nullable(),
@@ -146,6 +147,8 @@ function crossCheck(lab: Lab): string[] {
       if (new Set(d.vlans.map((v) => v.id)).size !== d.vlans.length) errs.push(`${d.name}: มี VLAN ซ้ำ`);
     } else if (d.vlans.length) errs.push(`${d.name}: อุปกรณ์ชนิดนี้ไม่มี VLAN database`);
     if (!modesFor(d.kind).includes(d.cli.mode) && p.hasCli) errs.push(`${d.name}: CLI mode "${d.cli.mode}" ใช้ไม่ได้กับอุปกรณ์ชนิดนี้`);
+    if (d.cli.ctxRange && (d.cli.mode !== 'config-if' || d.cli.ctxRange.some((n) => !names.includes(n)) || d.cli.ctxRange[0] !== d.cli.ctxIface))
+      errs.push(`${d.name}: CLI อ้างอิงช่วงพอร์ตไม่ถูกต้อง`);
     if (d.cli.ctxIface && !names.includes(d.cli.ctxIface) && !d.subifs.some((s) => `${s.parent}.${s.id}` === d.cli.ctxIface))
       errs.push(`${d.name}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่`);
     if (!p.isRouter && d.subifs.length) errs.push(`${d.name}: sub-interface ใช้ได้เฉพาะ router`);

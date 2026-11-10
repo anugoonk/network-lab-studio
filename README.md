@@ -109,7 +109,12 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - **Lab จากรุ่น/ขนาดเก่า:** switch ที่มีพอร์ต *น้อยกว่า* รุ่นปัจจุบัน (เช่น Aruba 12 พอร์ต หรือ Cisco ที่ไม่มี Fa0/13–24) นำเข้าและเปิดได้ โดยคง device ID, ชื่อพอร์ต, config และปลายสายตามที่บันทึกไว้ (CLI/ตัวเลือกพอร์ตรู้จักเฉพาะพอร์ตที่มีจริง) — ชื่อพอร์ตที่ไม่ใช่ของรุ่นนั้น และอุปกรณ์ที่ไม่มีพอร์ตเลย ยังถูกปฏิเสธ
 - **ไม่ทิ้ง Lab ที่เปิดไม่ได้อย่างเงียบ ๆ:** ถ้า Lab ที่บันทึกไว้ในเบราว์เซอร์ไม่ผ่านการตรวจตอนเปิดแอป แอปจะเริ่มด้วย Lab ปกติ แต่ **เก็บสำเนาต้นฉบับไว้ก่อนที่ autosave จะเขียนทับ** (คีย์ `nls.workspace.rejected.v1` เก็บล่าสุดสูงสุด 20 รายการ) และแสดงแถบเตือนสีแดงพร้อมชื่อ Lab เหตุผล และปุ่ม "ดาวน์โหลดสำเนา" (ไฟล์ `nls-recovered-labs.json` — แต่ละรายการเป็น envelope แบบ export ปกติ แยกเป็นไฟล์เองแล้ว import ได้เมื่อแก้ปัญหาแล้ว)
 - **มุมมอง canvas:** Lab ว่างเริ่มที่ zoom 1x และอุปกรณ์ตัวแรกไม่ทำให้ซูมเข้าอีกต่อไป; "Fit view" จำกัดไม่เกิน 1.25x เพื่อไม่ขยาย Lab ที่มีอุปกรณ์ 1–2 ตัวจนใหญ่เกินไป และไม่ทำอะไรเมื่อ Lab ว่าง
-- **Tab ใน Console:** กด Tab เพื่อเติมคำสั่งตัวสุดท้ายให้ครบ (เช่น `conf` → `configure `) ถ้าเหลือหลายตัวเลือกจะเติมส่วนที่เหมือนกัน และกด Tab ซ้ำ/ที่ว่างเพื่อแสดงรายการตัวเลือก; ใช้ได้ทั้ง Cisco IOS และ Aruba AOS-CX ตาม mode ปัจจุบัน ไม่เติมค่าพารามิเตอร์ (ชื่อ interface, IP ฯลฯ) และไม่ทำงานกับ PC Terminal
+- **Tab ใน Console:** กด Tab เพื่อเติมคำที่กำลังพิมพ์ (เช่น `conf` → `configure `) ถ้าเหลือหลายตัวเลือกจะเติมส่วนที่เหมือนกัน แล้วกด Tab ซ้ำเพื่อแสดงรายการ; เติมได้ทั้งคำสั่ง ชื่อ interface (Cisco พิมพ์ย่อ `gi0/1` ได้ จะขยายเป็นชื่อเต็ม), หมายเลข VLAN ที่มีอยู่ และเป้าหมายของ `ping` (IP ที่ตั้งไว้ใน Lab ยกเว้นของเครื่องเอง) ใช้ได้กับ Cisco IOS, Aruba AOS-CX และ PC Terminal ตาม mode ปัจจุบัน ไม่เติมค่าอิสระ เช่น hostname/description/IP ที่ยังไม่มีใน Lab
+- **`interface range`:** Cisco `interface range fa0/1 - 4`, `fa0/1-2 , gi0/1`, `fastethernet 0/1 - 2` และ AOS-CX `interface 1/1/1-1/1/4`, `1/1/1-4,1/1/10` เลือกหลายพอร์ตพร้อมกัน (สูงสุด 48 พอร์ต) คำสั่ง interface ที่พิมพ์ต่อไปมีผลกับทุกพอร์ต; ถ้าคำสั่งผิดพลาดจะไม่มีพอร์ตใดเปลี่ยน; `exit`/`end`/`interface …` ออกจาก range prompt เป็น `(config-if-range)#` (Cisco) หรือ `(config-if-<1/1/1-1/1/4>)#` (AOS-CX — รูปแบบ prompt ยังไม่ได้ยืนยัน) ช่วงที่เลือกถูกบันทึกในไฟล์ Lab
+- **แอนิเมชันแพ็กเก็ต:** เมื่อ ping (จาก Terminal หรือแผง Inspector) จะมีจุดวิ่งตามเส้นทางขาไป (สีน้ำเงิน) แล้วขากลับ (สีเขียว) บน canvas; ถ้า ping ไม่สำเร็จจะหยุดที่จุดที่แพ็กเก็ตไปไม่ถึงพร้อมเครื่องหมาย ✕ สีแดง ปุ่มมุมขวาบนของ canvas เปิด/ปิดแอนิเมชัน และไม่แสดงเมื่อเบราว์เซอร์ตั้ง "ลดการเคลื่อนไหว" (prefers-reduced-motion) — เป็นภาพประกอบการตรวจเส้นทางที่ simulator คำนวณ ไม่ใช่การจำลองแพ็กเก็ตจริงทีละเฟรม
+- **แชร์ Lab ผ่านลิงก์:** เมนู "แชร์ลิงก์ Lab" บีบอัด Lab (deflate) ลงใน URL ส่วน `#lab=…` แล้วคัดลอกให้ ผู้รับเปิดลิงก์แล้ว Lab จะถูกเพิ่มเป็น Lab ใหม่ในรายการ (Lab เดิมของผู้รับไม่ถูกแทนที่) ข้อมูลอยู่ใน fragment จึง **ไม่ถูกส่งไปที่เซิร์ฟเวอร์** และผ่านการตรวจ schema เดียวกับการนำเข้าไฟล์ (จำกัดขนาดหลังคลายบีบอัด 5 MB); ลิงก์ที่ถูกตัด/เสียจะแจ้งข้อผิดพลาดและไม่เปลี่ยนอะไร; ถ้าลิงก์ยาวเกิน 8,000 ตัวอักษรจะเตือน (แอปแชทบางตัวตัดลิงก์ — ใช้ไฟล์ Export แทน); ถ้าเบราว์เซอร์ไม่ให้เขียน clipboard จะแสดงลิงก์ในกล่องให้คัดลอกเอง; Lab ว่างไม่มีอะไรให้แชร์ ผู้รับต้องใช้เบราว์เซอร์รุ่นใหม่ที่รองรับ `DecompressionStream`
+- **เครื่องมือผู้สอน:** ใน Editor ของ Challenge เลื่อน Check ขึ้น/ลง, ทำสำเนา Check (แก้ค่าต่อได้โดยลบแล้วเพิ่มใหม่ — ปัจจุบันแก้ได้เฉพาะชื่อที่แสดง), เลื่อนคำใบ้ขึ้น/ลง
+- **หมายเหตุใน Console ของ AOS-CX:** ใต้ Console ของอุปกรณ์ Aruba มีกล่อง "ผลลัพธ์ AOS-CX บางส่วนเป็นค่าประมาณ" แสดงรายการที่ยังไม่ได้ยืนยัน (`show arp`, `show mac-address-table`, พฤติกรรม `vlan trunk allowed`, prompt ของ range, ค่าเริ่มต้นของพอร์ต)
 - **ชื่อ tab ของเบราว์เซอร์** ตามชื่อ Lab และมี `●` นำหน้าเมื่อมีการแก้ไขที่ยังไม่ได้ Export ไฟล์ (เหมือนป้าย "● ยังไม่ได้ Export" ที่แถบตำแหน่ง) — งานยังบันทึกอัตโนมัติอยู่ ไม่ได้หมายความว่าจะหาย
 - **คัดลอก config:** ปุ่ม "คัดลอก config" ที่แผงรายละเอียดอุปกรณ์และหัว Console (router/switch เท่านั้น) คัดลอก running-config ไปที่ clipboard — ต้องให้เบราว์เซอร์อนุญาตการเขียน clipboard ไม่เช่นนั้นจะแจ้งให้ใช้ `show running-config` แทน
 
@@ -148,7 +153,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 - DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
 - IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
-- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `interface range`, `show interfaces <name>` บน Cisco, `reload`
+- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `show interfaces <name>` บน Cisco, `reload`
 - ping ใช้ ICMP echo แบบสรุปผล (ไม่มี TTL/fragmentation จริง และ latency เป็นค่าคงที่)
 
 ## รุ่น/เวอร์ชันอ้างอิงของ CLI profile และสถานะการตรวจสอบ
@@ -172,7 +177,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 > **Aruba AOS-CX — เอกสารทางการเข้าไม่ได้:** เซิร์ฟเวอร์ `arubanetworking.hpe.com` ตอบ HTTP 403 และหน้า `support.hpe.com` ไม่คืนเนื้อหา จึงตรวจได้เพียง (1) สรุปจากผลค้นหาที่อ้างหน้าเอกสาร AOS-CX CLI Bank และ (2) transcript จริงจาก "AOS-CX Simulator VSX Lab Guide" (arubase.club) ซึ่งเป็น output จากสวิตช์ AOS-CX จริง:
 > - ยืนยัน: `vlan trunk allowed <list|all>` / `no vlan trunk allowed <list>`, `vlan trunk native <id>`, `vlan access <id>` คู่กับ `no routing`, running-config แบบ `vlan 1,100` / `interface 1/1/1` / `no shutdown` / `no routing` / `vlan access 100`, `interface vlan100` + `ip address a.b.c.d/len`, ชื่อ prompt `config-if-vlan` และคอลัมน์ `show vlan` (VLAN, Name, Status, Reason, Type, Interfaces) กับการยุบพอร์ตเป็นช่วง
 > - **แก้แล้วในรอบนี้:** `show ip interface brief` ใช้ layout จริง (`Interface / IP Address / Interface Status` + `link/admin`, พอร์ต routed ที่ไม่มี IP แสดง `No Address`, พอร์ต L2 ไม่แสดง) — ระยะห่างคอลัมน์ยังเป็นการประมาณเพราะ PDF ทำให้ช่องว่างเพี้ยน
-> - **ข้อควรระวัง:** บทความ blog ของบุคคลที่สามรายงานว่า `vlan trunk allowed` บน AOS-CX **เพิ่ม** VLAN เข้ารายการเดิมแทนที่จะแทนที่ทั้งรายการ (ต่างจาก Cisco ที่ไม่ใส่ `add` แล้วแทนที่) ส่วนเอกสารทางการที่เราเข้าถึงได้ระบุแค่ syntax; simulator ปัจจุบัน **แทนที่ทั้งรายการ** ซึ่งอาจไม่ตรงกับสวิตช์จริง — ยังไม่ได้ยืนยัน จึงไม่ได้แก้
+> - **`vlan trunk allowed` (แก้แล้ว ยังไม่ยืนยันกับเอกสารทางการ):** บทความ blog ของบุคคลที่สามรายงานว่าคำสั่งนี้บน AOS-CX **เพิ่ม** VLAN เข้ารายการเดิม และผลค้นหาสรุปว่า command reference ของ HPE ระบุว่ารูป `no` "ลบ VLAN ออกจาก trunk" ซึ่งสอดคล้องกัน (ผมยังไม่ได้เปิดอ่านหน้านั้นเอง) — simulator จึง **เพิ่มต่อจากรายการเดิม** (ถ้าพอร์ตเป็น `all` อยู่ จะเหลือเฉพาะที่ระบุ, ลบด้วย `no vlan trunk allowed <list>`) แต่หน้า command reference เข้าไม่ได้ (HTTP 403) จึงยังไม่เห็นข้อความที่ยืนยันตรง ๆ ว่าเพิ่มหรือแทนที่ — ควรตรวจกับสวิตช์/emulator จริง
 > - **ยังไม่ยืนยัน:** สถานะเริ่มต้นของ SVI (sim ตั้งเป็น up; เอกสารที่เข้าถึงได้เพียงแสดงตัวอย่างที่สั่ง `no shutdown` ชัดเจน), ข้อความ error ของ AOS-CX (`% Unknown command.` ฯลฯ), layout ของ `show ip route` (รุ่น 10.x ต่างกันมีทั้งแบบตารางและแบบ `via …`), ตัวอย่างผลลัพธ์ของ `ping` และ `show interface <port>`
 >
 > **คำแนะนำ:** ถ้าใช้สอนหรือเตรียมสอบ ให้ตรวจ output ที่ติดป้าย "ยังไม่ยืนยัน" กับอุปกรณ์/emulator จริงก่อน
@@ -238,6 +243,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface <interface>` | `interface FastEthernet0/1` | เข้า Interface Configuration mode ของพอร์ต switch (ย่อได้ เช่น fa0/1, gi0/2) |
+| Global config, Interface config, VLAN interface config, VLAN config | `interface range <port-range>` | `interface range FastEthernet0/1 - 4` | เลือกหลายพอร์ตพร้อมกัน เช่น interface range fa0/1 - 10 หรือ fa0/1 - 4 , gi0/1 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface vlan <vlan-id>` | `interface vlan 10` | สร้าง/เข้า SVI (Vlan interface) เพื่อตั้ง IP จัดการของ switch (L2 switch ไม่ route ระหว่าง VLAN) |
 | Global config | `no interface vlan <vlan-id>` | `no interface vlan 10` | ลบ SVI |
 | Global config, Interface config, VLAN interface config, VLAN config | `vlan <vlan-id>` | `vlan 30` | สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan |
@@ -287,6 +293,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Global config | `no vlan <vlan-id>` | `no vlan 30` | ลบ VLAN (VLAN 1 ลบไม่ได้) |
 | VLAN config | `name <name>` | `name STAFF` | ตั้งชื่อ VLAN |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface <interface>` | `interface 1/1/1` | เข้า Interface Configuration ของพอร์ต เช่น interface 1/1/1 |
+| Global config, Interface config, VLAN interface config, VLAN config | `interface <if-range>` | `interface 1/1/1-1/1/4` | เลือกหลายพอร์ตพร้อมกัน เช่น interface 1/1/1-1/1/4 หรือ 1/1/1-4,1/1/10 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface vlan <vlan-id>` | `interface vlan 10` | สร้าง/เข้า VLAN interface (SVI) ให้ switch route ระหว่าง VLAN — VLAN ต้องถูกสร้างไว้ก่อน |
 | Global config | `no interface vlan <vlan-id>` | `no interface vlan 10` | ลบ VLAN interface |
 | Global config | `ip route <prefix> <next-hop>` | `ip route 172.16.0.0/24 192.168.1.1` | เพิ่ม static route แบบ prefix/ความยาว เช่น 172.16.0.0/24 ผ่าน next hop (default route = 0.0.0.0/0) |
@@ -296,7 +303,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Interface config | `no routing` | `no routing` | เปลี่ยนพอร์ตจาก routed เป็น Layer 2 — ต้องทำก่อนใช้ vlan access / vlan trunk |
 | Interface config | `routing` | `routing` | เปลี่ยนพอร์ตกลับเป็น routed (L3) — พอร์ตจะไม่ส่งต่อ VLAN แต่ตั้ง IP ได้ |
 | Interface config | `vlan access <vlan-id>` | `vlan access 10` | กำหนด access VLAN (untagged) ให้พอร์ต L2 — VLAN ต้องถูกสร้างไว้ก่อน (ถ้าเป็น trunk จะกลับเป็น access) |
-| Interface config | `vlan trunk allowed <vlan-list>` | `vlan trunk allowed 10,20` | ตั้งพอร์ตเป็น trunk และกำหนด VLAN ที่อนุญาต เช่น 10,20,30-40 |
+| Interface config | `vlan trunk allowed <vlan-list>` | `vlan trunk allowed 10,20` | ตั้งพอร์ตเป็น trunk และ **เพิ่ม** VLAN ที่อนุญาต เช่น 10,20,30-40 — เพิ่มต่อจากรายการเดิม ไม่ได้แทนที่ทั้งรายการ (ตามข้อมูลที่พบ ยังไม่ได้ยืนยันกับเอกสารทางการ); ถ้าพอร์ตกำลังอนุญาตทุก VLAN (all) จะเหลือเฉพาะรายการที่ระบุ; ลบออกด้วย no vlan trunk allowed |
+| Interface config | `no vlan trunk allowed <vlan-list>` | `no vlan trunk allowed 20` | ลบ VLAN ออกจากรายการที่ trunk อนุญาต (ถ้าตอนนี้เป็น all จะกลายเป็น 1-4094 ยกเว้นที่ระบุ) |
 | Interface config | `vlan trunk allowed all` | `vlan trunk allowed all` | ตั้งพอร์ตเป็น trunk ที่อนุญาตทุก VLAN |
 | Interface config | `vlan trunk native <vlan-id>` | `vlan trunk native 99` | ตั้งพอร์ตเป็น trunk และกำหนด native VLAN (untagged) — ต้องตรงกันทั้งสองฝั่ง |
 | Interface config, VLAN interface config | `ip address <cidr>` | `ip address 192.168.10.1/24` | ตั้ง IPv4 แบบ a.b.c.d/ความยาว ให้ routed port หรือ VLAN interface (SVI) — SVI ทำให้ switch เป็น gateway ของ VLAN |
@@ -341,9 +349,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 14 ไฟล์) | **413/413 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
+| `npm test` (Vitest, 16 ไฟล์) | **452/452 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 59 flow) | **59/59 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต + คำใบ้, Tab completion, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 69 flow) | **69/69 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต + คำใบ้, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 

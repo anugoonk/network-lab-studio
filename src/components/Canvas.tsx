@@ -8,6 +8,7 @@ import {
   Handle,
   Position,
   ReactFlow,
+  ViewportPortal,
   applyNodeChanges,
   useInternalNode,
   useReactFlow,
@@ -61,6 +62,16 @@ function center(n: InternalNode): { x: number; y: number } {
   const w = n.measured.width ?? 90;
   const h = n.measured.height ?? 90;
   return { x: n.internals.positionAbsolute.x + w / 2, y: n.internals.positionAbsolute.y + h / 2 };
+}
+
+function AnimToggle() {
+  const on = useStore((s) => s.animatePackets);
+  const toggle = useStore((s) => s.toggleAnimatePackets);
+  return (
+    <button className="anim-toggle" onClick={toggle} aria-pressed={on} title="เปิด/ปิดแอนิเมชันแพ็กเก็ตเมื่อ ping" data-testid="anim-toggle">
+      {on ? '● แอนิเมชัน ping: เปิด' : '○ แอนิเมชัน ping: ปิด'}
+    </button>
+  );
 }
 
 function CableEdge({ id, source, target, selected }: EdgeProps) {
@@ -122,6 +133,93 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
       </EdgeLabelRenderer>
       )}
     </>
+  );
+}
+
+type Pt = { x: number; y: number };
+interface Leg {
+  pts: Pt[];
+  kind: 'fwd' | 'back';
+}
+const PACKET_SPEED = 0.45; // px per ms
+const along = (pts: Pt[], d: number): Pt => {
+  let left = d;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (left <= seg || i === pts.length - 1) {
+      const f = seg === 0 ? 1 : Math.min(1, left / seg);
+      return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f };
+    }
+    left -= seg;
+  }
+  return pts[0];
+};
+const pathLen = (pts: Pt[]) => pts.slice(1).reduce((n, p, i) => n + Math.hypot(p.x - pts[i].x, p.y - pts[i].y), 0);
+
+/** A dot travels along the ping path (request, then reply); a failed ping stops where it died and shows ✕. */
+function PacketAnimation() {
+  const anim = useStore((s) => s.pingAnim);
+  const enabled = useStore((s) => s.animatePackets);
+  const epoch = useStore((s) => s.labEpoch);
+  const flow = useReactFlow();
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
+  const [frame, setFrame] = useState<{ p: Pt; kind: 'fwd' | 'back' | 'fail' } | null>(null);
+
+  useEffect(() => {
+    setFrame(null);
+    if (!anim || !enabled || anim.epoch !== epoch) return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const pointsOf = (ids: string[]): Pt[] =>
+      ids.flatMap((id) => {
+        const n = flowRef.current.getInternalNode(id);
+        return n ? [center(n)] : [];
+      });
+    const { r } = anim;
+    const legs: Leg[] = [{ pts: pointsOf(r.forwardPath), kind: 'fwd' }];
+    if (r.returnPath.length > 1) legs.push({ pts: pointsOf(r.returnPath), kind: 'back' });
+    const usable = legs.filter((l) => l.pts.length > 0);
+    if (!usable.length) return;
+    const durations = usable.map((l) => Math.min(2200, Math.max(350, pathLen(l.pts) / PACKET_SPEED)));
+    const total = durations.reduce((a, b) => a + b, 0);
+    const failHold = r.ok ? 0 : 1100;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = now - t0;
+      if (t >= total) {
+        const last = usable[usable.length - 1];
+        const end = last.pts[last.pts.length - 1];
+        if (!r.ok && t < total + failHold) setFrame({ p: end, kind: 'fail' });
+        else {
+          setFrame(null);
+          return;
+        }
+      } else {
+        let left = t;
+        let k = 0;
+        while (k < usable.length - 1 && left > durations[k]) left -= durations[k++];
+        setFrame({ p: along(usable[k].pts, (left / durations[k]) * pathLen(usable[k].pts)), kind: usable[k].kind });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [anim, enabled, epoch]);
+
+  if (!frame) return null;
+  return (
+    <ViewportPortal>
+      <div
+        className={`packet ${frame.kind}`}
+        style={{ transform: `translate(${frame.p.x - 11}px, ${frame.p.y - 11}px)` }}
+        data-testid="packet"
+        data-kind={frame.kind}
+        aria-hidden
+      >
+        {frame.kind === 'fail' ? '✕' : ''}
+      </div>
+    </ViewportPortal>
   );
 }
 
@@ -248,7 +346,9 @@ export function Canvas() {
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} />
         <Controls showInteractive={false} />
+        <PacketAnimation />
       </ReactFlow>
+      <AnimToggle />
       {lab.devices.length === 0 && (
         <div className="empty-hint">
           <b>Lab ว่างเปล่า</b>

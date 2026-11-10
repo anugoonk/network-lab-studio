@@ -72,3 +72,46 @@ describe('Tab completion', () => {
     expect(completeLine(ap, 'sh')).toEqual({ value: 'sh', options: [] });
   });
 });
+
+describe('Tab completion of values', () => {
+  const lab = buildSampleLab();
+  const sw1 = dev(lab, 'SW1'); // Cisco switch
+  const sw2 = dev(lab, 'SW2'); // AOS-CX
+  const pc = dev(lab, 'PC-01');
+
+  it('completes interface names (Cisco accepts the short form and expands it)', () => {
+    sw1.cli.mode = 'config';
+    expect(completeLine(sw1, 'interface gi0/1', lab).value).toBe('interface GigabitEthernet0/1 ');
+    expect(completeLine(sw1, 'interface gi0/', lab).options).toEqual([]); // 0/1 and 0/2 share the prefix, so it extends instead
+    expect(completeLine(sw1, 'interface gi0/', lab).value).toBe('interface GigabitEthernet0/');
+    expect(completeLine(sw1, 'interface fa0/2', lab).value).toBe('interface FastEthernet0/2'); // first Tab expands the prefix…
+    const c = completeLine(sw1, 'interface FastEthernet0/2', lab); // …the second lists what is left
+    expect(c.options).toEqual(expect.arrayContaining(['FastEthernet0/2', 'FastEthernet0/20', 'FastEthernet0/24']));
+  });
+
+  it('completes AOS-CX port names', () => {
+    sw2.cli.mode = 'config';
+    expect(completeLine(sw2, 'interface 1/1/24', lab).value).toBe('interface 1/1/24 ');
+    expect(completeLine(sw2, 'interface 1/1/2', lab).options).toEqual(expect.arrayContaining(['1/1/2', '1/1/20', '1/1/24']));
+    expect(completeLine(sw2, 'interface v', lab).value).toBe('interface vlan '); // keyword still wins when no port matches
+  });
+
+  it('lists the VLANs that exist after "vlan"', () => {
+    sw1.cli.mode = 'config-if';
+    const c = completeLine(sw1, 'switchport access vlan ', lab);
+    expect(c.options).toEqual(expect.arrayContaining(['1', '10', '20']));
+  });
+
+  it('completes ping targets with the Lab addresses (not the device own) and works on the PC terminal', () => {
+    const c = completeLine(pc, 'ping 192.168.1.', lab);
+    expect(c.options.length + (c.value !== 'ping 192.168.1.' ? 1 : 0)).toBeGreaterThan(0);
+    expect(c.options).not.toContain(pc.ifaces[0].ip);
+    expect(completeLine(pc, 'pi', lab).value).toBe('ping ');
+    expect(completeLine(pc, 'ipc', lab).value).toBe('ipconfig ');
+  });
+
+  it('does not invent values for free parameters', () => {
+    sw1.cli.mode = 'config';
+    expect(completeLine(sw1, 'hostname ', lab)).toEqual({ value: 'hostname ', options: [] });
+  });
+});

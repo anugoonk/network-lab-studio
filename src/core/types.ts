@@ -68,6 +68,8 @@ export interface Cli {
   mode: CliMode;
   ctxIface: string | null;
   ctxVlan: number | null;
+  /** `interface range …`: every port the interface-level commands apply to (ctxIface is the first one) */
+  ctxRange?: string[];
   history: string[];
 }
 

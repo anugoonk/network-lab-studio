@@ -10,6 +10,14 @@ import { Icon } from './Icons';
 
 type Kind = Check['kind'];
 
+/** the list with items i and j exchanged (unchanged when j is out of range) */
+function swap<T>(list: T[], i: number, j: number): T[] {
+  if (j < 0 || j >= list.length) return list;
+  const out = [...list];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
+
 const KIND_LABEL: Record<Kind, string> = {
   ping: 'ping ได้ / ไม่ได้',
   'link-up': 'ลิงก์ up',
@@ -111,6 +119,21 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
           <div className="row">
             <span className="muted small">{KIND_LABEL[c.kind]}</span>
             <span className="spacer" />
+            <button onClick={() => update((ch) => ({ ...ch, checks: swap(ch.checks, i, i - 1) }))} disabled={i === 0} aria-label={`เลื่อน Check ${i + 1} ขึ้น`} data-testid={`challenge-up-${c.id}`}>↑</button>
+            <button onClick={() => update((ch) => ({ ...ch, checks: swap(ch.checks, i, i + 1) }))} disabled={i === challenge.checks.length - 1} aria-label={`เลื่อน Check ${i + 1} ลง`} data-testid={`challenge-down-${c.id}`}>↓</button>
+            <button
+              onClick={() =>
+                update((ch) => {
+                  const copy = { ...c, id: nextCheckId(ch), label: `${c.label} (สำเนา)`.slice(0, 200) };
+                  return { ...ch, checks: [...ch.checks.slice(0, i + 1), copy, ...ch.checks.slice(i + 1)] };
+                })
+              }
+              disabled={full}
+              aria-label={`ทำสำเนา Check ${i + 1}`}
+              data-testid={`challenge-dup-${c.id}`}
+            >
+              สำเนา
+            </button>
             <button className="danger" onClick={() => update((ch) => ({ ...ch, checks: ch.checks.filter((x) => x.id !== c.id) }))} aria-label={`ลบ Check ${i + 1}`} data-testid={`challenge-del-${c.id}`}>
               ลบ
             </button>
@@ -178,6 +201,8 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
           <div className="row">
             <span className="muted small">ข้อ {i + 1}</span>
             <span className="spacer" />
+            <button onClick={() => update((ch) => ({ ...ch, hints: swap(ch.hints ?? [], i, i - 1) }))} disabled={i === 0} aria-label={`เลื่อนคำใบ้ข้อ ${i + 1} ขึ้น`} data-testid={`challenge-hint-up-${i}`}>↑</button>
+            <button onClick={() => update((ch) => ({ ...ch, hints: swap(ch.hints ?? [], i, i + 1) }))} disabled={i === (challenge.hints ?? []).length - 1} aria-label={`เลื่อนคำใบ้ข้อ ${i + 1} ลง`} data-testid={`challenge-hint-down-${i}`}>↓</button>
             <button className="danger" onClick={() => update((ch) => ({ ...ch, hints: (ch.hints ?? []).filter((_, k) => k !== i) }))} aria-label={`ลบคำใบ้ข้อ ${i + 1}`} data-testid={`challenge-hint-del-${i}`}>
               ลบ
             </button>

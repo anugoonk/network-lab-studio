@@ -10,7 +10,7 @@ import { NAME_RE, formatVlanList, getIface, parseVlanList, subName } from '../la
 import { PROFILES, shortPort } from '../profiles';
 import { l3Interfaces, ping, portLine } from '../network';
 import type { Device, DeviceKind, Lab } from '../types';
-import { cmd, curTarget, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
+import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 
 const RT: DeviceKind[] = ['cisco-router', 'isp-router'];
 const SW: DeviceKind[] = ['cisco-switch'];
@@ -500,6 +500,12 @@ const specs: CommandSpec[] = [
     helpEn: 'Select an interface to configure', descTh: 'เข้า Interface Configuration mode ของพอร์ต switch (ย่อได้ เช่น fa0/1, gi0/2)', topic: 'Interface',
     example: 'interface FastEthernet0/1', verify: 'show interfaces status', verifyTh: 'prompt ต้องเป็น (config-if)#',
     run: (c) => ({ mode: 'config-if', ctxIface: c.args[0], ctxVlan: null }),
+  }),
+  cmd({
+    id: 'cisco.interface.range', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface range <port-range>',
+    helpEn: 'Select a range of interfaces to configure', descTh: 'เลือกหลายพอร์ตพร้อมกัน เช่น interface range fa0/1 - 10 หรือ fa0/1 - 4 , gi0/1 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง', topic: 'Interface',
+    example: 'interface range FastEthernet0/1 - 4', verify: 'show running-config', verifyTh: 'prompt ต้องเป็น (config-if-range)# และคำสั่งถัดไปมีผลกับทุกพอร์ตในช่วง',
+    run: (c) => enterInterfaceRange(c, 'cisco'),
   }),
   cmd({
     id: 'cisco.interface.vlan', vendor: 'cisco', deviceTypes: SW, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface vlan <vlan-id>',
