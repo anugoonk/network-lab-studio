@@ -97,6 +97,7 @@ const challengeSchema = z.object({
   title: z.string().max(120),
   goal: z.string().max(4000),
   checks: z.array(checkSchema).max(50),
+  hints: z.array(z.string().max(500)).max(10).optional(),
   start: z
     .object({
       devices: z.array(deviceSchema).max(200),

@@ -132,6 +132,8 @@ export interface Challenge {
   title: string;
   goal: string;
   checks: Check[];
+  /** progressive hints, broad → specific; the learner reveals them one at a time */
+  hints?: string[];
   start?: ChallengeStart;
 }
 

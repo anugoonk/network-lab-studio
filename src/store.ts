@@ -73,6 +73,9 @@ interface State {
   /** undo/redo stacks of the open Lab (session only); `labEpoch` changes whenever a different Lab is loaded */
   history: History;
   labEpoch: number;
+  /** how many challenge hints the learner has opened in the Lab of epoch `epoch` (ignored once a different Lab is loaded) */
+  hintsShown: { epoch: number; n: number };
+  showNextHint: () => void;
   undo: () => void;
   redo: () => void;
   savedSig: string | null;
@@ -265,6 +268,12 @@ export const useStore = create<State>((set, get) => {
     lab: init.lab,
     history: emptyHistory(),
     labEpoch: 0,
+    hintsShown: { epoch: 0, n: 0 },
+    showNextHint: () => {
+      const s = get();
+      const n = s.hintsShown.epoch === s.labEpoch ? s.hintsShown.n : 0;
+      set({ hintsShown: { epoch: s.labEpoch, n: n + 1 } });
+    },
     undo: () => {
       const s = get();
       const r = undoStep(s.history, s.lab);

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { promptFor, helpFor } from '../core/cli/engine';
+import { promptFor, helpFor, completeLine } from '../core/cli/engine';
 import { getDevice } from '../core/lab';
 import { PROFILES } from '../core/profiles';
 import { useStore } from '../store';
@@ -85,6 +85,25 @@ export function Console() {
         setHistPos(next);
         setValue(history[next]);
       }
+    } else if (e.key === 'Tab') {
+      // keep focus in the console; complete the last word like IOS / AOS-CX
+      e.preventDefault();
+      const c = completeLine(device, value);
+      if (c.value !== value) {
+        setValue(c.value);
+        setHistPos(null);
+      } else if (c.options.length) {
+        useStore.setState((s) => ({
+          transcripts: {
+            ...s.transcripts,
+            [device.id]: [
+              ...(s.transcripts[device.id] ?? []),
+              { kind: 'cmd', prompt, text: value },
+              { kind: 'out', text: c.options.join('  ') },
+            ],
+          },
+        }));
+      }
     } else if (e.key === '?') {
       // IOS-style: `?` shows help immediately without pressing Enter
       e.preventDefault();
@@ -147,7 +166,7 @@ export function Console() {
           />
         </div>
       </div>
-      <p className="muted small">Enter = รันคำสั่ง · ↑/↓ = ย้อนประวัติ · ? = ดูคำสั่งที่ใช้ได้ (ไม่ต้องกด Enter)</p>
+      <p className="muted small">Enter = รันคำสั่ง · Tab = เติมคำสั่ง · ↑/↓ = ย้อนประวัติ · ? = ดูคำสั่งที่ใช้ได้ (ไม่ต้องกด Enter)</p>
     </section>
   );
 }

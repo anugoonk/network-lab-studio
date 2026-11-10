@@ -207,6 +207,12 @@ export function buildTroubleshootLab(): Lab {
       title: 'ซ่อมเครือข่ายออฟฟิศ',
       goal: 'ผู้ใช้แจ้งว่าเครือข่ายมีหลายจุดใช้งานไม่ได้ ให้หาสาเหตุและแก้ไขจนทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสายที่ต่ออยู่',
       checks,
+      hints: [
+        'ปัญหามี 3 จุดต่างกัน: ดูว่า Check ข้อไหนไม่ผ่านก่อน แล้วไล่จากเครื่องต้นทางไปทีละ hop',
+        'ถ้าเครื่องใน VLAN เดียวกันแต่ต่าง switch คุยกันไม่ได้ ให้ดูว่า trunk ระหว่าง switch ยอมให้ VLAN นั้นผ่านหรือไม่ (show interfaces trunk)',
+        'ถ้าข้าม VLAN/ข้ามเครือข่ายไม่ได้ ให้ดู default gateway ของ PC และ routing table ของ router (ipconfig / show ip route)',
+        'เฉลย: SW1 Gi0/2 ต้องอนุญาต VLAN 20, R2 ต้องมี default route ไป R1, PC-C ต้องใช้ gateway ของ VLAN 10 ที่ถูกต้อง (192.168.10.1)',
+      ],
     },
   };
   return withStart(lab);
@@ -244,6 +250,12 @@ export function buildDupIpLab(): Lab {
       title: 'หาเครื่องที่ IP ซ้ำ และเครื่องที่ต่อไม่ติด',
       goal: 'ผู้ใช้แจ้งว่ามีเครื่องในออฟฟิศต่อเครือข่ายไม่ได้ และบางเครื่อง "ติดๆ ดับๆ" ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย',
       checks,
+      hints: [
+        'ปัญหามี 3 จุด และเป็นคนละชนิดกัน: ดูว่าเครื่องไหนไม่ผ่าน Check แล้วเทียบกับเครื่องที่ผ่าน',
+        'ใช้ show ip arp บน router และ show mac address-table บน switch เพื่อหาเครื่องที่ IP ซ้ำ และดูว่าเครื่องอยู่ VLAN ไหน',
+        'ดู show interface brief / show vlan บน SW2 ว่ามีพอร์ตที่ถูก shutdown หรืออยู่ผิด VLAN หรือไม่',
+        'เฉลย: PC-04 ใช้ IP ซ้ำกับ PC-02 (192.168.1.102), SW2 1/1/3 (PC-08) อยู่ VLAN 20 ต้องกลับเป็น VLAN 10, SW2 1/1/4 (PC-09) ถูก shutdown',
+      ],
     },
   });
 }
@@ -340,6 +352,12 @@ export function buildCampusLab(): Lab {
       title: 'ซ่อมเครือข่าย Campus ที่ออกอินเทอร์เน็ตไม่ได้',
       goal: 'เพิ่ง cutover โครงสร้างใหม่ (L3 switch เป็น gateway, ISP จำลองด้านบน) ผู้ใช้ใน VLAN ใดก็ออกไปหา server ฝั่ง ISP ไม่ได้ ให้หาสาเหตุทุกชั้นแล้วแก้ให้ทุก Check ผ่าน — มีปัญหามากกว่าหนึ่งจุด และบางจุดจะเห็นก็ต่อเมื่อแก้จุดก่อนหน้าแล้ว',
       checks,
+      hints: [
+        'เริ่มจาก gateway ของแต่ละ VLAN: ถ้า PC ยัง ping gateway ของตัวเองไม่ได้ ปัญหาอยู่ใกล้ตัวเครื่องก่อน (ยังไม่ต้องดู ISP)',
+        'บน DSW1 ใช้ show ip interface brief (หรือ show interface) ดูว่า SVI ของ VLAN ไหนไม่ up',
+        'พอถึง gateway แล้วแต่ออก ISP ไม่ได้: ดู routing table ของ DSW1 ว่ามี default route หรือไม่ และ ISP1 รู้จักเครือข่ายภายใน (192.168.10.0/24, 192.168.20.0/24) หรือไม่ — ต้องมีทั้งขาไปและขากลับ',
+        'เฉลย: DSW1 interface vlan 20 ถูก shutdown, DSW1 ไม่มี default route ไป ISP1, ISP1 ไม่มี route กลับไป 192.168.10.0/24',
+      ],
     },
   });
 }

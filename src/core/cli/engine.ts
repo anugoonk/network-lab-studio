@@ -237,6 +237,52 @@ export function helpFor(dev: Device, input: string): string[] {
   return keys.map((k) => `  ${k.padEnd(16)}${items.get(k)}`.trimEnd());
 }
 
+// ───────── tab completion ─────────
+
+export interface Completion {
+  /** the new text for the input box (unchanged when nothing could be completed) */
+  value: string;
+  /** keywords that could follow, when the typed text matches more than one */
+  options: string[];
+}
+
+/** Tab key: completes the last word to the only keyword that fits, or to the longest prefix common to the candidates. */
+export function completeLine(dev: Device, input: string): Completion {
+  const none: Completion = { value: input, options: [] };
+  if (!PROFILES[dev.kind].hasCli) return none;
+  const vendor = PROFILES[dev.kind].vendor;
+  const endsWithSpace = input === '' || /\s$/.test(input);
+  const toks = tokenize(input, vendor);
+  const partial = endsWithSpace ? null : toks.pop()!;
+  let cands: Cand[] = specsFor(dev).map((spec) => ({ spec, pos: 0, args: [] }));
+  for (const tok of toks) {
+    const r = advance(cands, tok, dev, vendor, input, false);
+    if (r.err) return none;
+    cands = r.cands;
+  }
+  const words = new Map<string, string>(); // lower-case -> as written in the registry
+  for (const c of cands) {
+    if (c.textDone || c.pos >= c.spec.tokens.length) continue;
+    const lit = c.spec.tokens[c.pos].lit;
+    if (lit === undefined) continue;
+    if (partial && !lit.toLowerCase().startsWith(partial.text.toLowerCase())) continue;
+    if (!words.has(lit.toLowerCase())) words.set(lit.toLowerCase(), lit);
+  }
+  if (!words.size) return none;
+  const list = [...words.values()].sort((a, b) => a.localeCompare(b));
+  const head = partial ? input.slice(0, partial.start) : input;
+  if (list.length === 1) return { value: `${head}${list[0]} `, options: [] };
+  let common = list[0];
+  for (const w of list) {
+    let k = 0;
+    while (k < common.length && k < w.length && common[k].toLowerCase() === w[k].toLowerCase()) k++;
+    common = common.slice(0, k);
+  }
+  const typed = partial?.text ?? '';
+  if (common.length > typed.length) return { value: `${head}${common}`, options: [] };
+  return { value: input, options: list };
+}
+
 // ───────── execution ─────────
 
 interface One {

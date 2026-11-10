@@ -7,7 +7,7 @@ import { allowsVlan, l3Interfaces, linkStatus, ping } from './network';
 import { PROFILES } from './profiles';
 import type { Challenge, ChallengeStart, Check, Lab } from './types';
 
-export const CHALLENGE_LIMITS = { checks: 50 } as const;
+export const CHALLENGE_LIMITS = { checks: 50, hints: 10 } as const;
 
 export interface CheckResult {
   pass: boolean;

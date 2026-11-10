@@ -161,6 +161,37 @@ function CheckEditor({ challenge }: { challenge: Challenge }) {
         <button onClick={add} disabled={full} data-testid="challenge-add">+ เพิ่ม Check</button>
       </div>
       {err && <div className="error-box" role="alert">{err}</div>}
+      <h4 className="guide-edit-h">
+        คำใบ้ ({(challenge.hints ?? []).length}/{CHALLENGE_LIMITS.hints})
+      </h4>
+      <p className="muted small">เรียงจากกว้างไปแคบ ผู้เรียนกด "ขอใบ้" เพื่อเปิดทีละข้อ — ข้อสุดท้ายจะเป็นเฉลยก็ได้</p>
+      {(challenge.hints ?? []).map((h, i) => (
+        <div className="guide-edit-card" key={i}>
+          <textarea
+            rows={2}
+            value={h}
+            maxLength={500}
+            aria-label={`คำใบ้ข้อ ${i + 1}`}
+            data-testid={`challenge-hint-${i}`}
+            onChange={(e) => update((ch) => ({ ...ch, hints: (ch.hints ?? []).map((x, k) => (k === i ? e.target.value : x)) }))}
+          />
+          <div className="row">
+            <span className="muted small">ข้อ {i + 1}</span>
+            <span className="spacer" />
+            <button className="danger" onClick={() => update((ch) => ({ ...ch, hints: (ch.hints ?? []).filter((_, k) => k !== i) }))} aria-label={`ลบคำใบ้ข้อ ${i + 1}`} data-testid={`challenge-hint-del-${i}`}>
+              ลบ
+            </button>
+          </div>
+        </div>
+      ))}
+      <button
+        onClick={() => update((ch) => ({ ...ch, hints: [...(ch.hints ?? []), ''] }))}
+        disabled={(challenge.hints ?? []).length >= CHALLENGE_LIMITS.hints}
+        data-testid="challenge-hint-add"
+      >
+        + เพิ่มคำใบ้
+      </button>
+
       <h4 className="guide-edit-h">จุดเริ่มต้นของโจทย์ (สำหรับปุ่มรีเซ็ต)</h4>
       <p className="muted small" data-testid="challenge-start-status">
         {challenge.start
@@ -190,6 +221,10 @@ function ChallengeView({ challenge }: { challenge: Challenge }) {
   const runChallenge = useStore((s) => s.runChallenge);
   const reset = useStore((s) => s.resetChallenge);
   const [confirming, setConfirming] = useState(false);
+  const shown = useStore((s) => (s.hintsShown.epoch === s.labEpoch ? s.hintsShown.n : 0));
+  const showNextHint = useStore((s) => s.showNextHint);
+  const hints = (challenge.hints ?? []).filter((h) => h.trim());
+  const shownN = Math.min(shown, hints.length);
   const stale = !!run && run.sig !== configSignature(lab);
   const report = run?.report;
   const done = report?.allPassed && !stale;
@@ -232,6 +267,22 @@ function ChallengeView({ challenge }: { challenge: Challenge }) {
               </button>
               <button onClick={() => setConfirming(false)} data-testid="challenge-reset-cancel">ยกเลิก</button>
             </>
+          )}
+        </div>
+      )}
+      {hints.length > 0 && (
+        <div className="hint-box" data-testid="challenge-hints">
+          {hints.slice(0, shownN).map((h, i) => (
+            <div className="hint" key={i} data-testid={`hint-${i}`}>
+              💡 <b>ใบ้ {i + 1}/{hints.length}:</b> {h}
+            </div>
+          ))}
+          {shownN < hints.length ? (
+            <button onClick={showNextHint} data-testid="challenge-hint-next">
+              💡 ขอใบ้ ({shownN}/{hints.length})
+            </button>
+          ) : (
+            <span className="muted small" data-testid="challenge-hint-done">เปิดคำใบ้ครบแล้ว</span>
           )}
         </div>
       )}
