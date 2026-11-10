@@ -133,9 +133,10 @@ function crossCheck(lab: Lab): string[] {
     ids.add(d.id);
     const p = PROFILES[d.kind];
     const names = d.ifaces.map((i) => i.name);
-    // every current port must exist; extra ports are accepted only if an older release had them
+    // Ports must belong to this model (today's list, or one an older release had). A Lab saved from a smaller/older
+    // model may have FEWER ports than today's default: those are kept exactly as saved (device ID, port IDs, config, cables).
     const allowed = new Set([...p.portNames, ...(p.legacyPortNames ?? [])]);
-    if (p.portNames.some((n) => !names.includes(n)) || names.some((n) => !allowed.has(n))) {
+    if (names.length === 0 || names.some((n) => !allowed.has(n))) {
       errs.push(`${d.name}: รายการพอร์ตไม่ตรงกับรุ่น ${p.label}`);
     }
     if (new Set(names).size !== names.length) errs.push(`${d.name}: มีพอร์ตชื่อซ้ำ`);
@@ -294,15 +295,49 @@ export function newLabId(): string {
 }
 
 /** Loads the workspace; migrates the single-lab storage of v1 on first run. Invalid labs are skipped. */
-export function loadWorkspace(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): Workspace | null {
+/** A saved Lab the app could not open. The original data is kept so nothing is lost silently. */
+export interface RejectedEntry {
+  id: string;
+  name: string;
+  error: string;
+  /** the saved entry exactly as found in storage */
+  entry: unknown;
+  at: number;
+}
+
+export const REJECTED_KEY = 'nls.workspace.rejected.v1';
+export const REJECTED_LIMIT = 20;
+
+/**
+ * Loads the saved workspace. Entries that fail validation are NOT dropped silently: they are returned in `rejected`
+ * so the app can keep a copy (REJECTED_KEY) and tell the user before the autosave rewrites the workspace.
+ */
+export function loadWorkspaceDetailed(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): { ws: Workspace | null; rejected: RejectedEntry[] } {
+  const rejected: RejectedEntry[] = [];
+  const now = Date.now();
   try {
     const t = storage?.getItem(WORKSPACE_KEY);
     if (t) {
-      const o = JSON.parse(t);
+      let o: { entries?: unknown; activeId?: unknown } | null = null;
+      try {
+        o = JSON.parse(t);
+      } catch {
+        rejected.push({ id: 'raw-workspace', name: '(ข้อมูล workspace ทั้งก้อน)', error: 'อ่านเป็น JSON ไม่ได้', entry: t, at: now });
+      }
       const entries: LabEntry[] = [];
-      for (const e of Array.isArray(o.entries) ? o.entries : []) {
+      for (const e of Array.isArray(o?.entries) ? (o!.entries as Record<string, unknown>[]) : []) {
         const r = validateLab(e?.lab);
-        if (!r.ok || typeof e.id !== 'string') continue;
+        if (!r.ok || typeof e?.id !== 'string') {
+          const labName = (e?.lab as { name?: unknown } | undefined)?.name;
+          rejected.push({
+            id: typeof e?.id === 'string' ? e.id : newLabId(),
+            name: typeof labName === 'string' ? labName : typeof e?.name === 'string' ? e.name : '(ไม่มีชื่อ)',
+            error: r.ok ? 'ไม่มีรหัส Lab' : r.error,
+            entry: e,
+            at: now,
+          });
+          continue;
+        }
         entries.push({
           id: e.id,
           name: r.lab.name,
@@ -312,17 +347,79 @@ export function loadWorkspace(storage: Pick<Storage, 'getItem'> | undefined = sa
         });
       }
       if (entries.length) {
-        const activeId = entries.some((e) => e.id === o.activeId) ? o.activeId : entries[0].id;
-        return { activeId, entries };
+        const activeId = entries.some((e) => e.id === o?.activeId) ? (o!.activeId as string) : entries[0].id;
+        return { ws: { activeId, entries }, rejected };
       }
     }
   } catch {
     /* fall through to legacy */
   }
   const legacy = loadStored(storage);
-  if (!legacy) return null;
-  const id = newLabId();
-  return { activeId: id, entries: [{ id, name: legacy.lab.name, updatedAt: Date.now(), savedSig: legacy.savedSig, lab: legacy.lab }] };
+  if (legacy) {
+    const id = newLabId();
+    return { ws: { activeId: id, entries: [{ id, name: legacy.lab.name, updatedAt: Date.now(), savedSig: legacy.savedSig, lab: legacy.lab }] }, rejected };
+  }
+  try {
+    const raw = storage?.getItem(STORAGE_KEY);
+    if (raw) {
+      let error = 'อ่านเป็น JSON ไม่ได้';
+      try {
+        const v = validateLab(JSON.parse(raw)?.lab);
+        error = v.ok ? 'ข้อมูลไม่ครบ' : v.error;
+      } catch {
+        /* keep the generic message */
+      }
+      rejected.push({ id: 'legacy-single-lab', name: 'Lab รุ่นเก่า (บันทึกแบบ Lab เดียว)', error, entry: raw, at: now });
+    }
+  } catch {
+    /* storage unavailable */
+  }
+  return { ws: null, rejected };
+}
+
+export function loadWorkspace(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): Workspace | null {
+  return loadWorkspaceDetailed(storage).ws;
+}
+
+/** copies kept from earlier sessions (oldest first) */
+export function loadRejected(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): RejectedEntry[] {
+  try {
+    const o = JSON.parse(storage?.getItem(REJECTED_KEY) ?? 'null');
+    return Array.isArray(o?.items) ? (o.items as RejectedEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Adds `items` to the kept copies (no duplicates, newest REJECTED_LIMIT kept). Returns false when the browser refused. */
+export function saveRejected(items: RejectedEntry[], storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = safeStorage()): boolean {
+  if (!storage) return false;
+  try {
+    const have = loadRejected(storage);
+    const seen = new Set(have.map((x) => `${x.id}|${JSON.stringify(x.entry)}`));
+    const merged = [...have, ...items.filter((x) => !seen.has(`${x.id}|${JSON.stringify(x.entry)}`))].slice(-REJECTED_LIMIT);
+    storage.setItem(REJECTED_KEY, JSON.stringify({ version: 1, items: merged }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** One downloadable file with every rejected Lab; each `file` is a normal export envelope that can be repaired and imported. */
+export function rejectedBundle(items: RejectedEntry[]): string {
+  return JSON.stringify(
+    {
+      app: APP_ID,
+      kind: 'recovered-labs',
+      note: 'Labs the app could not open. Each "file" is a normal export envelope: save it as its own .json and import it once the problem is fixed.',
+      items: items.map((i) => {
+        const lab = (i.entry as { lab?: unknown } | null)?.lab;
+        return { name: i.name, error: i.error, file: lab ? { app: APP_ID, schemaVersion: SCHEMA_VERSION, lab } : null, raw: lab ? undefined : i.entry };
+      }),
+    },
+    null,
+    1,
+  );
 }
 
 /** returns false when the browser refused to store it (blocked / full / no storage) */

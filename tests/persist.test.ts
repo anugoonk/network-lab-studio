@@ -39,7 +39,8 @@ describe('export / import', () => {
     ['link to unknown device', mutate((j) => (j.lab.links[0].a.deviceId = 'nope')), /อุปกรณ์ที่ไม่มีอยู่/],
     ['link to unknown port', mutate((j) => (j.lab.links[0].a.port = 'GigabitEthernet9/9')), /พอร์ตที่ไม่มีอยู่/],
     ['port used by two cables', mutate((j) => (j.lab.links[3].b = clone(j.lab.links[2].b))), /หลายสาย/],
-    ['device ports do not match model', mutate((j) => j.lab.devices[0].ifaces.pop()), /รายการพอร์ต/],
+    ['port name that does not belong to the model', mutate((j) => (j.lab.devices[0].ifaces[0].name = 'GigabitEthernet9/9')), /รายการพอร์ต|พอร์ตที่ไม่มีอยู่/],
+    ['device with no ports at all', mutate((j) => (j.lab.devices[0].ifaces = [])), /รายการพอร์ต|พอร์ตที่ไม่มีอยู่/],
     ['cli mode invalid for kind', mutate((j) => (j.lab.devices[3].cli.mode = 'config')), /CLI mode/],
     ['switch without VLAN 1', mutate((j) => (j.lab.devices[1].vlans = [{ id: 10, name: 'x' }])), /VLAN 1/],
   ];

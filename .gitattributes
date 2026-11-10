@@ -1,0 +1,8 @@
+# Keep every text file LF on every platform. Without this, a Windows checkout (core.autocrlf=true) turns README.md
+# into CRLF and any check that compares it byte-for-byte with generated text breaks.
+* text=auto eol=lf
+
+# binary assets are never touched
+*.png binary
+*.jpg binary
+*.ico binary

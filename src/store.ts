@@ -19,12 +19,15 @@ import {
 import { ping, type PingResult } from './core/network';
 import { PROFILES } from './core/profiles';
 import {
-  loadWorkspace,
+  loadWorkspaceDetailed,
   newLabId,
   parseImport,
+  rejectedBundle,
+  saveRejected,
   saveWorkspace,
   serializeExport,
   type LabEntry,
+  type RejectedEntry,
 } from './core/persist';
 import { SAMPLES, buildSampleLab, type SampleKind } from './core/sample';
 import { emptyHistory, reconcileCli, recordChange, redoStep, undoStep, type History } from './core/history';
@@ -94,6 +97,11 @@ interface State {
   fitNonce: number;
 
   isDirty: () => boolean;
+  /** saved Labs this version could not open; copies are kept in the browser and offered for download */
+  rejected: RejectedEntry[];
+  rejectedShown: boolean;
+  dismissRejected: () => void;
+  downloadRejected: () => void;
   /** false when the last autosave was refused by the browser (private mode, storage full or blocked) */
   autosaveOk: boolean;
   /** copies the device's running-config to the clipboard and reports the result as a notice */
@@ -162,8 +170,8 @@ function makeLab(kind: 'blank' | SampleKind): Lab {
   return kind === 'blank' ? emptyLab('New Lab') : SAMPLES[kind].build();
 }
 
-function initial(): { lab: Lab; savedSig: string | null; activeId: string; updatedAt: number; others: LabEntry[] } {
-  const ws = loadWorkspace();
+function initial(): { lab: Lab; savedSig: string | null; activeId: string; updatedAt: number; others: LabEntry[]; rejected: RejectedEntry[] } {
+  const { ws, rejected } = loadWorkspaceDetailed();
   if (ws) {
     const active = ws.entries.find((e) => e.id === ws.activeId)!;
     return {
@@ -172,10 +180,11 @@ function initial(): { lab: Lab; savedSig: string | null; activeId: string; updat
       activeId: active.id,
       updatedAt: active.updatedAt,
       others: ws.entries.filter((e) => e.id !== active.id),
+      rejected,
     };
   }
   const lab = buildSampleLab();
-  return { lab, savedSig: contentSignature(lab), activeId: newLabId(), updatedAt: Date.now(), others: [] };
+  return { lab, savedSig: contentSignature(lab), activeId: newLabId(), updatedAt: Date.now(), others: [], rejected };
 }
 
 const init = initial();
@@ -289,6 +298,13 @@ export const useStore = create<State>((set, get) => {
 
     isDirty: () => contentSignature(get().lab) !== get().savedSig,
     autosaveOk: true,
+    rejected: init.rejected,
+    rejectedShown: init.rejected.length > 0,
+    dismissRejected: () => set({ rejectedShown: false }),
+    downloadRejected: () => {
+      const r = get().rejected;
+      if (r.length) download('nls-recovered-labs.json', rejectedBundle(r));
+    },
     copyConfig: async (deviceId) => {
       const dev = getDevice(get().lab, deviceId);
       if (!dev) return;
@@ -591,7 +607,15 @@ export const useStore = create<State>((set, get) => {
 let timer: ReturnType<typeof setTimeout> | undefined;
 let lastSig = contentSignature(init.lab);
 
+let rejectedKept = false;
+
 function persistNow() {
+  // Labs this version could not open: keep a copy BEFORE the autosave rewrites the workspace without them
+  if (!rejectedKept) {
+    rejectedKept = true;
+    const r = useStore.getState().rejected;
+    if (r.length) saveRejected(r);
+  }
   const s = useStore.getState();
   const sig = contentSignature(s.lab);
   if (sig !== lastSig) {

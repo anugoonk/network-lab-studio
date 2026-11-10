@@ -1,6 +1,6 @@
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
-import { Canvas } from './components/Canvas';
+import { Canvas, fitLab } from './components/Canvas';
 import { CommandLibrary } from './components/CommandLibrary';
 import { Console } from './components/Console';
 import { DetailsPanel } from './components/DetailsPanel';
@@ -77,7 +77,7 @@ function Header() {
           <>
             <span className="sep" />
             <button onClick={() => openConnect()} data-testid="btn-connect">เชื่อมสาย</button>
-            <button onClick={() => flow.fitView({ padding: 0.15, duration: 250 })} data-testid="btn-fit">Fit view</button>
+            <button onClick={() => fitLab(flow)} data-testid="btn-fit">Fit view</button>
             <button onClick={toggleLeft} aria-pressed={leftOpen} data-testid="toggle-left">{leftOpen ? '◀ ย่อแผงซ้าย' : '▶ แผงซ้าย'}</button>
             <button onClick={toggleRight} aria-pressed={rightOpen} data-testid="toggle-right">{rightOpen ? 'ซ่อนแผงขวา ▶' : '◀ แผงขวา'}</button>
           </>
@@ -151,6 +151,22 @@ function Notice() {
   );
 }
 
+function RejectedLabsWarning() {
+  const rejected = useStore((s) => s.rejected);
+  const shown = useStore((s) => s.rejectedShown);
+  const dismiss = useStore((s) => s.dismissRejected);
+  const download = useStore((s) => s.downloadRejected);
+  if (!shown || rejected.length === 0) return null;
+  return (
+    <div className="notice error autosave-warning" role="alert" data-testid="rejected-warning">
+      ⚠ พบ Lab ที่บันทึกไว้ {rejected.length} รายการที่เวอร์ชันนี้เปิดไม่ได้ ({rejected.map((r) => r.name).join(', ')}) — ไม่ได้ลบทิ้ง: เก็บสำเนาไว้ในเบราว์เซอร์แล้ว
+      <span className="muted small"> · {rejected[0].error}</span>{' '}
+      <button onClick={download} data-testid="rejected-download">ดาวน์โหลดสำเนา</button>{' '}
+      <button onClick={dismiss} data-testid="rejected-dismiss">ปิดข้อความนี้</button>
+    </div>
+  );
+}
+
 function AutosaveWarning() {
   const ok = useStore((s) => s.autosaveOk);
   const exportLab = useStore((s) => s.exportLab);
@@ -200,6 +216,7 @@ export default function App() {
         <Crumb />
         <Notice />
         <AutosaveWarning />
+        <RejectedLabsWarning />
         {/* the lab view stays mounted (hidden) so the canvas keeps its viewport when switching tabs */}
         <div className="main" style={{ display: view === 'lab' ? 'flex' : 'none' }}>
           <LeftDock />

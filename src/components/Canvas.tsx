@@ -19,7 +19,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { getDevice, getIface } from '../core/lab';
 import { duplicateIpsCached } from '../core/l2tables';
 import { linkStatus } from '../core/network';
@@ -125,6 +125,15 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
   );
 }
 
+/** a Lab with only one or two devices must not be blown up to 2x when it is fitted into view */
+export const FIT_MAX_ZOOM = 1.25;
+
+/** Fit the Lab into view. Does nothing on an empty Lab (React Flow would queue the fit for the next device dropped). */
+export function fitLab(flow: { fitView: (o?: { padding?: number; duration?: number; maxZoom?: number }) => unknown }, duration = 250): void {
+  if (useStore.getState().lab.devices.length === 0) return;
+  void flow.fitView({ padding: 0.15, duration, maxZoom: FIT_MAX_ZOOM });
+}
+
 const nodeTypes = { device: DeviceNode };
 const edgeTypes = { cable: CableEdge };
 
@@ -138,6 +147,13 @@ export function Canvas() {
   const deleteSelection = useStore((s) => s.deleteSelection);
   const fitNonce = useStore((s) => s.fitNonce);
   const flow = useReactFlow();
+  // `flow` changes identity as nodes are added, so effects must not depend on it (they would re-fit on every drop).
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
+  // React Flow's `fitView` prop fits once, when the first nodes appear. Used only when the page starts with a Lab that already
+  // has devices (fitted with the first paint, no jump). Starting from an EMPTY Lab it would instead zoom in on the first device
+  // dropped later, so it is off then. Labs loaded afterwards are fitted by the `fitNonce` effect below.
+  const startedWithDevices = useRef(lab.devices.length > 0);
 
   const [nodes, setNodes] = useState<Node[]>([]);
   useEffect(() => {
@@ -190,9 +206,14 @@ export function Canvas() {
 
   useEffect(() => {
     if (fitNonce === 0) return;
-    const t = setTimeout(() => flow.fitView({ padding: 0.15, duration: 250 }), 60);
+    const t = setTimeout(() => {
+      // fitView() on an EMPTY canvas does not fit anything: React Flow queues it and applies it to the next node that
+      // appears (the first device dropped on a blank Lab then jumped to a huge zoom). Reset to a normal 1x view instead.
+      if (useStore.getState().lab.devices.length === 0) flowRef.current.setViewport({ x: 0, y: 0, zoom: 1 });
+      else fitLab(flowRef.current);
+    }, 60);
     return () => clearTimeout(t);
-  }, [fitNonce, flow]);
+  }, [fitNonce]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -219,8 +240,8 @@ export function Canvas() {
         onEdgeClick={(_, e) => select({ type: 'link', id: e.id })}
         onPaneClick={() => select(null)}
         deleteKeyCode={null}
-        fitView
-        fitViewOptions={{ padding: 0.15 }}
+        fitView={startedWithDevices.current}
+        fitViewOptions={{ padding: 0.15, maxZoom: FIT_MAX_ZOOM }}
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}

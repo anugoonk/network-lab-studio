@@ -106,6 +106,9 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 - **Autosave:** ทุกการแก้ไขบันทึกลง `localStorage` ของเบราว์เซอร์อัตโนมัติ — การปิดหน้าไม่ทำให้งานหาย และจะ **ไม่มี** prompt "ออกจากหน้านี้?" ในกรณีปกติ
 - **เมื่อเบราว์เซอร์ไม่ยอมให้บันทึก** (private mode, พื้นที่เต็ม, ถูกบล็อก): แถบเตือนสีแดงปรากฏทันทีที่เปิดหน้า พร้อมปุ่ม Export และเบราว์เซอร์จะถามยืนยันก่อนปิดหน้าถ้ามีการแก้ไขที่ยังไม่ได้ Export
+- **Lab จากรุ่น/ขนาดเก่า:** switch ที่มีพอร์ต *น้อยกว่า* รุ่นปัจจุบัน (เช่น Aruba 12 พอร์ต หรือ Cisco ที่ไม่มี Fa0/13–24) นำเข้าและเปิดได้ โดยคง device ID, ชื่อพอร์ต, config และปลายสายตามที่บันทึกไว้ (CLI/ตัวเลือกพอร์ตรู้จักเฉพาะพอร์ตที่มีจริง) — ชื่อพอร์ตที่ไม่ใช่ของรุ่นนั้น และอุปกรณ์ที่ไม่มีพอร์ตเลย ยังถูกปฏิเสธ
+- **ไม่ทิ้ง Lab ที่เปิดไม่ได้อย่างเงียบ ๆ:** ถ้า Lab ที่บันทึกไว้ในเบราว์เซอร์ไม่ผ่านการตรวจตอนเปิดแอป แอปจะเริ่มด้วย Lab ปกติ แต่ **เก็บสำเนาต้นฉบับไว้ก่อนที่ autosave จะเขียนทับ** (คีย์ `nls.workspace.rejected.v1` เก็บล่าสุดสูงสุด 20 รายการ) และแสดงแถบเตือนสีแดงพร้อมชื่อ Lab เหตุผล และปุ่ม "ดาวน์โหลดสำเนา" (ไฟล์ `nls-recovered-labs.json` — แต่ละรายการเป็น envelope แบบ export ปกติ แยกเป็นไฟล์เองแล้ว import ได้เมื่อแก้ปัญหาแล้ว)
+- **มุมมอง canvas:** Lab ว่างเริ่มที่ zoom 1x และอุปกรณ์ตัวแรกไม่ทำให้ซูมเข้าอีกต่อไป; "Fit view" จำกัดไม่เกิน 1.25x เพื่อไม่ขยาย Lab ที่มีอุปกรณ์ 1–2 ตัวจนใหญ่เกินไป และไม่ทำอะไรเมื่อ Lab ว่าง
 - **ชื่อ tab ของเบราว์เซอร์** ตามชื่อ Lab และมี `●` นำหน้าเมื่อมีการแก้ไขที่ยังไม่ได้ Export ไฟล์ (เหมือนป้าย "● ยังไม่ได้ Export" ที่แถบตำแหน่ง) — งานยังบันทึกอัตโนมัติอยู่ ไม่ได้หมายความว่าจะหาย
 - **คัดลอก config:** ปุ่ม "คัดลอก config" ที่แผงรายละเอียดอุปกรณ์และหัว Console (router/switch เท่านั้น) คัดลอก running-config ไปที่ clipboard — ต้องให้เบราว์เซอร์อนุญาตการเขียน clipboard ไม่เช่นนั้นจะแจ้งให้ใช้ `show running-config` แทน
 
@@ -142,7 +145,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 **ยังไม่รองรับ (ตั้งใจตัดออก)**
 
 - DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
-- IPv6, DHCP, DNS, ARP table/MAC address table, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF
+- IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
 - `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `interface range`, `show interfaces <name>` บน Cisco, `reload`
 - ping ใช้ ICMP echo แบบสรุปผล (ไม่มี TTL/fragmentation จริง และ latency เป็นค่าคงที่)
 
@@ -336,9 +339,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 12 ไฟล์) | **387/387 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
+| `npm test` (Vitest, 13 ไฟล์) | **402/402 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 51 flow) | **51/51 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต, undo/redo, autosave/คัดลอก config/ชื่อ tab, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 55 flow) | **55/55 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 

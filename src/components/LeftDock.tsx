@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PROFILES } from '../core/profiles';
 import { useStore } from '../store';
 import { ChallengePanel } from './ChallengePanel';
+import { fitLab } from './Canvas';
 import { GuidePanel } from './GuidePanel';
 import { Icon } from './Icons';
 import { Palette } from './Palette';
@@ -76,7 +77,7 @@ export function LeftDock() {
     { id: 'manager', icon: 'manager', label: 'Lab Manager', onClick: () => setView('manager'), testId: 'menu-manager' },
     { id: 'library', icon: 'library', label: 'Command Library', onClick: () => setView('library'), testId: 'menu-library' },
     { id: 'cable', icon: 'cable', label: 'เชื่อมสาย', onClick: () => openConnect(), testId: 'menu-connect' },
-    { id: 'fit', icon: 'fit', label: 'Fit view', onClick: () => flow.fitView({ padding: 0.15, duration: 250 }), testId: 'menu-fit' },
+    { id: 'fit', icon: 'fit', label: 'Fit view', onClick: () => fitLab(flow), testId: 'menu-fit' },
     { id: 'hide', icon: 'tag', label: hideLabels ? 'แสดงป้ายพอร์ต/สถานะ' : 'ซ่อนป้ายพอร์ต/สถานะ', onClick: toggleHide, active: hideLabels, testId: 'menu-hide-labels' },
     { id: 'full', icon: 'full', label: 'Fullscreen', onClick: toggleFullscreen, testId: 'menu-fullscreen' },
     { id: 'close', icon: 'close', label: 'Close lab', onClick: () => setView('manager'), testId: 'menu-close' },

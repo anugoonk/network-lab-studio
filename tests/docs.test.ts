@@ -27,17 +27,34 @@ export function commandTables(): string {
   ].join('\n\n');
 }
 
+const toLf = (s: string) => s.replace(/\r\n/g, '\n');
+
+/** the README block between the markers, line endings normalised (a Windows checkout may convert LF to CRLF) */
+export function readmeBlock(readme: string): string {
+  const lf = toLf(readme);
+  return lf.slice(lf.indexOf(START), lf.indexOf(END) + END.length);
+}
+
 describe('README command tables', () => {
   it('match the command registry (set GEN_DOCS=1 to regenerate)', () => {
-    const readme = fs.readFileSync('README.md', 'utf8');
+    const raw = fs.readFileSync('README.md', 'utf8');
+    const readme = toLf(raw);
     const a = readme.indexOf(START);
     const b = readme.indexOf(END);
     expect(a).toBeGreaterThan(-1);
     const generated = `${START}\n\n${commandTables()}\n\n${END}`;
     if (process.env.GEN_DOCS) {
-      fs.writeFileSync('README.md', readme.slice(0, a) + generated + readme.slice(b + END.length));
+      const next = readme.slice(0, a) + generated + readme.slice(b + END.length);
+      fs.writeFileSync('README.md', raw.includes('\r\n') ? next.replace(/\n/g, '\r\n') : next); // keep the file's own line endings
       return;
     }
-    expect(readme.slice(a, b + END.length)).toBe(generated);
+    expect(readmeBlock(raw)).toBe(generated);
+  });
+
+  it('is not sensitive to CRLF line endings (Windows checkout with core.autocrlf=true)', () => {
+    const lf = fs.readFileSync('README.md', 'utf8').replace(/\r\n/g, '\n');
+    const crlf = lf.replace(/\n/g, '\r\n');
+    expect(readmeBlock(crlf)).toBe(readmeBlock(lf));
+    expect(readmeBlock(crlf)).toContain('### Cisco IOS');
   });
 });
