@@ -95,16 +95,32 @@ function wrapPorts(ports: string[], indent: number, width = 32): string[] {
   return lines.map((l, i) => (i === 0 ? l : ' '.repeat(indent) + l));
 }
 
+/**
+ * Built-in legacy VLANs of a Catalyst VLAN database: always present, cannot be configured or deleted, and shown as
+ * "act/unsup" because the switch has no FDDI / Token Ring media. They are display-only here (never stored in the Lab).
+ */
+const RESERVED_VLAN_ROWS: { id: number; name: string }[] = [
+  { id: 1002, name: 'fddi-default' },
+  { id: 1003, name: 'token-ring-default' },
+  { id: 1004, name: 'fddinet-default' },
+  { id: 1005, name: 'trnet-default' },
+];
+
 function showVlanBrief(dev: Device): string[] {
   const out = [
     'VLAN Name                             Status    Ports',
     '---- -------------------------------- --------- -------------------------------',
   ];
-  for (const v of [...dev.vlans].sort((a, b) => a.id - b.id)) {
+  const rows = [
+    ...dev.vlans.map((v) => ({ id: v.id, name: v.name, status: 'active', reserved: false })),
+    // a Lab saved before 1002-1005 were rejected may still hold one of them: show the stored entry, not a second row
+    ...RESERVED_VLAN_ROWS.filter((r) => !dev.vlans.some((v) => v.id === r.id)).map((r) => ({ ...r, status: 'act/unsup', reserved: true })),
+  ].sort((a, b) => a.id - b.id);
+  for (const v of rows) {
     // like the real command, trunk ports are not listed
-    const ports = dev.ifaces.filter((i) => !i.trunk && i.accessVlan === v.id).map((i) => shortPort(i.name));
+    const ports = v.reserved ? [] : dev.ifaces.filter((i) => !i.trunk && i.accessVlan === v.id).map((i) => shortPort(i.name));
     const wrapped = wrapPorts(ports, 48);
-    out.push(`${String(v.id).padEnd(5)}${v.name.padEnd(33)}${'active'.padEnd(10)}${wrapped[0] ?? ''}`.trimEnd());
+    out.push(`${String(v.id).padEnd(5)}${v.name.padEnd(33)}${v.status.padEnd(10)}${wrapped[0] ?? ''}`.trimEnd());
     out.push(...wrapped.slice(1));
   }
   return out;
@@ -566,7 +582,7 @@ const specs: CommandSpec[] = [
     example: 'no vlan 30', verify: 'show vlan brief', verifyTh: tx('VLAN ต้องหายไปจากตาราง'),
     run: (c) => {
       const id = Number(c.args[0]);
-      if (id === 1) return { error: ['%Default VLAN 1 may not be deleted.'] };
+      if (id === 1 || isReservedVlan(id)) return { error: [`%Default VLAN ${id} may not be deleted.`] };
       c.dev.vlans = c.dev.vlans.filter((v) => v.id !== id);
       return {};
     },

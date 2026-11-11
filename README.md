@@ -171,7 +171,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `show interfaces` / `show interfaces <name>` บน Cisco, `reload`
 - `traceroute` (Cisco / Aruba) และ `tracert` (PC) — ยังไม่มี
 - ping ใช้ ICMP echo แบบสรุปผล: TTL ของ reply คำนวณจากระบบของปลายทาง (Windows 128 / Cisco IOS 255 / AOS-CX 64) ลบจำนวน router ขากลับ, router กลางทางที่ไม่มี route ตอบ ICMP Destination net unreachable (`U.U.U`), PC ที่ไม่มีลิงก์ได้ `General failure` — แต่ไม่จำลอง fragmentation, packet loss บางส่วน และ latency เป็นค่าคงที่
-- VLAN 1002–1005 บน Cisco (VLAN สงวนของ FDDI/Token Ring) ถูกปฏิเสธ — ข้อความ error เป็นของ simulator ยังไม่ได้เทียบกับ IOS จริง
+- VLAN 1002–1005 บน Cisco (VLAN สงวนของ FDDI/Token Ring): `show vlan brief` แสดง `fddi-default` / `token-ring-default` / `fddinet-default` / `trnet-default` สถานะ `act/unsup` เหมือน IOS (แสดงอย่างเดียว ไม่บันทึกลง Lab), `no vlan 1002`–`1005` ได้ `%Default VLAN n may not be deleted.`; การสั่ง `vlan 1002` หรือ `switchport access vlan 1002` ถูกปฏิเสธ — ข้อความ error ของสองคำสั่งหลังนี้เป็นของ simulator ยังไม่ได้เทียบกับ IOS จริง
 
 ## รุ่น/เวอร์ชันอ้างอิงของ CLI profile และสถานะการตรวจสอบ
 
@@ -367,7 +367,7 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 20 ไฟล์) | **509/509 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน, `show ip route` บน 2960) |
+| `npm test` (Vitest, 21 ไฟล์) | **520/520 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน + แถว `act/unsup` ใน `show vlan brief`, `show ip route` บน 2960) |
 | `npm run build` | ผ่าน (tsc strict + vite) |
 | `npm run e2e` (Playwright + Chromium, 75 flow) | **75/75 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 7 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
