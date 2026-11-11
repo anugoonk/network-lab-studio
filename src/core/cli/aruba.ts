@@ -200,7 +200,8 @@ function arubaPing(c: Ctx): RunResult {
   const ip = c.args[0];
   const r = ping(c.lab, c.dev.id, ip);
   const lines = [`PING ${ip} (${ip}) 100(128) bytes of data.`];
-  if (r.ok) for (let n = 1; n <= 5; n++) lines.push(`108 bytes from ${ip}: icmp_seq=${n} ttl=64 time=1.0 ms`);
+  if (r.ok) for (let n = 1; n <= 5; n++) lines.push(`108 bytes from ${ip}: icmp_seq=${n} ttl=${r.replyTtl} time=1.0 ms`);
+  else if (r.kind === 'net-unreachable') lines.push(`From ${r.icmpFrom} icmp_seq=1 Destination Net Unreachable`);
   else if (r.kind === 'host-unreachable') lines.push(`From ${r.srcIp ?? ip} icmp_seq=1 Destination Host Unreachable`);
   lines.push('', `--- ${ip} ping statistics ---`);
   lines.push(r.ok ? '5 packets transmitted, 5 received, 0% packet loss, time 4005ms' : '5 packets transmitted, 0 received, 100% packet loss, time 4090ms');

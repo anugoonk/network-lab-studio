@@ -887,4 +887,9 @@ export const EN: Record<string, string> = {
   "- SW1 Gi0/1 → R1 Gi0/0 เป็น trunk, SW1 Gi0/2 → SW2 1/1/24 เป็น trunk (ส่ง VLAN 10 และ 20 ทั้งคู่)": "- SW1 Gi0/1 → R1 Gi0/0 is a trunk, SW1 Gi0/2 → SW2 1/1/24 is a trunk (both carry VLANs 10 and 20)",
   "- R1 ใช้ sub-interface Gi0/0.10 และ Gi0/0.20 เป็น gateway": "- R1 uses sub-interfaces Gi0/0.10 and Gi0/0.20 as the gateways",
   "3. ถ้าตั้งพังจนไปต่อไม่ได้ กด **รีเซ็ตโจทย์** เพื่อกลับสถานะเริ่มต้น (ย้อนกลับด้วย Undo ได้)": "3. If you break things beyond repair, press **Reset exercise** to go back to the starting state (can be undone with Undo)",
+  "{0} ของ {1} ไม่มีลิงก์ (Media disconnected) — {2}": "{0} of {1} has no link (Media disconnected) — {2}",
+  "{0} จึงตอบกลับ ICMP Destination net unreachable จาก {1}": "so {0} answers with ICMP Destination net unreachable from {1}",
+  "L2 switch ไม่ route (ไม่มี ip routing) จึงแสดงเฉพาะ default gateway ที่ตั้งด้วย ip default-gateway": "An L2 switch does not route (no ip routing), so this only shows the default gateway set with ip default-gateway",
+  "ต้องเห็น Default gateway is … ตรงกับ ip default-gateway": "Must show \"Default gateway is …\" matching ip default-gateway",
+  "ยังไม่ได้เชื่อมสาย": "no cable is connected",
 };

@@ -33,12 +33,14 @@ function pingCmd(c: Ctx): RunResult {
   const lines = ['', `Pinging ${dst} with 32 bytes of data:`];
   const from = r.srcIp ?? c.dev.ifaces[0].ip ?? '0.0.0.0';
   for (let k = 0; k < 4; k++) {
-    if (r.ok) lines.push(`Reply from ${dst}: bytes=32 time<1ms TTL=${r.forwardPath.length > 3 ? 126 : 128}`);
+    if (r.ok) lines.push(`Reply from ${dst}: bytes=32 time<1ms TTL=${r.replyTtl}`);
     else if (r.kind === 'general-failure') lines.push('PING: transmit failed. General failure.');
     else if (r.kind === 'host-unreachable') lines.push(`Reply from ${from}: Destination host unreachable.`);
+    else if (r.kind === 'net-unreachable') lines.push(`Reply from ${r.icmpFrom}: Destination net unreachable.`);
     else lines.push('Request timed out.');
   }
-  const recv = r.ok ? 4 : r.kind === 'host-unreachable' ? 4 : 0;
+  // Windows counts ICMP unreachable replies as "Received"
+  const recv = r.ok || r.kind === 'host-unreachable' || r.kind === 'net-unreachable' ? 4 : 0;
   lines.push('', `Ping statistics for ${dst}:`);
   lines.push(
     `    Packets: Sent = 4, Received = ${recv}, Lost = ${4 - recv} (${((4 - recv) / 4) * 100}% loss),`,

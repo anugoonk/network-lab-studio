@@ -73,7 +73,7 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
 |---|---|---|
 | R1 | Cisco IOS Router | `GigabitEthernet0/0` = 192.168.1.1/24 → SW1 `GigabitEthernet0/1` |
 | SW1 | Cisco IOS L2 Switch | `Gi0/1` (→R1), `Gi0/2` (→SW2 uplink), `Fa0/1`–`Fa0/5` = PC-01..05 |
-| SW2 | Aruba AOS-CX L2 Switch | `1/1/24` (uplink ←SW1 `Gi0/2`), `1/1/1`–`1/1/5` = PC-06..PC-10 |
+| SW2 | Aruba AOS-CX Access Switch (L3-capable) | `1/1/24` (uplink ←SW1 `Gi0/2`), `1/1/1`–`1/1/5` = PC-06..PC-10 |
 | PC-01..PC-10 | PC | 192.168.1.101–110 /24, gateway 192.168.1.1 |
 
 พอร์ตที่ใช้งานทั้งหมดบน SW1/SW2 เป็น access VLAN 10 (รวมลิงก์ SW1↔SW2 ทั้งสองฝั่ง และลิงก์ไป R1 แบบ untagged) VLAN 20 (GUEST) ถูกสร้างไว้แล้วบน switch ทั้งสองสำหรับโจทย์ฝึก
@@ -168,8 +168,10 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 - DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
 - IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
-- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `show interfaces <name>` บน Cisco, `reload`
-- ping ใช้ ICMP echo แบบสรุปผล (ไม่มี TTL/fragmentation จริง และ latency เป็นค่าคงที่)
+- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `show interfaces` / `show interfaces <name>` บน Cisco, `reload`
+- `traceroute` (Cisco / Aruba) และ `tracert` (PC) — ยังไม่มี
+- ping ใช้ ICMP echo แบบสรุปผล: TTL ของ reply คำนวณจากระบบของปลายทาง (Windows 128 / Cisco IOS 255 / AOS-CX 64) ลบจำนวน router ขากลับ, router กลางทางที่ไม่มี route ตอบ ICMP Destination net unreachable (`U.U.U`), PC ที่ไม่มีลิงก์ได้ `General failure` — แต่ไม่จำลอง fragmentation, packet loss บางส่วน และ latency เป็นค่าคงที่
+- VLAN 1002–1005 บน Cisco (VLAN สงวนของ FDDI/Token Ring) ถูกปฏิเสธ — ข้อความ error เป็นของ simulator ยังไม่ได้เทียบกับ IOS จริง
 
 ## รุ่น/เวอร์ชันอ้างอิงของ CLI profile และสถานะการตรวจสอบ
 
@@ -177,7 +179,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 |---|---|---|
 | Cisco IOS Router | Cisco ISR 2911 | IOS 15.4(3)M |
 | Cisco IOS L2 Switch | Catalyst 2960-24TT | IOS 15.0(2)SE |
-| Aruba AOS-CX L2 Switch | Aruba CX 6100 24G | ArubaOS-CX 10.10 |
+| Aruba AOS-CX Access Switch (L3-capable) | Aruba CX 6100 24G | ArubaOS-CX 10.10 |
 
 พฤติกรรมเริ่มต้นที่เลียนแบบของจริง (ตามที่เข้าใจ ยังไม่ได้ยืนยันกับเอกสาร): พอร์ต router (Cisco) และพอร์ต AOS-CX เริ่มต้นเป็น **shutdown**; พอร์ต Catalyst เริ่มต้นเป็น up (VLAN 1); พอร์ต AOS-CX เริ่มต้นเป็น **routed** จึงต้องสั่ง `no routing` ก่อนใช้ `vlan access`; Cisco `switchport access vlan N` จะสร้าง VLAN ให้อัตโนมัติพร้อมข้อความเตือนตาม IOS 15.0
 
@@ -250,6 +252,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC, Privileged EXEC | `show ip interface brief` | `show ip interface brief` | สรุป IP และสถานะ (Status/Protocol) ของ interface — router แสดงพอร์ตและ sub-interface, switch แสดง Vlan SVI ด้วย |
 | User EXEC, Privileged EXEC | `show ip arp` | `show ip arp` | ดูตาราง ARP (IP → MAC) ของอุปกรณ์ — แสดงเครื่องใน L2 domain เดียวกันที่ลิงก์ up (ไม่จำลองการเรียนรู้/หมดอายุ) Age "-" คือ IP ของตัวเอง |
 | User EXEC, Privileged EXEC | `show mac address-table` | `show mac address-table` | ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging; STATIC CPU = MAC ของ SVI ตัวเอง) |
+| User EXEC, Privileged EXEC | `show ip route` | `show ip route` | L2 switch ไม่ route (ไม่มี ip routing) จึงแสดงเฉพาะ default gateway ที่ตั้งด้วย ip default-gateway |
 | User EXEC, Privileged EXEC | `show interfaces status` | `show interfaces status` | ดูสถานะพอร์ตของ switch (connected / notconnect / disabled) และ VLAN (trunk แสดงเป็น trunk) |
 | User EXEC, Privileged EXEC | `show interfaces trunk` | `show interfaces trunk` | ดูพอร์ตที่เป็น trunk, native VLAN และ VLAN ที่อนุญาต/ใช้งานอยู่ |
 | User EXEC, Privileged EXEC | `show vlan brief` | `show vlan brief` | ดู VLAN ทั้งหมดและพอร์ต access ที่อยู่ในแต่ละ VLAN (trunk ไม่แสดงในตารางนี้) |
@@ -282,7 +285,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | VLAN interface config | `ip address <ip-address> <subnet-mask>` | `ip address 192.168.10.2 255.255.255.0` | ตั้ง IP จัดการให้ SVI (L2 switch ใช้เป็น management address ไม่ใช่ gateway ของ VLAN) |
 | VLAN interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก SVI |
 
-### Aruba AOS-CX — Layer 2 Switch (Aruba CX 6100 24G (simulated), ArubaOS-CX 10.10)
+### Aruba AOS-CX — Access Switch, L3-capable (Aruba CX 6100 24G (simulated), ArubaOS-CX 10.10)
 
 | Mode | Syntax | ตัวอย่างที่รันได้ | คำอธิบาย |
 |---|---|---|---|
@@ -360,13 +363,13 @@ tests/               # Vitest        e2e/  # Playwright
 
 ## ผลการทดสอบ
 
-รันจริงเมื่อ 2026-11-09 บน Windows 11, Node 24:
+รันจริงเมื่อ 2026-11-11 บน Windows 11, Node 24:
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 19 ไฟล์) | **474/474 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
+| `npm test` (Vitest, 20 ไฟล์) | **509/509 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน, `show ip route` บน 2960) |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 75 flow) | **75/75 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 75 flow) | **75/75 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 7 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 
@@ -376,6 +379,6 @@ tests/               # Vitest        e2e/  # Playwright
 - Cisco `dynamic auto` ไม่เจรจา trunk (ถือเป็น access) — ต้องตั้ง `switchport mode trunk` ทั้งสองฝั่งให้ชัดเจน
 - SVI บน Aruba เริ่มต้นเป็น up (ยังไม่ยืนยันกับของจริง)
 - ทดสอบ UI เฉพาะ desktop; ไม่ได้ปรับสำหรับมือถือ
-- bundle ใหญ่ ~600 kB (ยังไม่ได้ code-split)
+- bundle ใหญ่ ~920 kB (gzip ~260 kB, ยังไม่ได้ code-split)
 - Lab Manager เก็บใน `localStorage` ของเบราว์เซอร์เดียว (ไม่ sync ข้ามเครื่อง, ไม่มีโฟลเดอร์ย่อย) และ `localStorage` มีขีดจำกัดขนาดประมาณ 5 MB — ถ้าเต็ม การบันทึกอัตโนมัติจะล้มเงียบ ๆ ให้ Export ไฟล์ไว้เป็นระยะ
 - Guide ไม่รองรับรูปภาพ/ตาราง (ข้อความ bullet/ลำดับเลข/โค้ดเท่านั้น)

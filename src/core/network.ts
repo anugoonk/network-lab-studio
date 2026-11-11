@@ -432,13 +432,17 @@ interface DeliverOk {
   path: string[];
   dstDeviceId: string;
   srcIp: string;
+  /** L3 devices that forwarded the packet (each one decrements TTL) */
+  routed: number;
 }
 interface DeliverFail {
   ok: false;
   path: string[];
-  kind: 'general' | 'unresolved' | 'noroute';
+  kind: 'general' | 'unresolved' | 'noroute' | 'loop';
   th: string;
   atDeviceId: string;
+  /** source address chosen on the first hop (null when it failed before choosing one) */
+  srcIp: string | null;
 }
 
 function ownedAddress(lab: Lab, d: Device, ip: string): L3If | undefined {
@@ -463,6 +467,14 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
       const prefix = maskToPrefix(i.mask);
       if (!best || prefix > best.prefix) best = { out: i, prefix, nextHop: dstIp, role: 'destination' };
     }
+  }
+
+  if (!fwd && PROFILES[cur.kind].isHost && usable.length && usable.every((i) => !i.up)) {
+    // Windows with the NIC unplugged / link down: "PING: transmit failed. General failure."
+    const o = usable[0];
+    const l = linkAt(lab, cur.id, o.port!);
+    const why = l ? linkStatus(lab, l).reasonTh : tx('ยังไม่ได้เชื่อมสาย');
+    return { fail: tx('{0} ของ {1} ไม่มีลิงก์ (Media disconnected) — {2}', o.name, cur.name, why), kind: 'general' };
   }
 
   if (fwd) {
@@ -511,15 +523,17 @@ function deliver(lab: Lab, from: Device, dstIp: string): DeliverOk | DeliverFail
   const path: string[] = [from.id];
   let cur = from;
   let srcIp: string | null = null;
+  let routed = 0;
 
   for (let hop = 0; hop < 16; hop++) {
     const own = ownedAddress(lab, cur, dstIp);
     if (own && (cur.id === from.id || own.up)) {
-      return { ok: true, path, dstDeviceId: cur.id, srcIp: srcIp ?? dstIp };
+      return { ok: true, path, dstDeviceId: cur.id, srcIp: srcIp ?? dstIp, routed };
     }
+    if (cur.id !== from.id) routed++; // this device forwards the packet
 
     const sel = selectRoute(lab, cur, dstIp);
-    if ('fail' in sel) return { ok: false, path, kind: sel.kind, atDeviceId: cur.id, th: sel.fail };
+    if ('fail' in sel) return { ok: false, path, kind: sel.kind, atDeviceId: cur.id, th: sel.fail, srcIp };
     if (srcIp === null) srcIp = sel.out.ip;
 
     const domain = l2Domain(lab, sel.out);
@@ -529,25 +543,27 @@ function deliver(lab: Lab, from: Device, dstIp: string): DeliverOk | DeliverFail
         ok: false,
         path,
         kind: 'unresolved',
+        srcIp,
         atDeviceId: cur.id,
         th: diagnoseUnresolved(lab, cur, sel.out, sel.nextHop, sel.role),
       };
     }
     pushPath(path, [...hit.via, hit.ifc.deviceId]);
     const nh = getDevice(lab, hit.ifc.deviceId)!;
-    if (sel.nextHop === dstIp) return { ok: true, path, dstDeviceId: nh.id, srcIp };
+    if (sel.nextHop === dstIp) return { ok: true, path, dstDeviceId: nh.id, srcIp, routed };
     if (!canForward(nh)) {
       return {
         ok: false,
         path,
         kind: 'general',
+        srcIp,
         atDeviceId: nh.id,
         th: tx('Gateway/next hop {0} คือ {1} ซึ่งไม่ใช่อุปกรณ์ที่ส่งต่อแพ็กเก็ต (L3) จึงไม่ส่งต่อให้', sel.nextHop, nh.name),
       };
     }
     cur = nh;
   }
-  return { ok: false, path, kind: 'noroute', atDeviceId: cur.id, th: tx('แพ็กเก็ตวนเกินจำนวน hop ที่กำหนด (routing loop)') };
+  return { ok: false, path, kind: 'loop', atDeviceId: cur.id, srcIp, th: tx('แพ็กเก็ตวนเกินจำนวน hop ที่กำหนด (routing loop)') };
 }
 
 export interface PingResult {
@@ -555,7 +571,11 @@ export interface PingResult {
   srcId: string;
   dstIp: string;
   /** Windows-style outcome used by the PC terminal */
-  kind: 'ok' | 'general-failure' | 'host-unreachable' | 'timeout';
+  kind: 'ok' | 'general-failure' | 'host-unreachable' | 'net-unreachable' | 'timeout';
+  /** net-unreachable: address of the router that answered with ICMP Destination Net Unreachable */
+  icmpFrom?: string;
+  /** TTL of the echo reply as the source sees it (initial TTL of the replying OS minus routers on the way back); null on failure */
+  replyTtl: number | null;
   direction: 'forward' | 'return' | null;
   forwardPath: string[];
   returnPath: string[];
@@ -565,14 +585,34 @@ export interface PingResult {
   srcIp: string | null;
 }
 
+/** initial TTL of an echo reply by the replying OS: Windows 128, Cisco IOS 255, AOS-CX (Linux) 64 */
+const INITIAL_TTL: Record<string, number> = { pc: 128, cisco: 255, aruba: 64, generic: 64 };
+
 export function ping(lab: Lab, srcId: string, dstIp: string): PingResult {
   const src = getDevice(lab, srcId);
-  const base = { srcId, dstIp, forwardPath: [] as string[], returnPath: [] as string[], srcIp: null };
+  const base = { srcId, dstIp, forwardPath: [] as string[], returnPath: [] as string[], srcIp: null, replyTtl: null };
   if (!src) {
     return { ...base, ok: false, kind: 'general-failure', direction: 'forward', explanation: [tx('ไม่พบอุปกรณ์ต้นทาง')] };
   }
   const nameOf = (id: string) => getDevice(lab, id)?.name ?? id;
   const fwd = deliver(lab, src, dstIp);
+  if (!fwd.ok && fwd.kind === 'noroute' && fwd.atDeviceId !== srcId && fwd.srcIp) {
+    // a router on the way has no route: it answers the source with ICMP Destination Net Unreachable (if it can reach it)
+    const rt = getDevice(lab, fwd.atDeviceId)!;
+    const back = deliver(lab, rt, fwd.srcIp);
+    if (back.ok) {
+      return {
+        ...base,
+        ok: false,
+        kind: 'net-unreachable',
+        icmpFrom: back.srcIp,
+        direction: 'forward',
+        forwardPath: fwd.path,
+        failAtDeviceId: fwd.atDeviceId,
+        explanation: [tx('ขาไป: {0}', fwd.th), tx('{0} จึงตอบกลับ ICMP Destination net unreachable จาก {1}', rt.name, back.srcIp)],
+      };
+    }
+  }
   if (!fwd.ok) {
     const kind = fwd.kind === 'general' ? 'general-failure' : fwd.kind === 'unresolved' ? 'host-unreachable' : 'timeout';
     return {
@@ -611,6 +651,7 @@ export function ping(lab: Lab, srcId: string, dstIp: string): PingResult {
     forwardPath: fwd.path,
     returnPath: back.path,
     srcIp: fwd.srcIp,
+    replyTtl: INITIAL_TTL[PROFILES[dst.kind].vendor] - back.routed,
     explanation: [
       tx('ขาไป: {0}', fwd.path.map(nameOf).join(' → ')),
       tx('ขากลับ: {0}', back.path.map(nameOf).join(' → ')),

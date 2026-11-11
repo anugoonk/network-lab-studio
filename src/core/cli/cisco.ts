@@ -272,6 +272,16 @@ function showIpRoute(lab: Lab, dev: Device): string[] {
   return out;
 }
 
+/** `show ip route` on a Catalyst without `ip routing`: the switch is a host, so IOS only shows its default gateway */
+function showIpRouteHost(dev: Device): string[] {
+  return [
+    dev.gateway ? `Default gateway is ${dev.gateway}` : 'Default gateway is not set',
+    '',
+    'Host               Gateway           Last Use    Total Uses  Interface',
+    'ICMP redirect cache is empty',
+  ];
+}
+
 function showVersion(dev: Device): string[] {
   const rt = PROFILES[dev.kind].isRouter;
   return [
@@ -289,7 +299,7 @@ function ciscoPing(c: Ctx): RunResult {
   const ip = c.args[0];
   const r = ping(c.lab, c.dev.id, ip);
   const lines = ['Type escape sequence to abort.', `Sending 5, 100-byte ICMP Echos to ${ip}, timeout is 2 seconds:`];
-  lines.push(r.ok ? '!!!!!' : '.....');
+  lines.push(r.ok ? '!!!!!' : r.kind === 'net-unreachable' ? 'U.U.U' : '.....');
   lines.push(r.ok ? 'Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms' : 'Success rate is 0 percent (0/5)');
   return { lines };
 }
@@ -331,8 +341,15 @@ function interfaceRouter(c: Ctx): RunResult {
   return { mode: 'config-subif', ctxIface: name, ctxVlan: null };
 }
 
+/** VLANs 1002-1005 are the built-in FDDI / Token Ring defaults on Catalyst switches — not usable for Ethernet ports */
+const isReservedVlan = (id: number) => id >= 1002 && id <= 1005;
+const reservedVlanError = (id: number): RunResult => ({
+  error: [`% VLAN ${id} is a reserved default VLAN (1002-1005: FDDI/Token Ring) and cannot be used.`],
+});
+
 function vlanCmd(c: Ctx): RunResult {
   const id = Number(c.args[0]);
+  if (isReservedVlan(id)) return reservedVlanError(id);
   if (!c.dev.vlans.some((v) => v.id === id)) {
     c.dev.vlans.push({ id, name: `VLAN${String(id).padStart(4, '0')}` });
     c.dev.vlans.sort((a, b) => a.id - b.id);
@@ -428,6 +445,12 @@ const specs: CommandSpec[] = [
     helpEn: 'IP routing table', descTh: tx('ดูตาราง routing: C/L (connected), S (static), S* (default route)'), topic: 'IP',
     example: 'show ip route', verify: 'show ip route', verifyTh: tx('ต้องเห็น C ของ subnet ที่ up/up และ S ของ static route ที่ next hop ถึงได้'),
     run: (c) => ({ lines: showIpRoute(c.lab, c.dev) }),
+  }),
+  cmd({
+    id: 'cisco.show.iproute.sw', vendor: 'cisco', deviceTypes: SW, modes: ['user', 'priv'], syntax: 'show ip route',
+    helpEn: 'IP routing table', descTh: tx('L2 switch ไม่ route (ไม่มี ip routing) จึงแสดงเฉพาะ default gateway ที่ตั้งด้วย ip default-gateway'), topic: 'IP',
+    example: 'show ip route', verify: 'show ip route', verifyTh: tx('ต้องเห็น Default gateway is … ตรงกับ ip default-gateway'),
+    run: (c) => ({ lines: showIpRouteHost(c.dev) }),
   }),
   cmd({
     id: 'cisco.show.intstatus', vendor: 'cisco', deviceTypes: SW, modes: ['user', 'priv'], syntax: 'show interfaces status',
@@ -673,6 +696,7 @@ const specs: CommandSpec[] = [
       const i = needIface(c);
       if (!i) return { error: ['% No interface selected'] };
       const id = Number(c.args[0]);
+      if (isReservedVlan(id)) return reservedVlanError(id);
       const lines: string[] = [];
       if (!c.dev.vlans.some((v) => v.id === id)) {
         c.dev.vlans.push({ id, name: `VLAN${String(id).padStart(4, '0')}` });

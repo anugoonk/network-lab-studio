@@ -96,7 +96,7 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     isHost: false,
     canForward: true,
     hasCli: true,
-    roleNote: 'AOS-CX L2',
+    roleNote: 'AOS-CX Access',
     defaultAdminUp: false,
   },
   // Distribution switch. The only L3-capable switch profile in the simulator is AOS-CX
@@ -181,7 +181,7 @@ export const PALETTE_GROUPS: { title: string; items: { kind: DeviceKind; note: s
     items: [
       { kind: 'cisco-router', note: 'Router · Gi0/0–0/2' },
       { kind: 'cisco-switch', note: 'Access L2 · Fa0/1–24, Gi0/1–2' },
-      { kind: 'aruba-switch', note: 'Access L2 · 1/1/1–1/1/24' },
+      { kind: 'aruba-switch', note: 'Access · L3-capable (SVI/static) · 1/1/1–1/1/24' },
       { kind: 'l3-switch', note: 'DSW · AOS-CX L3 · 1/1/1–1/1/28' },
     ],
   },

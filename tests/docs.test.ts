@@ -22,7 +22,7 @@ export function commandTables(): string {
   return [
     table(`Cisco IOS — Router (${PROFILES['cisco-router'].model}, ${PROFILES['cisco-router'].osRef})`, ['cisco-router'], 'cisco'),
     table(`Cisco IOS — Layer 2 Switch (${PROFILES['cisco-switch'].model}, ${PROFILES['cisco-switch'].osRef})`, ['cisco-switch'], 'cisco'),
-    table(`Aruba AOS-CX — Layer 2 Switch (${PROFILES['aruba-switch'].model}, ${PROFILES['aruba-switch'].osRef})`, ['aruba-switch'], 'aruba'),
+    table(`Aruba AOS-CX — Access Switch, L3-capable (${PROFILES['aruba-switch'].model}, ${PROFILES['aruba-switch'].osRef})`, ['aruba-switch'], 'aruba'),
     table('PC Terminal', ['pc'], 'pc'),
   ].join('\n\n');
 }
