@@ -3,7 +3,7 @@ import { applyStart, captureStart, evaluateChallenge } from '../src/core/challen
 import { duplicateIps } from '../src/core/l2tables';
 import { updateDevice } from '../src/core/lab';
 import { parseImport, serializeExport } from '../src/core/persist';
-import { SAMPLES, buildAddressingLab, buildCampusLab, buildDupIpLab, type SampleKind } from '../src/core/sample';
+import { SAMPLES, buildAddressingLab, buildLayer2Lab, buildCampusLab, buildDupIpLab, type SampleKind } from '../src/core/sample';
 import type { Lab } from '../src/core/types';
 import { byName, run } from './helpers';
 
@@ -157,6 +157,19 @@ describe('Challenge 5: addressing faults', () => {
     lab = updateDevice(lab, byName(lab, 'PC-C').id, (d) => ({ ...d, ifaces: d.ifaces.map((i) => ({ ...i, mask: '255.255.255.0' })) }));
     expect(passes(lab)).toEqual(['c1', 'c2', 'c3', 'c4', 'c6', 'c7']);
     lab = run(lab, 'R2', ['enable', 'configure terminal', 'interface GigabitEthernet0/0', 'ip address 10.0.0.2 255.255.255.252', 'end']).lab;
+    expect(score(lab).allPassed).toBe(true);
+  });
+});
+
+describe('Challenge 6: Layer 2 faults', () => {
+  it('starts with c1, c6, c7 passing; each fix unlocks its checks', () => {
+    let lab = buildLayer2Lab();
+    expect(passes(lab)).toEqual(['c1', 'c6', 'c7']);
+    lab = run(lab, 'SW1', ['enable', 'configure terminal', 'interface FastEthernet0/1', 'switchport access vlan 10', 'end']).lab;
+    expect(passes(lab)).toEqual(['c1', 'c2', 'c6', 'c7']);
+    lab = run(lab, 'SW1', ['enable', 'configure terminal', 'interface GigabitEthernet0/1', 'switchport trunk allowed vlan 10,20', 'end']).lab;
+    expect(passes(lab)).toEqual(['c1', 'c2', 'c3', 'c6', 'c7']);
+    lab = run(lab, 'SW2', ['configure terminal', 'vlan 20', 'end']).lab;
     expect(score(lab).allPassed).toBe(true);
   });
 });

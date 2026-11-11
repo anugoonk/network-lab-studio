@@ -365,3 +365,35 @@ export function addressingGuide(): Guide {
     resources: references(),
   };
 }
+
+export function layer2Guide(): Guide {
+  return {
+    title: tx('Troubleshooting — VLAN และ trunk (Layer 2)'),
+    objective: [
+      tx('เมื่อจบโจทย์นี้ ผู้เรียนจะสามารถ:'),
+      tx('- ตรวจว่าพอร์ต access อยู่ VLAN ที่ถูกต้อง'),
+      tx('- ตรวจว่า trunk ยอมให้ VLAN ที่ต้องใช้ผ่านทุกลิงก์ รวมถึงลิงก์ไปหา router'),
+      tx('- ตรวจว่า VLAN ถูกสร้างไว้บน switch ทุกตัวที่ต้องส่ง VLAN นั้นผ่าน'),
+    ].join('\n'),
+    sections: [
+      {
+        heading: tx('สถานการณ์'),
+        body: [
+          tx('ออฟฟิศ Inter-VLAN (ดูรายละเอียดที่ Open Sample Lab) IP และ routing ถูกต้องหมด แต่ผู้ใช้แจ้งว่า'),
+          tx('- PC-A ซึ่งควรอยู่ VLAN 10 ไปไหนไม่ได้เลย'),
+          tx('- ทุกเครื่องใน VLAN 20 ไปไม่ถึง gateway'),
+          tx('- PC-D (ต่อกับ SW2) คุยกับ PC-B ใน VLAN 20 เดียวกันไม่ได้'),
+        ].join('\n'),
+      },
+      {
+        heading: tx('กติกา'),
+        body: [
+          tx('1. กด **Check** เพื่อดูว่ายังไม่ผ่านข้อไหน (บอกแค่ผ่าน/ไม่ผ่าน)'),
+          tx('2. ห้ามลบหรือเปลี่ยนสาย แก้ได้เฉพาะ config ของอุปกรณ์'),
+          tx('3. ถ้าแก้พังจนไปต่อไม่ได้ กด **รีเซ็ตโจทย์** เพื่อกลับสถานะเริ่มต้น (ย้อนกลับด้วย Undo ได้)'),
+        ].join('\n'),
+      },
+    ],
+    resources: references(),
+  };
+}

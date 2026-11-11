@@ -21,9 +21,9 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('node-PC-01')).toBeVisible();
 });
 
-test('the Challenge menu lists the five challenges and opens each one', async ({ page }) => {
+test('the Challenge menu lists the six challenges and opens each one', async ({ page }) => {
   const options = page.getByTestId('select-challenge').locator('option');
-  await expect(options).toHaveCount(6); // placeholder + 5 challenges
+  await expect(options).toHaveCount(7); // placeholder + 6 challenges
   await page.getByTestId('select-challenge').selectOption('dupip');
   await expect(page.getByTestId('challenge-title')).toContainText('IP ซ้ำ');
   await page.getByTestId('challenge-check').click();

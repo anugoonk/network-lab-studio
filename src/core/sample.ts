@@ -1,6 +1,6 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
 import { captureStart } from './challenge';
-import { addressingGuide, campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
+import { addressingGuide, layer2Guide, campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
 import type { Check, Device, Lab } from './types';
 import { tx } from '../i18n';
 
@@ -554,9 +554,54 @@ export function buildAddressingLab(): Lab {
   });
 }
 
+// ───────────────────────── Challenge 6: Layer 2 faults on Inter-VLAN ─────────────────────────
+
+export const LAYER2_NAME = tx('Challenge: VLAN / Trunk – Inter-VLAN');
+
+/**
+ * Inter-VLAN lab with three Layer 2 faults: (1) PC-A's port SW1 Fa0/1 sits in VLAN 20,
+ * (2) SW1's trunk to R1 only allows VLAN 10, (3) VLAN 20 was never created on SW2.
+ */
+export function buildLayer2Lab(): Lab {
+  let lab: Lab = { ...buildInterVlanLab(), name: LAYER2_NAME };
+  const id = (name: string) => lab.devices.find((d) => d.name === name)!.id;
+  lab = updateDevice(lab, id('SW1'), (d) => ({
+    ...d,
+    ifaces: d.ifaces.map((i) =>
+      i.name === 'FastEthernet0/1' ? { ...i, accessVlan: 20 } : i.name === 'GigabitEthernet0/1' ? { ...i, trunkAllowed: [10] } : i,
+    ),
+  }));
+  lab = updateDevice(lab, id('SW2'), (d) => ({ ...d, vlans: d.vlans.filter((v) => v.id !== 20) }));
+  const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
+  const checks: Check[] = [
+    ping(1, 'PC-C', '192.168.10.1', tx('PC-C ติดต่อ gateway (R1 VLAN 10) ได้')),
+    ping(2, 'PC-A', '192.168.10.1', tx('PC-A ติดต่อ gateway (R1 VLAN 10) ได้')),
+    ping(3, 'PC-B', '192.168.20.1', tx('PC-B ติดต่อ gateway (R1 VLAN 20) ได้')),
+    ping(4, 'PC-D', '192.168.20.1', tx('PC-D ติดต่อ gateway (R1 VLAN 20) ได้')),
+    ping(5, 'PC-D', '192.168.20.11', tx('PC-D ติดต่อ PC-B (VLAN 20 เดียวกัน ข้าม trunk) ได้')),
+    { id: 'c6', kind: 'link-up', label: tx('SW1 Gi0/1 (ลิงก์ไป R1) up'), deviceId: id('SW1'), port: 'GigabitEthernet0/1' },
+    { id: 'c7', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
+  ];
+  return withStart({
+    ...lab,
+    guide: layer2Guide(),
+    challenge: {
+      title: tx('ซ่อมปัญหา VLAN และ trunk ชั้น Layer 2'),
+      goal: tx('IP, gateway และ routing ถูกต้องหมดแล้ว แต่ผู้ใช้หลายคนยังติดต่อไม่ได้ ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย — ปัญหาทั้งหมดอยู่ที่ VLAN และ trunk บน switch'),
+      checks,
+      hints: [
+        tx('IP ของทุกเครื่องถูกต้อง ให้โฟกัสที่ switch: เครื่องไหนไปถึง gateway ได้ และเครื่องไหนไม่ได้ แล้วดูว่าอยู่ VLAN ไหน/พอร์ตไหน'),
+        tx('ใช้ show vlan (Cisco: show vlan brief) และ show interfaces trunk บนทั้ง SW1 และ SW2 เทียบ VLAN ที่มี และ VLAN ที่ trunk ยอมให้ผ่าน'),
+        tx('ถ้า VLAN ใดทั้ง VLAN ไม่ถึง gateway ให้ดู trunk ไปหา router; ถ้าเครื่องหลัง switch อีกตัวหายไปเฉพาะบาง VLAN ให้ตรวจว่า VLAN นั้นถูกสร้างบน switch ตัวนั้นแล้วหรือยัง'),
+        tx('เฉลย: SW1 Fa0/1 ต้องอยู่ VLAN 10, trunk SW1 Gi0/1 ต้องอนุญาต VLAN 10,20, และ SW2 ต้องสร้าง VLAN 20 (vlan 20)'),
+      ],
+    },
+  });
+}
+
 // ───────────────────────── catalog ─────────────────────────
 
-export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble' | 'addressing';
+export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble' | 'addressing' | 'layer2';
 
 export interface SampleInfo {
   /** short name used on buttons and in confirmations */
@@ -576,4 +621,5 @@ export const SAMPLES: Record<SampleKind, SampleInfo> = {
   campus: { title: 'Challenge 3: Campus + ISP', hint: tx('L3 switch, server, AP — ปัญหาซ้อนกันหลายชั้น (3 จุด)'), challenge: true, build: buildCampusLab },
   campus3trouble: { title: 'Challenge 4: Campus 3 Tier', hint: tx('Trunk allowed + default route ผิด + route ขากลับหาย บน Aruba CX (3 จุด)'), challenge: true, build: buildCampus3TroubleLab },
   addressing: { title: tx('Challenge 5: Subnet + Encapsulation'), hint: tx('mask ผิด + dot1Q ผิด + IP ฝั่ง WAN ไม่ตรงกัน (3 จุด)'), challenge: true, build: buildAddressingLab },
+  layer2: { title: tx('Challenge 6: VLAN + Trunk'), hint: tx('พอร์ตผิด VLAN + trunk ไป router ไม่ครบ + VLAN ไม่ได้สร้างบน switch (3 จุด)'), challenge: true, build: buildLayer2Lab },
 };
