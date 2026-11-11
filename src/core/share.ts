@@ -5,6 +5,7 @@
  */
 import { parseImport, serializeExport, type ParseResult } from './persist';
 import type { Lab } from './types';
+import { tx } from '../i18n';
 
 export const SHARE_PREFIX = 'lab=';
 /** the decoded text of a link may not exceed this (a limit against "zip bombs") */
@@ -72,7 +73,7 @@ export async function encodeShare(lab: Lab): Promise<string> {
 
 /** `lab=…` fragment → the JSON text of the exported Lab. */
 export async function decodeShare(fragment: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
-  const bad = { ok: false as const, error: 'ลิงก์แชร์ไม่ถูกต้องหรือถูกตัดไม่ครบ' };
+  const bad = { ok: false as const, error: tx('ลิงก์แชร์ไม่ถูกต้องหรือถูกตัดไม่ครบ') };
   const body = fragment.startsWith('#') ? fragment.slice(1) : fragment;
   const m = /^lab=(v[01])\.(.+)$/.exec(body);
   if (!m) return bad;
@@ -80,7 +81,7 @@ export async function decodeShare(fragment: string): Promise<{ ok: true; text: s
   if (!bytes || bytes.length === 0) return bad;
   let raw: Uint8Array | null = bytes;
   if (m[1] === 'v1') {
-    if (!hasStreams()) return { ok: false, error: 'เบราว์เซอร์นี้เปิดลิงก์แชร์แบบบีบอัดไม่ได้ (ต้องใช้เบราว์เซอร์รุ่นใหม่)' };
+    if (!hasStreams()) return { ok: false, error: tx('เบราว์เซอร์นี้เปิดลิงก์แชร์แบบบีบอัดไม่ได้ (ต้องใช้เบราว์เซอร์รุ่นใหม่)') };
     raw = await pipe(bytes, new DecompressionStream('deflate-raw'), SHARE_MAX_BYTES);
   } else if (bytes.length > SHARE_MAX_BYTES) raw = null;
   if (!raw) return bad;

@@ -17,6 +17,7 @@ import {
   checkParam,
   type CommandSpec,
 } from './spec';
+import { tx } from '../../i18n';
 
 export interface ExecResult {
   lab: Lab;
@@ -188,20 +189,20 @@ function hintFor(dev: Device, line: string, vendor: Vendor): string | undefined 
     if ('spec' in r) {
       const modes = r.spec.modes.map((m) => MODE_LABEL[vendor][m] ?? m).join(' / ');
       const path = MODE_PATH[vendor][r.spec.modes[0]] ?? '';
-      return `คำสั่งนี้ใช้ได้ใน mode: ${modes} (ตอนนี้อยู่ใน ${MODE_LABEL[vendor][dev.cli.mode] ?? dev.cli.mode}) — วิธีเข้า: ${path}`;
+      return tx('คำสั่งนี้ใช้ได้ใน mode: {0} (ตอนนี้อยู่ใน {1}) — วิธีเข้า: {2}', modes, MODE_LABEL[vendor][dev.cli.mode] ?? dev.cli.mode, path);
     }
   }
   const foreign = SPECS.filter((s) => s.vendor !== vendor);
   const rf = resolve(foreign, toks, dev, vendor, line, true);
   if ('spec' in rf) {
     const name = rf.spec.vendor === 'cisco' ? 'Cisco IOS' : rf.spec.vendor === 'aruba' ? 'Aruba AOS-CX' : 'PC';
-    return `คำสั่งนี้เป็นคำสั่งของ ${name} — อุปกรณ์นี้ใช้ CLI คนละระบบ จึงไม่รองรับ`;
+    return tx('คำสั่งนี้เป็นคำสั่งของ {0} — อุปกรณ์นี้ใช้ CLI คนละระบบ จึงไม่รองรับ', name);
   }
   const sameVendorOtherType = SPECS.filter((s) => s.vendor === vendor && !s.deviceTypes.includes(dev.kind));
   if ('spec' in resolve(sameVendorOtherType, toks, dev, vendor, line, true)) {
-    return 'คำสั่งนี้ไม่รองรับกับอุปกรณ์ชนิดนี้ (เช่น คำสั่งของ router บน switch หรือกลับกัน)';
+    return tx('คำสั่งนี้ไม่รองรับกับอุปกรณ์ชนิดนี้ (เช่น คำสั่งของ router บน switch หรือกลับกัน)');
   }
-  return 'ไม่พบคำสั่งนี้ใน simulator — อยู่นอกขอบเขตของรุ่นแรก หรือ syntax ไม่ถูกต้อง (พิมพ์ ? เพื่อดูคำสั่งที่ใช้ได้ใน mode นี้)';
+  return tx('ไม่พบคำสั่งนี้ใน simulator — อยู่นอกขอบเขตของรุ่นแรก หรือ syntax ไม่ถูกต้อง (พิมพ์ ? เพื่อดูคำสั่งที่ใช้ได้ใน mode นี้)');
 }
 
 // ───────── help (?) ─────────
@@ -373,7 +374,7 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
   if (!dev0) return { lab, output: ['Device not found'], ok: false, prompt: '' };
   const prompt = promptFor(dev0);
   if (!PROFILES[dev0.kind].hasCli) {
-    return { lab, output: [`${PROFILES[dev0.kind].label} ไม่มี Console ในโปรแกรมนี้ (วาดและต่อสายเท่านั้น)`], ok: false, prompt };
+    return { lab, output: [tx('{0} ไม่มี Console ในโปรแกรมนี้ (วาดและต่อสายเท่านั้น)', PROFILES[dev0.kind].label)], ok: false, prompt };
   }
   const line = rawLine.trim();
   if (line === '') return { lab, output: [], ok: true, prompt };

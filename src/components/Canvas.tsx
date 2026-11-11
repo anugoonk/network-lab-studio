@@ -29,6 +29,7 @@ import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
 import { DRAG_MIME } from './Palette';
 import type { DeviceKind } from '../core/types';
+import { tx } from '../i18n';
 
 function DeviceNode({ id, selected }: NodeProps) {
   const d = useStore((s) => s.lab.devices.find((x) => x.id === id));
@@ -43,17 +44,15 @@ function DeviceNode({ id, selected }: NodeProps) {
       className={`node${selected ? ' selected' : ''}`}
       data-testid={`node-${d.name}`}
       onDoubleClick={() => openConsole(id)}
-      title="ดับเบิลคลิกเพื่อเปิด Console"
+      title={tx('ดับเบิลคลิกเพื่อเปิด Console')}
     >
       <DeviceIcon kind={d.kind} size={52} />
       <div className="node-name">{d.name}</div>
       <div className="node-sub">{sub}</div>
       {dup && (
-        <div className="node-dup" title={`IP ${dup.ip} ซ้ำกับอุปกรณ์อื่นใน L2 เดียวกัน`} data-testid={`dup-${d.name}`}>
-          ⚠ IP ซ้ำ
-        </div>
+        <div className="node-dup" title={tx('IP {0} ซ้ำกับอุปกรณ์อื่นใน L2 เดียวกัน', dup.ip)} data-testid={`dup-${d.name}`}>{tx('⚠ IP ซ้ำ')}</div>
       )}
-      <Handle type="source" position={Position.Right} id="c" className="node-handle" title="ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย" />
+      <Handle type="source" position={Position.Right} id="c" className="node-handle" title={tx('ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย')} />
     </div>
   );
 }
@@ -68,8 +67,8 @@ function AnimToggle() {
   const on = useStore((s) => s.animatePackets);
   const toggle = useStore((s) => s.toggleAnimatePackets);
   return (
-    <button className="anim-toggle" onClick={toggle} aria-pressed={on} title="เปิด/ปิดแอนิเมชันแพ็กเก็ตเมื่อ ping" data-testid="anim-toggle">
-      {on ? '● แอนิเมชัน ping: เปิด' : '○ แอนิเมชัน ping: ปิด'}
+    <button className="anim-toggle" onClick={toggle} aria-pressed={on} title={tx('เปิด/ปิดแอนิเมชันแพ็กเก็ตเมื่อ ping')} data-testid="anim-toggle">
+      {on ? tx('● แอนิเมชัน ping: เปิด') : tx('○ แอนิเมชัน ping: ปิด')}
     </button>
   );
 }
@@ -115,7 +114,7 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
           className={`port-label ${st.aAdmin ? 'ok' : 'bad'}`}
           style={labelStyle(pa)}
           data-testid={`port-label-${id}-a`}
-          title={st.aAdmin ? 'พอร์ตเปิดใช้งาน' : 'พอร์ตถูก shutdown'}
+          title={st.aAdmin ? tx('พอร์ตเปิดใช้งาน') : tx('พอร์ตถูก shutdown')}
         >
           {endText(link.a.deviceId, link.a.port, st.aAdmin)}
         </div>
@@ -123,11 +122,11 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
           className={`port-label ${st.bAdmin ? 'ok' : 'bad'}`}
           style={labelStyle(pb)}
           data-testid={`port-label-${id}-b`}
-          title={st.bAdmin ? 'พอร์ตเปิดใช้งาน' : 'พอร์ตถูก shutdown'}
+          title={st.bAdmin ? tx('พอร์ตเปิดใช้งาน') : tx('พอร์ตถูก shutdown')}
         >
           {endText(link.b.deviceId, link.b.port, st.bAdmin)}
         </div>
-        <div className={`link-badge ${st.up ? 'ok' : 'bad'}`} style={labelStyle(mid)} data-testid={`link-status-${id}`} title={st.up ? 'ลิงก์ใช้งานได้ (มีสาย + พอร์ตสองฝั่งเปิด)' : `มีสายเชื่อมอยู่ แต่ลิงก์ down — ${st.reasonTh}`}>
+        <div className={`link-badge ${st.up ? 'ok' : 'bad'}`} style={labelStyle(mid)} data-testid={`link-status-${id}`} title={st.up ? tx('ลิงก์ใช้งานได้ (มีสาย + พอร์ตสองฝั่งเปิด)') : tx('มีสายเชื่อมอยู่ แต่ลิงก์ down — {0}', st.reasonTh)}>
           {st.up ? '✓ UP' : '✕ DOWN'}
         </div>
       </EdgeLabelRenderer>
@@ -351,10 +350,8 @@ export function Canvas() {
       <AnimToggle />
       {lab.devices.length === 0 && (
         <div className="empty-hint">
-          <b>Lab ว่างเปล่า</b>
-          <br />
-          ลากอุปกรณ์จากแถบซ้ายมาวางที่นี่ แล้วลากจุดกลมด้านขวาของอุปกรณ์ไปยังอีกเครื่องเพื่อต่อสาย
-        </div>
+          <b>{tx('Lab ว่างเปล่า')}</b>
+          <br />{tx('ลากอุปกรณ์จากแถบซ้ายมาวางที่นี่ แล้วลากจุดกลมด้านขวาของอุปกรณ์ไปยังอีกเครื่องเพื่อต่อสาย')}</div>
       )}
     </div>
   );

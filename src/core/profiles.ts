@@ -1,4 +1,5 @@
 import type { DeviceKind, Iface, Vendor } from './types';
+import { tx } from '../i18n';
 
 export interface DeviceProfile {
   kind: DeviceKind;
@@ -40,7 +41,7 @@ const hostProfile = (kind: DeviceKind, label: string, model: string, prefix: str
   isHost: true,
   canForward: false,
   hasCli: true,
-  roleNote: 'ยังไม่ตั้ง IP',
+  roleNote: tx('ยังไม่ตั้ง IP'),
   defaultAdminUp: true,
 });
 
@@ -59,7 +60,7 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     isHost: false,
     canForward: true,
     hasCli: true,
-    roleNote: 'ไม่มี IP',
+    roleNote: tx('ไม่มี IP'),
     defaultAdminUp: false,
   },
   'cisco-switch': {
@@ -125,7 +126,7 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     vendor: 'generic',
     label: 'Wireless Access Point',
     model: 'Generic Wi-Fi AP, 1 Ethernet uplink (simulated)',
-    osRef: 'ไม่มี CLI — วาดและต่อสายเท่านั้น',
+    osRef: tx('ไม่มี CLI — วาดและต่อสายเท่านั้น'),
     prefix: 'AP',
     nameKey: 'AP',
     portNames: ['Ethernet0'],
@@ -134,7 +135,7 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     isHost: false,
     canForward: false,
     hasCli: false,
-    roleNote: 'Wi-Fi (ไม่จำลอง)',
+    roleNote: tx('Wi-Fi (ไม่จำลอง)'),
     defaultAdminUp: true,
   },
   firewall: {
@@ -142,7 +143,7 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     vendor: 'generic',
     label: 'Firewall',
     model: 'Generic 3-zone firewall: LAN / WAN / DMZ (simulated)',
-    osRef: 'ไม่มี CLI / policy — วาดและต่อสายเท่านั้น',
+    osRef: tx('ไม่มี CLI / policy — วาดและต่อสายเท่านั้น'),
     prefix: 'FW',
     nameKey: 'FW',
     portNames: ['LAN', 'WAN', 'DMZ'],
@@ -168,7 +169,7 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     isHost: false,
     canForward: true,
     hasCli: true,
-    roleNote: 'WAN จำลองใน Lab',
+    roleNote: tx('WAN จำลองใน Lab'),
     defaultAdminUp: false,
   },
 };
@@ -187,22 +188,22 @@ export const PALETTE_GROUPS: { title: string; items: { kind: DeviceKind; note: s
   {
     title: 'End Devices',
     items: [
-      { kind: 'pc', note: 'เครื่องผู้ใช้ · Ethernet0' },
-      { kind: 'laptop', note: 'โน้ตบุ๊ก · Ethernet0' },
+      { kind: 'pc', note: tx('เครื่องผู้ใช้ · Ethernet0') },
+      { kind: 'laptop', note: tx('โน้ตบุ๊ก · Ethernet0') },
     ],
   },
   {
     title: 'Servers & Wireless',
     items: [
-      { kind: 'server', note: 'เซิร์ฟเวอร์ · Ethernet0' },
-      { kind: 'wireless-ap', note: 'AP · uplink Ethernet0 (วาด/ต่อสายเท่านั้น)' },
+      { kind: 'server', note: tx('เซิร์ฟเวอร์ · Ethernet0') },
+      { kind: 'wireless-ap', note: tx('AP · uplink Ethernet0 (วาด/ต่อสายเท่านั้น)') },
     ],
   },
   {
     title: 'Security & WAN',
     items: [
-      { kind: 'firewall', note: 'LAN · WAN · DMZ (วาด/ต่อสายเท่านั้น)' },
-      { kind: 'isp-router', note: 'WAN จำลอง · Gi0/0–0/1' },
+      { kind: 'firewall', note: tx('LAN · WAN · DMZ (วาด/ต่อสายเท่านั้น)') },
+      { kind: 'isp-router', note: tx('WAN จำลอง · Gi0/0–0/1') },
     ],
   },
 ];

@@ -3,6 +3,7 @@ import { GUIDE_LIMITS, emptyGuide, moveItem, parseGuideText, safeHref } from '..
 import type { Guide } from '../core/types';
 import { useStore } from '../store';
 import { Icon } from './Icons';
+import { tx } from '../i18n';
 
 /** inline `code` and **bold** — rendered as React elements (never raw HTML) */
 function Inline({ text }: { text: string }) {
@@ -64,7 +65,7 @@ function GuideView({ guide }: { guide: Guide }) {
       )}
       {guide.sections.map((s, i) => (
         <section className="guide-block" key={i} data-testid={`guide-section-${i}`}>
-          <h4>{s.heading || `ขั้นตอนที่ ${i + 1}`}</h4>
+          <h4>{s.heading || tx('ขั้นตอนที่ {0}', i + 1)}</h4>
           <GuideText text={s.body} />
         </section>
       ))}
@@ -90,7 +91,7 @@ function GuideView({ guide }: { guide: Guide }) {
         </section>
       )}
       {guide.sections.length === 0 && !guide.objective.trim() && guide.resources.length === 0 && (
-        <p className="muted">Guide ยังว่างอยู่ — กด “แก้ไข” เพื่อเขียนคำแนะนำ</p>
+        <p className="muted">{tx('Guide ยังว่างอยู่ — กด “แก้ไข” เพื่อเขียนคำแนะนำ')}</p>
       )}
     </div>
   );
@@ -109,33 +110,31 @@ function GuideEditor({ guide }: { guide: Guide }) {
 
   return (
     <div className="guide-edit" data-testid="guide-editor">
-      <p className="muted small">
-        รองรับ: บรรทัดที่ขึ้นต้นด้วย <code>- </code> = bullet, <code>1. </code> = ลำดับเลข, <code>`โค้ด`</code> = ตัวอักษรโค้ด, <code>**หนา**</code> การแก้ไขบันทึกอัตโนมัติและรวมอยู่ในไฟล์ Export
-      </p>
-      <label>ชื่อ Guide</label>
+      <p className="muted small">{tx('รองรับ: บรรทัดที่ขึ้นต้นด้วย')}{' '}<code>- </code> = bullet, <code>1. </code>{' '}{tx('= ลำดับเลข,')}{' '}<code>{tx('`โค้ด`')}</code>{' '}{tx('= ตัวอักษรโค้ด,')}{' '}<code>{tx('**หนา**')}</code>{' '}{tx('การแก้ไขบันทึกอัตโนมัติและรวมอยู่ในไฟล์ Export')}</p>
+      <label>{tx('ชื่อ Guide')}</label>
       <input value={guide.title} maxLength={120} onChange={(e) => patch({ title: e.target.value })} data-testid="guide-title-input" />
       <label>Objective</label>
       <textarea value={guide.objective} maxLength={4000} rows={5} onChange={(e) => patch({ objective: e.target.value })} data-testid="guide-objective-input" />
 
-      <h4 className="guide-edit-h">ขั้นตอน ({guide.sections.length})</h4>
+      <h4 className="guide-edit-h">{tx('ขั้นตอน ({0})', guide.sections.length)}</h4>
       {guide.sections.map((s, i) => (
         <div className="guide-edit-card" key={i} data-testid={`guide-edit-section-${i}`}>
           <div className="row">
             <input
               value={s.heading}
               maxLength={120}
-              placeholder="หัวข้อ"
-              aria-label={`หัวข้อขั้นตอนที่ ${i + 1}`}
+              placeholder={tx('หัวข้อ')}
+              aria-label={tx('หัวข้อขั้นตอนที่ {0}', i + 1)}
               onChange={(e) => setSection(i, { heading: e.target.value })}
               data-testid={`guide-section-heading-${i}`}
             />
-            <button title="เลื่อนขึ้น" disabled={i === 0} onClick={() => patch({ sections: moveItem(guide.sections, i, i - 1) })} data-testid={`guide-section-up-${i}`}>
+            <button title={tx('เลื่อนขึ้น')} disabled={i === 0} onClick={() => patch({ sections: moveItem(guide.sections, i, i - 1) })} data-testid={`guide-section-up-${i}`}>
               <Icon name="up" size={14} />
             </button>
-            <button title="เลื่อนลง" disabled={i === guide.sections.length - 1} onClick={() => patch({ sections: moveItem(guide.sections, i, i + 1) })} data-testid={`guide-section-down-${i}`}>
+            <button title={tx('เลื่อนลง')} disabled={i === guide.sections.length - 1} onClick={() => patch({ sections: moveItem(guide.sections, i, i + 1) })} data-testid={`guide-section-down-${i}`}>
               <Icon name="down" size={14} />
             </button>
-            <button title="ลบขั้นตอนนี้" className="danger" onClick={() => patch({ sections: guide.sections.filter((_, k) => k !== i) })} data-testid={`guide-section-remove-${i}`}>
+            <button title={tx('ลบขั้นตอนนี้')} className="danger" onClick={() => patch({ sections: guide.sections.filter((_, k) => k !== i) })} data-testid={`guide-section-remove-${i}`}>
               <Icon name="trash" size={14} />
             </button>
           </div>
@@ -143,7 +142,7 @@ function GuideEditor({ guide }: { guide: Guide }) {
             value={s.body}
             maxLength={4000}
             rows={5}
-            aria-label={`เนื้อหาขั้นตอนที่ ${i + 1}`}
+            aria-label={tx('เนื้อหาขั้นตอนที่ {0}', i + 1)}
             onChange={(e) => setSection(i, { body: e.target.value })}
             data-testid={`guide-section-body-${i}`}
           />
@@ -153,24 +152,20 @@ function GuideEditor({ guide }: { guide: Guide }) {
         disabled={guide.sections.length >= GUIDE_LIMITS.sections}
         onClick={() => patch({ sections: [...guide.sections, { heading: '', body: '' }] })}
         data-testid="guide-add-section"
-      >
-        + เพิ่มขั้นตอน
-      </button>
+      >{tx('+ เพิ่มขั้นตอน')}</button>
 
       <h4 className="guide-edit-h">Resources ({guide.resources.length})</h4>
       {guide.resources.map((r, i) => (
         <div className="guide-edit-card" key={i}>
           <div className="row">
-            <input value={r.label} maxLength={120} placeholder="ชื่อลิงก์" aria-label={`ชื่อลิงก์ ${i + 1}`} onChange={(e) => setResource(i, { label: e.target.value })} data-testid={`guide-resource-label-${i}`} />
-            <button title="ลบลิงก์" className="danger" onClick={() => patch({ resources: guide.resources.filter((_, k) => k !== i) })} data-testid={`guide-resource-remove-${i}`}>
+            <input value={r.label} maxLength={120} placeholder={tx('ชื่อลิงก์')} aria-label={tx('ชื่อลิงก์ {0}', i + 1)} onChange={(e) => setResource(i, { label: e.target.value })} data-testid={`guide-resource-label-${i}`} />
+            <button title={tx('ลบลิงก์')} className="danger" onClick={() => patch({ resources: guide.resources.filter((_, k) => k !== i) })} data-testid={`guide-resource-remove-${i}`}>
               <Icon name="trash" size={14} />
             </button>
           </div>
           <input value={r.url} maxLength={500} placeholder="https://…" aria-label={`URL ${i + 1}`} onChange={(e) => setResource(i, { url: e.target.value })} data-testid={`guide-resource-url-${i}`} />
           {r.url.trim() !== '' && !safeHref(r.url) && (
-            <div className="error-box" role="alert" data-testid={`guide-resource-error-${i}`}>
-              URL ต้องขึ้นต้นด้วย http:// หรือ https:// (ลิงก์นี้จะไม่ถูกแสดงเป็นลิงก์)
-            </div>
+            <div className="error-box" role="alert" data-testid={`guide-resource-error-${i}`}>{tx('URL ต้องขึ้นต้นด้วย http:// หรือ https:// (ลิงก์นี้จะไม่ถูกแสดงเป็นลิงก์)')}</div>
           )}
         </div>
       ))}
@@ -178,22 +173,16 @@ function GuideEditor({ guide }: { guide: Guide }) {
         disabled={guide.resources.length >= GUIDE_LIMITS.resources}
         onClick={() => patch({ resources: [...guide.resources, { label: '', url: '' }] })}
         data-testid="guide-add-resource"
-      >
-        + เพิ่มลิงก์
-      </button>
+      >{tx('+ เพิ่มลิงก์')}</button>
 
       <div className="guide-danger">
         {!confirmDelete ? (
-          <button className="danger" onClick={() => setConfirmDelete(true)} data-testid="guide-delete">
-            ลบ Guide ของ Lab นี้
-          </button>
+          <button className="danger" onClick={() => setConfirmDelete(true)} data-testid="guide-delete">{tx('ลบ Guide ของ Lab นี้')}</button>
         ) : (
           <>
-            <span className="small">ลบ Guide ทั้งหมดของ Lab นี้?</span>
-            <button className="danger" onClick={() => setGuide(undefined)} data-testid="guide-delete-confirm">
-              ยืนยันลบ
-            </button>
-            <button onClick={() => setConfirmDelete(false)}>ยกเลิก</button>
+            <span className="small">{tx('ลบ Guide ทั้งหมดของ Lab นี้?')}</span>
+            <button className="danger" onClick={() => setGuide(undefined)} data-testid="guide-delete-confirm">{tx('ยืนยันลบ')}</button>
+            <button onClick={() => setConfirmDelete(false)}>{tx('ยกเลิก')}</button>
           </>
         )}
       </div>
@@ -214,18 +203,18 @@ export function GuidePanel() {
         <span className="spacer" />
         {guide && (
           <button className={editing ? 'primary' : ''} onClick={() => setEditing(!editing)} data-testid="guide-edit-toggle">
-            <Icon name={editing ? 'check' : 'edit'} size={15} /> {editing ? 'เสร็จ' : 'แก้ไข'}
+            <Icon name={editing ? 'check' : 'edit'} size={15} /> {editing ? tx('เสร็จ') : tx('แก้ไข')}
           </button>
         )}
-        <button onClick={() => setPanel(null)} title="ปิด Guide" aria-label="ปิด Guide" data-testid="guide-close">
+        <button onClick={() => setPanel(null)} title={tx('ปิด Guide')} aria-label={tx('ปิด Guide')} data-testid="guide-close">
           ✕
         </button>
       </div>
       <div className="guide-body">
         {!guide ? (
           <div className="guide-empty" data-testid="guide-empty">
-            <p>Lab นี้ยังไม่มี Guide</p>
-            <p className="muted small">เขียนคำแนะนำ วัตถุประสงค์ และลิงก์อ้างอิงให้ผู้เรียน — บันทึกพร้อม Lab และ Export ไปกับไฟล์ได้</p>
+            <p>{tx('Lab นี้ยังไม่มี Guide')}</p>
+            <p className="muted small">{tx('เขียนคำแนะนำ วัตถุประสงค์ และลิงก์อ้างอิงให้ผู้เรียน — บันทึกพร้อม Lab และ Export ไปกับไฟล์ได้')}</p>
             <button
               className="primary"
               onClick={() => {
@@ -233,9 +222,7 @@ export function GuidePanel() {
                 setEditing(true);
               }}
               data-testid="guide-create"
-            >
-              + สร้าง Guide
-            </button>
+            >{tx('+ สร้าง Guide')}</button>
           </div>
         ) : editing ? (
           <GuideEditor guide={guide} />

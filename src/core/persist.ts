@@ -3,13 +3,14 @@ import { isValidMask, parseIp } from './ip';
 import { NAME_RE } from './lab';
 import { PROFILES } from './profiles';
 import type { CliMode, DeviceKind, Lab } from './types';
+import { tx } from '../i18n';
 
 export const SCHEMA_VERSION = 1;
 export const STORAGE_KEY = 'nls.lab.v1';
 export const APP_ID = 'network-lab-studio';
 
-const ipStr = z.string().refine((s) => parseIp(s) !== null, 'IPv4 address ไม่ถูกต้อง');
-const maskStr = z.string().refine((s) => isValidMask(s), 'subnet mask ไม่ถูกต้อง');
+const ipStr = z.string().refine((s) => parseIp(s) !== null, tx('IPv4 address ไม่ถูกต้อง'));
+const maskStr = z.string().refine((s) => isValidMask(s), tx('subnet mask ไม่ถูกต้อง'));
 
 const ifaceSchema = z.object({
   name: z.string(),
@@ -45,14 +46,14 @@ const sviSchema = z.object({
 
 const routeSchema = z.object({
   net: ipStr,
-  mask: z.string().refine((s) => s === '0.0.0.0' || isValidMask(s), 'subnet mask ไม่ถูกต้อง'),
+  mask: z.string().refine((s) => s === '0.0.0.0' || isValidMask(s), tx('subnet mask ไม่ถูกต้อง')),
   nextHop: ipStr,
 });
 
 const deviceSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(Object.keys(PROFILES) as [DeviceKind, ...DeviceKind[]]),
-  name: z.string().regex(NAME_RE, 'ชื่ออุปกรณ์ไม่ถูกต้อง'),
+  name: z.string().regex(NAME_RE, tx('ชื่ออุปกรณ์ไม่ถูกต้อง')),
   x: z.number().finite(),
   y: z.number().finite(),
   ifaces: z.array(ifaceSchema),
@@ -80,7 +81,7 @@ const guideSchema = z.object({
   objective: z.string().max(4000),
   sections: z.array(z.object({ heading: z.string().max(120), body: z.string().max(4000) })).max(50),
   resources: z
-    .array(z.object({ label: z.string().max(120), url: z.string().max(500).refine(safeUrl, 'URL ต้องขึ้นต้นด้วย http:// หรือ https://') }))
+    .array(z.object({ label: z.string().max(120), url: z.string().max(500).refine(safeUrl, tx('URL ต้องขึ้นต้นด้วย http:// หรือ https://')) }))
     .max(30),
 });
 
@@ -131,7 +132,7 @@ function crossCheck(lab: Lab): string[] {
   const errs: string[] = [];
   const ids = new Set<string>();
   for (const d of lab.devices) {
-    if (ids.has(d.id)) errs.push(`รหัสอุปกรณ์ซ้ำ: ${d.id}`);
+    if (ids.has(d.id)) errs.push(tx('รหัสอุปกรณ์ซ้ำ: {0}', d.id));
     ids.add(d.id);
     const p = PROFILES[d.kind];
     const names = d.ifaces.map((i) => i.name);
@@ -139,67 +140,67 @@ function crossCheck(lab: Lab): string[] {
     // model may have FEWER ports than today's default: those are kept exactly as saved (device ID, port IDs, config, cables).
     const allowed = new Set([...p.portNames, ...(p.legacyPortNames ?? [])]);
     if (names.length === 0 || names.some((n) => !allowed.has(n))) {
-      errs.push(`${d.name}: รายการพอร์ตไม่ตรงกับรุ่น ${p.label}`);
+      errs.push(tx('{0}: รายการพอร์ตไม่ตรงกับรุ่น {1}', d.name, p.label));
     }
-    if (new Set(names).size !== names.length) errs.push(`${d.name}: มีพอร์ตชื่อซ้ำ`);
+    if (new Set(names).size !== names.length) errs.push(tx('{0}: มีพอร์ตชื่อซ้ำ', d.name));
     if (p.isSwitch) {
-      if (!d.vlans.some((v) => v.id === 1)) errs.push(`${d.name}: ต้องมี VLAN 1`);
-      if (new Set(d.vlans.map((v) => v.id)).size !== d.vlans.length) errs.push(`${d.name}: มี VLAN ซ้ำ`);
-    } else if (d.vlans.length) errs.push(`${d.name}: อุปกรณ์ชนิดนี้ไม่มี VLAN database`);
-    if (!modesFor(d.kind).includes(d.cli.mode) && p.hasCli) errs.push(`${d.name}: CLI mode "${d.cli.mode}" ใช้ไม่ได้กับอุปกรณ์ชนิดนี้`);
+      if (!d.vlans.some((v) => v.id === 1)) errs.push(tx('{0}: ต้องมี VLAN 1', d.name));
+      if (new Set(d.vlans.map((v) => v.id)).size !== d.vlans.length) errs.push(tx('{0}: มี VLAN ซ้ำ', d.name));
+    } else if (d.vlans.length) errs.push(tx('{0}: อุปกรณ์ชนิดนี้ไม่มี VLAN database', d.name));
+    if (!modesFor(d.kind).includes(d.cli.mode) && p.hasCli) errs.push(tx('{0}: CLI mode "{1}" ใช้ไม่ได้กับอุปกรณ์ชนิดนี้', d.name, d.cli.mode));
     if (d.cli.ctxRange && (d.cli.mode !== 'config-if' || d.cli.ctxRange.some((n) => !names.includes(n)) || d.cli.ctxRange[0] !== d.cli.ctxIface))
-      errs.push(`${d.name}: CLI อ้างอิงช่วงพอร์ตไม่ถูกต้อง`);
+      errs.push(tx('{0}: CLI อ้างอิงช่วงพอร์ตไม่ถูกต้อง', d.name));
     if (d.cli.ctxIface && !names.includes(d.cli.ctxIface) && !d.subifs.some((s) => `${s.parent}.${s.id}` === d.cli.ctxIface))
-      errs.push(`${d.name}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่`);
-    if (!p.isRouter && d.subifs.length) errs.push(`${d.name}: sub-interface ใช้ได้เฉพาะ router`);
-    if (!p.isSwitch && d.svis.length) errs.push(`${d.name}: SVI ใช้ได้เฉพาะ switch`);
-    if (!p.canForward && d.routes.length) errs.push(`${d.name}: อุปกรณ์ชนิดนี้ไม่รองรับ static route`);
+      errs.push(tx('{0}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่', d.name));
+    if (!p.isRouter && d.subifs.length) errs.push(tx('{0}: sub-interface ใช้ได้เฉพาะ router', d.name));
+    if (!p.isSwitch && d.svis.length) errs.push(tx('{0}: SVI ใช้ได้เฉพาะ switch', d.name));
+    if (!p.canForward && d.routes.length) errs.push(tx('{0}: อุปกรณ์ชนิดนี้ไม่รองรับ static route', d.name));
     const seen = new Set<string>();
     for (const s of d.subifs) {
       const key = `${s.parent}.${s.id}`;
-      if (!names.includes(s.parent)) errs.push(`${d.name}: sub-interface ${key} อ้างอิงพอร์ตแม่ที่ไม่มีอยู่`);
-      if (seen.has(key)) errs.push(`${d.name}: sub-interface ซ้ำ ${key}`);
+      if (!names.includes(s.parent)) errs.push(tx('{0}: sub-interface {1} อ้างอิงพอร์ตแม่ที่ไม่มีอยู่', d.name, key));
+      if (seen.has(key)) errs.push(tx('{0}: sub-interface ซ้ำ {1}', d.name, key));
       seen.add(key);
-      if (!!s.ip !== !!s.mask) errs.push(`${d.name}/${key}: IP และ mask ต้องกำหนดคู่กัน`);
+      if (!!s.ip !== !!s.mask) errs.push(tx('{0}/{1}: IP และ mask ต้องกำหนดคู่กัน', d.name, key));
     }
-    if (new Set(d.svis.map((v) => v.vlan)).size !== d.svis.length) errs.push(`${d.name}: SVI ซ้ำ`);
-    for (const v of d.svis) if (!!v.ip !== !!v.mask) errs.push(`${d.name}/Vlan${v.vlan}: IP และ mask ต้องกำหนดคู่กัน`);
-    if (p.isHost && d.ifaces.some((i) => !!i.ip !== !!i.mask)) errs.push(`${d.name}: IP และ mask ต้องกำหนดคู่กัน`);
-    for (const i of d.ifaces) if (!!i.ip !== !!i.mask) errs.push(`${d.name}/${i.name}: IP และ mask ต้องกำหนดคู่กัน`);
+    if (new Set(d.svis.map((v) => v.vlan)).size !== d.svis.length) errs.push(tx('{0}: SVI ซ้ำ', d.name));
+    for (const v of d.svis) if (!!v.ip !== !!v.mask) errs.push(tx('{0}/Vlan{1}: IP และ mask ต้องกำหนดคู่กัน', d.name, v.vlan));
+    if (p.isHost && d.ifaces.some((i) => !!i.ip !== !!i.mask)) errs.push(tx('{0}: IP และ mask ต้องกำหนดคู่กัน', d.name));
+    for (const i of d.ifaces) if (!!i.ip !== !!i.mask) errs.push(tx('{0}/{1}: IP และ mask ต้องกำหนดคู่กัน', d.name, i.name));
   }
   if (lab.challenge?.start) {
     const st = lab.challenge.start;
     for (const e of crossCheck({ ...lab, devices: st.devices, links: st.links, counters: st.counters, challenge: undefined, guide: undefined })) {
-      errs.push(`จุดเริ่มต้นของโจทย์: ${e}`);
+      errs.push(tx('จุดเริ่มต้นของโจทย์: {0}', e));
     }
   }
   const checkIds = new Set<string>();
   for (const c of lab.challenge?.checks ?? []) {
-    if (checkIds.has(c.id)) errs.push(`รหัส check ซ้ำ: ${c.id}`);
+    if (checkIds.has(c.id)) errs.push(tx('รหัส check ซ้ำ: {0}', c.id));
     checkIds.add(c.id);
     if (c.kind === 'no-dup-ip') continue;
     const devId = c.kind === 'ping' ? c.from : c.deviceId;
     const cd = lab.devices.find((x) => x.id === devId);
-    if (!cd) errs.push(`Check "${c.label}" อ้างอิงอุปกรณ์ที่ไม่มีอยู่`);
-    else if ('port' in c && !cd.ifaces.some((i) => i.name === c.port)) errs.push(`Check "${c.label}" อ้างอิงพอร์ตที่ไม่มีอยู่`);
+    if (!cd) errs.push(tx('Check "{0}" อ้างอิงอุปกรณ์ที่ไม่มีอยู่', c.label));
+    else if ('port' in c && !cd.ifaces.some((i) => i.name === c.port)) errs.push(tx('Check "{0}" อ้างอิงพอร์ตที่ไม่มีอยู่', c.label));
   }
   const used = new Set<string>();
   const linkIds = new Set<string>();
   for (const l of lab.links) {
-    if (linkIds.has(l.id)) errs.push(`รหัสสายซ้ำ: ${l.id}`);
+    if (linkIds.has(l.id)) errs.push(tx('รหัสสายซ้ำ: {0}', l.id));
     linkIds.add(l.id);
     for (const e of [l.a, l.b]) {
       const d = lab.devices.find((x) => x.id === e.deviceId);
       if (!d) {
-        errs.push(`สาย ${l.id} อ้างอิงอุปกรณ์ที่ไม่มีอยู่ (${e.deviceId})`);
+        errs.push(tx('สาย {0} อ้างอิงอุปกรณ์ที่ไม่มีอยู่ ({1})', l.id, e.deviceId));
         continue;
       }
-      if (!d.ifaces.some((i) => i.name === e.port)) errs.push(`สาย ${l.id} อ้างอิงพอร์ตที่ไม่มีอยู่ (${d.name} ${e.port})`);
+      if (!d.ifaces.some((i) => i.name === e.port)) errs.push(tx('สาย {0} อ้างอิงพอร์ตที่ไม่มีอยู่ ({1} {2})', l.id, d.name, e.port));
       const key = `${e.deviceId}|${e.port}`;
-      if (used.has(key)) errs.push(`พอร์ต ${e.port} ของ ${d.name} ถูกใช้กับหลายสาย`);
+      if (used.has(key)) errs.push(tx('พอร์ต {0} ของ {1} ถูกใช้กับหลายสาย', e.port, d.name));
       used.add(key);
     }
-    if (l.a.deviceId === l.b.deviceId) errs.push(`สาย ${l.id} เชื่อมอุปกรณ์เข้ากับตัวเอง`);
+    if (l.a.deviceId === l.b.deviceId) errs.push(tx('สาย {0} เชื่อมอุปกรณ์เข้ากับตัวเอง', l.id));
   }
   return errs;
 }
@@ -210,11 +211,11 @@ export function validateLab(data: unknown): ParseResult {
   const r = labSchema.safeParse(data);
   if (!r.success) {
     const issue = r.error.issues[0];
-    return { ok: false, error: `โครงสร้างไฟล์ไม่ถูกต้อง: ${issue.path.join('.') || '(root)'} — ${issue.message}` };
+    return { ok: false, error: tx('โครงสร้างไฟล์ไม่ถูกต้อง: {0} — {1}', issue.path.join('.') || '(root)', issue.message) };
   }
   const lab = r.data as Lab;
   const errs = crossCheck(lab);
-  if (errs.length) return { ok: false, error: `ข้อมูล Lab ไม่สอดคล้องกัน: ${errs.slice(0, 3).join('; ')}${errs.length > 3 ? ` (+${errs.length - 3})` : ''}` };
+  if (errs.length) return { ok: false, error: tx('ข้อมูล Lab ไม่สอดคล้องกัน: {0}{1}', errs.slice(0, 3).join('; '), errs.length > 3 ? ` (+${errs.length - 3})` : '') };
   return { ok: true, lab };
 }
 
@@ -227,13 +228,13 @@ export function parseImport(text: string): ParseResult {
   try {
     raw = JSON.parse(text);
   } catch {
-    return { ok: false, error: 'ไฟล์ไม่ใช่ JSON ที่ถูกต้อง' };
+    return { ok: false, error: tx('ไฟล์ไม่ใช่ JSON ที่ถูกต้อง') };
   }
-  if (typeof raw !== 'object' || raw === null) return { ok: false, error: 'ไฟล์ไม่ใช่ Lab ของ Network Lab Studio' };
+  if (typeof raw !== 'object' || raw === null) return { ok: false, error: tx('ไฟล์ไม่ใช่ Lab ของ Network Lab Studio') };
   const o = raw as Record<string, unknown>;
-  if (o.app !== APP_ID) return { ok: false, error: 'ไฟล์ไม่ใช่ Lab ของ Network Lab Studio (ไม่พบ app id)' };
+  if (o.app !== APP_ID) return { ok: false, error: tx('ไฟล์ไม่ใช่ Lab ของ Network Lab Studio (ไม่พบ app id)') };
   if (o.schemaVersion !== SCHEMA_VERSION) {
-    return { ok: false, error: `schema version ${String(o.schemaVersion)} ไม่รองรับ (รองรับเฉพาะ version ${SCHEMA_VERSION})` };
+    return { ok: false, error: tx('schema version {0} ไม่รองรับ (รองรับเฉพาะ version {1})', String(o.schemaVersion), SCHEMA_VERSION) };
   }
   return validateLab(o.lab);
 }
@@ -326,7 +327,7 @@ export function loadWorkspaceDetailed(storage: Pick<Storage, 'getItem'> | undefi
       try {
         o = JSON.parse(t);
       } catch {
-        rejected.push({ id: 'raw-workspace', name: '(ข้อมูล workspace ทั้งก้อน)', error: 'อ่านเป็น JSON ไม่ได้', entry: t, at: now });
+        rejected.push({ id: 'raw-workspace', name: tx('(ข้อมูล workspace ทั้งก้อน)'), error: tx('อ่านเป็น JSON ไม่ได้'), entry: t, at: now });
       }
       const entries: LabEntry[] = [];
       for (const e of Array.isArray(o?.entries) ? (o!.entries as Record<string, unknown>[]) : []) {
@@ -335,8 +336,8 @@ export function loadWorkspaceDetailed(storage: Pick<Storage, 'getItem'> | undefi
           const labName = (e?.lab as { name?: unknown } | undefined)?.name;
           rejected.push({
             id: typeof e?.id === 'string' ? e.id : newLabId(),
-            name: typeof labName === 'string' ? labName : typeof e?.name === 'string' ? e.name : '(ไม่มีชื่อ)',
-            error: r.ok ? 'ไม่มีรหัส Lab' : r.error,
+            name: typeof labName === 'string' ? labName : typeof e?.name === 'string' ? e.name : tx('(ไม่มีชื่อ)'),
+            error: r.ok ? tx('ไม่มีรหัส Lab') : r.error,
             entry: e,
             at: now,
           });
@@ -366,14 +367,14 @@ export function loadWorkspaceDetailed(storage: Pick<Storage, 'getItem'> | undefi
   try {
     const raw = storage?.getItem(STORAGE_KEY);
     if (raw) {
-      let error = 'อ่านเป็น JSON ไม่ได้';
+      let error = tx('อ่านเป็น JSON ไม่ได้');
       try {
         const v = validateLab(JSON.parse(raw)?.lab);
-        error = v.ok ? 'ข้อมูลไม่ครบ' : v.error;
+        error = v.ok ? tx('ข้อมูลไม่ครบ') : v.error;
       } catch {
         /* keep the generic message */
       }
-      rejected.push({ id: 'legacy-single-lab', name: 'Lab รุ่นเก่า (บันทึกแบบ Lab เดียว)', error, entry: raw, at: now });
+      rejected.push({ id: 'legacy-single-lab', name: tx('Lab รุ่นเก่า (บันทึกแบบ Lab เดียว)'), error, entry: raw, at: now });
     }
   } catch {
     /* storage unavailable */

@@ -150,3 +150,19 @@ test('an empty Lab has nothing to share', async ({ page }) => {
   await page.getByTestId('menu-share').click();
   await expect(page.getByTestId('notice')).toContainText('Lab ว่าง');
 });
+
+test('messages appear at the bottom and never cover the toolbar; a click dismisses them', async ({ page }) => {
+  await page.getByTestId('menu-share').click();
+  const notice = page.getByTestId('notice');
+  await expect(notice).toBeVisible();
+  const n = (await notice.boundingBox())!;
+  const bar = (await page.locator('.topbar').boundingBox())!;
+  expect(n.y).toBeGreaterThan(bar.y + bar.height); // below the toolbar, not on top of it
+  const vp = page.viewportSize()!;
+  expect(n.y + n.height).toBeLessThanOrEqual(vp.height);
+  // and the toolbar button it used to hide can be clicked while the message is showing
+  await page.getByRole('button', { name: 'Sample: Inter-VLAN' }).click({ trial: true });
+  await notice.click();
+  await expect(notice).toHaveCount(0);
+});
+

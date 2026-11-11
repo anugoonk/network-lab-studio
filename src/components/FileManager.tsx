@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { SAMPLES, type SampleKind } from '../core/sample';
 import { useStore } from '../store';
 import { Icon } from './Icons';
+import { tx } from '../i18n';
 
 const fmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -48,31 +49,28 @@ export function FileManager() {
         <h3>
           <Icon name="manager" size={20} /> Lab Manager
         </h3>
-        <span className="muted small">Lab ทั้งหมดที่บันทึกไว้ในเบราว์เซอร์นี้ — ทุกการแก้ไขบันทึกอัตโนมัติ</span>
+        <span className="muted small">{tx('Lab ทั้งหมดที่บันทึกไว้ในเบราว์เซอร์นี้ — ทุกการแก้ไขบันทึกอัตโนมัติ')}</span>
       </div>
 
       <div className="search-box">
-        <input placeholder="ค้นหาชื่อ Lab" value={q} onChange={(e) => setQ(e.target.value)} data-testid="manager-search" aria-label="ค้นหา Lab" />
+        <input placeholder={tx('ค้นหาชื่อ Lab')} value={q} onChange={(e) => setQ(e.target.value)} data-testid="manager-search" aria-label={tx('ค้นหา Lab')} />
         <Icon name="search" size={18} />
       </div>
 
       <div className="manager-tools">
         <button className="primary" onClick={() => createLab('blank')} data-testid="manager-new">
-          <Icon name="plus" size={15} /> Lab ใหม่
-        </button>
+          <Icon name="plus" size={15} />{' '}{tx('Lab ใหม่')}</button>
         {(Object.keys(SAMPLES) as SampleKind[]).map((k) => (
           <button key={k} onClick={() => createLab(k)} title={SAMPLES[k].hint} data-testid={`manager-new-${k}`}>
             <Icon name="flask" size={15} /> + {SAMPLES[k].challenge ? '' : 'Sample: '}{SAMPLES[k].title}
           </button>
         ))}
         <button onClick={() => fileRef.current?.click()} data-testid="manager-import">
-          <Icon name="upload" size={15} /> นำเข้า JSON
-        </button>
+          <Icon name="upload" size={15} />{' '}{tx('นำเข้า JSON')}</button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} data-testid="manager-import-file" />
         <span className="spacer" />
         <button className="danger" disabled={checked.size === 0} onClick={() => requestDelete([...checked])} data-testid="manager-delete-selected">
-          <Icon name="trash" size={15} /> ลบที่เลือก ({checked.size})
-        </button>
+          <Icon name="trash" size={15} />{' '}{tx('ลบที่เลือก ({0})', checked.size)}</button>
       </div>
 
       <div className="table-scroll tall">
@@ -82,28 +80,28 @@ export function FileManager() {
               <th style={{ width: 32 }}>
                 <input
                   type="checkbox"
-                  aria-label="เลือกทั้งหมด"
+                  aria-label={tx('เลือกทั้งหมด')}
                   checked={allChecked}
                   onChange={() => setChecked(allChecked ? new Set() : new Set(shown.map((r) => r.id)))}
                 />
               </th>
-              <th>ชื่อ</th>
-              <th>อุปกรณ์ / สาย</th>
-              <th>แก้ไขล่าสุด</th>
-              <th style={{ width: 230 }}>การทำงาน</th>
+              <th>{tx('ชื่อ')}</th>
+              <th>{tx('อุปกรณ์ / สาย')}</th>
+              <th>{tx('แก้ไขล่าสุด')}</th>
+              <th style={{ width: 230 }}>{tx('การทำงาน')}</th>
             </tr>
           </thead>
           <tbody>
             {shown.map((r) => (
               <tr key={r.id} className={r.active ? 'active-row' : ''} data-testid={`lab-row-${r.id}`}>
                 <td>
-                  <input type="checkbox" aria-label={`เลือก ${r.name}`} checked={checked.has(r.id)} onChange={() => toggle(r.id)} />
+                  <input type="checkbox" aria-label={tx('เลือก {0}', r.name)} checked={checked.has(r.id)} onChange={() => toggle(r.id)} />
                 </td>
                 <td>
-                  <button className="file-name" onClick={() => openLab(r.id)} data-testid={`lab-open-${r.id}`} title="เปิด Lab นี้">
+                  <button className="file-name" onClick={() => openLab(r.id)} data-testid={`lab-open-${r.id}`} title={tx('เปิด Lab นี้')}>
                     <Icon name="flask" size={18} /> {r.name}
                   </button>
-                  {r.active && <span className="pill up" data-testid="lab-active-badge">กำลังเปิดอยู่</span>}
+                  {r.active && <span className="pill up" data-testid="lab-active-badge">{tx('กำลังเปิดอยู่')}</span>}
                   {r.hasGuide && <span className="pill guide-pill">Guide</span>}
                 </td>
                 <td>
@@ -111,16 +109,14 @@ export function FileManager() {
                 </td>
                 <td>{fmt.format(r.updatedAt)}</td>
                 <td className="file-actions">
-                  <button onClick={() => openLab(r.id)} data-testid={`lab-open-btn-${r.id}`}>
-                    เปิด
-                  </button>
-                  <button title="ทำสำเนา" aria-label={`ทำสำเนา ${r.name}`} onClick={() => duplicateLab(r.id)} data-testid={`lab-dup-${r.id}`}>
+                  <button onClick={() => openLab(r.id)} data-testid={`lab-open-btn-${r.id}`}>{tx('เปิด')}</button>
+                  <button title={tx('ทำสำเนา')} aria-label={tx('ทำสำเนา {0}', r.name)} onClick={() => duplicateLab(r.id)} data-testid={`lab-dup-${r.id}`}>
                     <Icon name="copy" size={15} />
                   </button>
                   <button title="Export JSON" aria-label={`Export ${r.name}`} onClick={() => exportEntry(r.id)} data-testid={`lab-export-${r.id}`}>
                     <Icon name="download" size={15} />
                   </button>
-                  <button className="danger" title="ลบ" aria-label={`ลบ ${r.name}`} onClick={() => requestDelete([r.id])} data-testid={`lab-del-${r.id}`}>
+                  <button className="danger" title={tx('ลบ')} aria-label={tx('ลบ {0}', r.name)} onClick={() => requestDelete([r.id])} data-testid={`lab-del-${r.id}`}>
                     <Icon name="trash" size={15} />
                   </button>
                 </td>
@@ -128,9 +124,7 @@ export function FileManager() {
             ))}
             {shown.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
-                  ไม่พบ Lab ที่ตรงกับคำค้น
-                </td>
+                <td colSpan={5} className="muted">{tx('ไม่พบ Lab ที่ตรงกับคำค้น')}</td>
               </tr>
             )}
           </tbody>

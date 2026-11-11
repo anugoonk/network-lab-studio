@@ -103,6 +103,19 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 โจทย์ฝึกอยู่ใน Lab Guide ของ Lab นี้ (ตัด VLAN ออกจาก allowed list, ลบ default route แล้วดูขากลับล้ม, ตั้ง SVI บน SW2 ให้เป็น gateway)
 
+## Sample Lab 3: Campus 3 Tier – Aruba CX (ปุ่ม "+ Sample: Campus 3 Tier (Aruba CX)" ใน Lab Manager)
+
+ย่อมาจาก Lab "Campus 3 Tier L2 Access with VSX and OSPF" ของ Aruba Virtual Enablement Center (ดูตัวอย่างบน EVE-NG) ให้เหลือเฉพาะสิ่งที่ simulator นี้มี — อุปกรณ์ 7 ตัว สาย 9 เส้น ชื่ออุปกรณ์ตรงกับต้นฉบับ (SwitchX-Core-1, SwitchY-Core-2, SwitchA-VSX, SwitchB-VSX, SwitchC-Access, VPC1, VPC2)
+
+| ชั้น | การตั้งค่า |
+|---|---|
+| Core (X, Y) | ลิงก์ routed `/31` ลงไป SwitchA/B (`192.168.4.8`–`.21`) และต่อกันเอง `192.168.4.24/31`; static route ไป `10.10.100.0/24`, `10.10.200.0/24` ผ่าน SwitchA |
+| Distribution (A, B) | SVI VLAN 100/200 (A = `.252`, B = `.253`), trunk ISL A–B และ trunk ลง SwitchC (VLAN 100,200); default route → Core-1 |
+| Access (C) | `1/1/1` trunk ไป SwitchA, `1/1/3` = VLAN 100 (VPC1 `10.10.100.11`), `1/1/4` = VLAN 200 (VPC2 `10.10.200.11`) |
+
+**สิ่งที่ต่างจากต้นฉบับ (ไม่มีใน simulator):** VSX, Active-Gateway, LAG (ISL/RLAG), VRF keepalive, loopback และ OSPF — ใช้ static route แทน OSPF, ใช้ IP ของลิงก์ routed แทน loopback เป็นเป้าหมาย ping, SwitchA เป็น gateway เดียวของ VPC (SwitchB มี SVI ของตัวเองแต่ VPC ไม่ได้ชี้ไป) และ SwitchC ต่อกับ SwitchA ที่เดียว (ต่อสองทางโดยไม่มี VSX/STP จะเกิด loop) โจทย์ฝึกอยู่ใน Lab Guide (ping ข้าม VLAN/ข้าม core, `show ip route`, ลบ route ขากลับที่ Core-2 แล้วดูว่าขาไปถึงแต่ขากลับหาย)
+
+
 ### การบันทึกงานและความปลอดภัยของข้อมูล
 
 - **Autosave:** ทุกการแก้ไขบันทึกลง `localStorage` ของเบราว์เซอร์อัตโนมัติ — การปิดหน้าไม่ทำให้งานหาย และจะ **ไม่มี** prompt "ออกจากหน้านี้?" ในกรณีปกติ
@@ -110,6 +123,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - **Lab จากรุ่น/ขนาดเก่า:** switch ที่มีพอร์ต *น้อยกว่า* รุ่นปัจจุบัน (เช่น Aruba 12 พอร์ต หรือ Cisco ที่ไม่มี Fa0/13–24) นำเข้าและเปิดได้ โดยคง device ID, ชื่อพอร์ต, config และปลายสายตามที่บันทึกไว้ (CLI/ตัวเลือกพอร์ตรู้จักเฉพาะพอร์ตที่มีจริง) — ชื่อพอร์ตที่ไม่ใช่ของรุ่นนั้น และอุปกรณ์ที่ไม่มีพอร์ตเลย ยังถูกปฏิเสธ
 - **ไม่ทิ้ง Lab ที่เปิดไม่ได้อย่างเงียบ ๆ:** ถ้า Lab ที่บันทึกไว้ในเบราว์เซอร์ไม่ผ่านการตรวจตอนเปิดแอป แอปจะเริ่มด้วย Lab ปกติ แต่ **เก็บสำเนาต้นฉบับไว้ก่อนที่ autosave จะเขียนทับ** (คีย์ `nls.workspace.rejected.v1` เก็บล่าสุดสูงสุด 20 รายการ) และแสดงแถบเตือนสีแดงพร้อมชื่อ Lab เหตุผล และปุ่ม "ดาวน์โหลดสำเนา" (ไฟล์ `nls-recovered-labs.json` — แต่ละรายการเป็น envelope แบบ export ปกติ แยกเป็นไฟล์เองแล้ว import ได้เมื่อแก้ปัญหาแล้ว)
 - **มุมมอง canvas:** Lab ว่างเริ่มที่ zoom 1x และอุปกรณ์ตัวแรกไม่ทำให้ซูมเข้าอีกต่อไป; "Fit view" จำกัดไม่เกิน 1.25x เพื่อไม่ขยาย Lab ที่มีอุปกรณ์ 1–2 ตัวจนใหญ่เกินไป และไม่ทำอะไรเมื่อ Lab ว่าง
+- **สองภาษา (TH / EN):** ปุ่ม **TH | EN** มุมซ้ายบนของแถบเมนูสลับภาษาของหน้าจอทั้งหมด (เมนู ข้อความแจ้งเตือน Command Library คำอธิบายคำสั่ง คำอธิบายผล ping/Check และข้อความ error) ค่าเริ่มต้นคือภาษาไทย และจำค่าที่เลือกไว้ในเบราว์เซอร์ การสลับ **โหลดหน้าใหม่** (Lab ถูกบันทึกก่อน แต่ transcript ใน Console และประวัติ Undo จะหาย) — ข้อควรรู้: (1) output ของอุปกรณ์ใน Console (CLI) เป็นภาษาอังกฤษเสมอตามของจริง (2) เนื้อหาที่อยู่ในตัว Lab เช่น Guide, โจทย์, คำใบ้, ชื่อ Sample **ถูกเขียนตามภาษาตอนสร้าง Lab** และเก็บเป็นข้อมูล — สลับภาษาแล้ว Lab ที่เปิดอยู่ไม่เปลี่ยนภาษา ให้สร้าง Sample ใหม่จาก Lab Manager เพื่อได้เวอร์ชันภาษาที่เลือก (3) คำแปลภาษาอังกฤษเขียนโดย AI ภาษาไทยเป็นต้นฉบับ ถ้าพบคำแปลที่ไม่เหมาะ แก้ที่ `src/i18n/en.ts` (คีย์คือข้อความไทย) (4) ไฟล์ README นี้ยังเป็นภาษาไทยอย่างเดียว
 - **Tab ใน Console:** กด Tab เพื่อเติมคำที่กำลังพิมพ์ (เช่น `conf` → `configure `) ถ้าเหลือหลายตัวเลือกจะเติมส่วนที่เหมือนกัน แล้วกด Tab ซ้ำเพื่อแสดงรายการ; เติมได้ทั้งคำสั่ง ชื่อ interface (Cisco พิมพ์ย่อ `gi0/1` ได้ จะขยายเป็นชื่อเต็ม), หมายเลข VLAN ที่มีอยู่ และเป้าหมายของ `ping` (IP ที่ตั้งไว้ใน Lab ยกเว้นของเครื่องเอง) ใช้ได้กับ Cisco IOS, Aruba AOS-CX และ PC Terminal ตาม mode ปัจจุบัน ไม่เติมค่าอิสระ เช่น hostname/description/IP ที่ยังไม่มีใน Lab
 - **`interface range`:** Cisco `interface range fa0/1 - 4`, `fa0/1-2 , gi0/1`, `fastethernet 0/1 - 2` และ AOS-CX `interface 1/1/1-1/1/4`, `1/1/1-4,1/1/10` เลือกหลายพอร์ตพร้อมกัน (สูงสุด 48 พอร์ต) คำสั่ง interface ที่พิมพ์ต่อไปมีผลกับทุกพอร์ต; ถ้าคำสั่งผิดพลาดจะไม่มีพอร์ตใดเปลี่ยน; `exit`/`end`/`interface …` ออกจาก range prompt เป็น `(config-if-range)#` (Cisco) หรือ `(config-if-<1/1/1-1/1/4>)#` (AOS-CX — รูปแบบ prompt ยังไม่ได้ยืนยัน) ช่วงที่เลือกถูกบันทึกในไฟล์ Lab
 - **แอนิเมชันแพ็กเก็ต:** เมื่อ ping (จาก Terminal หรือแผง Inspector) จะมีจุดวิ่งตามเส้นทางขาไป (สีน้ำเงิน) แล้วขากลับ (สีเขียว) บน canvas; ถ้า ping ไม่สำเร็จจะหยุดที่จุดที่แพ็กเก็ตไปไม่ถึงพร้อมเครื่องหมาย ✕ สีแดง ปุ่มมุมขวาบนของ canvas เปิด/ปิดแอนิเมชัน และไม่แสดงเมื่อเบราว์เซอร์ตั้ง "ลดการเคลื่อนไหว" (prefers-reduced-motion) — เป็นภาพประกอบการตรวจเส้นทางที่ simulator คำนวณ ไม่ใช่การจำลองแพ็กเก็ตจริงทีละเฟรม
@@ -350,9 +364,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 16 ไฟล์) | **452/452 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
+| `npm test` (Vitest, 19 ไฟล์) | **474/474 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 69 flow) | **69/69 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต + คำใบ้, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 75 flow) | **75/75 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 3 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 

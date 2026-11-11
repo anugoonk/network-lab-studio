@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { portInUse } from '../core/lab';
 import { SAMPLES } from '../core/sample';
 import { useStore } from '../store';
+import { tx } from '../i18n';
 
 export function ConnectDialog() {
   const dlg = useStore((s) => s.connectDialog);
@@ -42,7 +43,7 @@ export function ConnectDialog() {
           return (
             <option key={i.name} value={i.name} disabled={used}>
               {i.name}
-              {used ? ' (มีสายแล้ว)' : ''}
+              {used ? tx(' (มีสายแล้ว)') : ''}
             </option>
           );
         })}
@@ -63,36 +64,34 @@ export function ConnectDialog() {
     const e = connect({ deviceId: aId, port: aPort }, { deviceId: bId, port: bPort });
     if (e) setErr(e);
     else {
-      say('ok', 'เชื่อมสายสำเร็จ');
+      say('ok', tx('เชื่อมสายสำเร็จ'));
       close();
     }
   };
 
   return (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-label="เชื่อมสาย">
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label={tx('เชื่อมสาย')}>
       <div className="modal">
-        <h3>เชื่อมสาย Ethernet</h3>
-        <p className="muted small">เลือกพอร์ตต้นทางและปลายทางให้ชัดเจน พอร์ตที่มีสายแล้วเลือกไม่ได้</p>
+        <h3>{tx('เชื่อมสาย Ethernet')}</h3>
+        <p className="muted small">{tx('เลือกพอร์ตต้นทางและปลายทางให้ชัดเจน พอร์ตที่มีสายแล้วเลือกไม่ได้')}</p>
         <div className="grid2">
           <div>
-            <label>อุปกรณ์ต้นทาง</label>
+            <label>{tx('อุปกรณ์ต้นทาง')}</label>
             {deviceSelect(aId, (v) => { setA(v); setAPort(firstFree(v)); }, 'connect-a-device')}
-            <label>พอร์ตต้นทาง</label>
+            <label>{tx('พอร์ตต้นทาง')}</label>
             {portSelect(aId, aPort, setAPort, 'connect-a-port')}
           </div>
           <div>
-            <label>อุปกรณ์ปลายทาง</label>
+            <label>{tx('อุปกรณ์ปลายทาง')}</label>
             {deviceSelect(bId, (v) => { setB(v); setBPort(firstFree(v)); }, 'connect-b-device')}
-            <label>พอร์ตปลายทาง</label>
+            <label>{tx('พอร์ตปลายทาง')}</label>
             {portSelect(bId, bPort, setBPort, 'connect-b-port')}
           </div>
         </div>
         {err && <div className="error-box" role="alert">{err}</div>}
         <div className="modal-actions">
-          <button onClick={close}>ยกเลิก</button>
-          <button className="primary" onClick={submit} data-testid="connect-submit">
-            เชื่อมสาย
-          </button>
+          <button onClick={close}>{tx('ยกเลิก')}</button>
+          <button className="primary" onClick={submit} data-testid="connect-submit">{tx('เชื่อมสาย')}</button>
         </div>
       </div>
     </div>
@@ -105,21 +104,15 @@ export function ConfirmDialog() {
   const ok = useStore((s) => s.confirmReplace);
   const cancel = useStore((s) => s.cancelReplace);
   if (!p || !dirty) return null;
-  const what = p.kind === 'new' ? 'สร้าง Lab ใหม่ (ว่างเปล่า)' : p.kind === 'sample' ? `เปิด ${SAMPLES[p.which].challenge ? 'โจทย์' : 'Sample Lab'} ${SAMPLES[p.which].title}` : `นำเข้าไฟล์ ${p.fileName}`;
+  const what = p.kind === 'new' ? tx('สร้าง Lab ใหม่ (ว่างเปล่า)') : p.kind === 'sample' ? tx('เปิด {0} {1}', SAMPLES[p.which].challenge ? tx('โจทย์') : 'Sample Lab', SAMPLES[p.which].title) : tx('นำเข้าไฟล์ {0}', p.fileName);
   return (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-label="ยืนยัน">
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label={tx('ยืนยัน')}>
       <div className="modal">
-        <h3>แทนที่งานปัจจุบัน?</h3>
-        <p>
-          งานปัจจุบันมีการแก้ไขที่ <b>ยังไม่ได้ Export</b> การ{what}จะแทนที่งานนี้
-        </p>
+        <h3>{tx('แทนที่งานปัจจุบัน?')}</h3>
+        <p>{tx('งานปัจจุบันมีการแก้ไขที่')}{' '}<b>{tx('ยังไม่ได้ Export')}</b>{' '}{tx('การ{0}จะแทนที่งานนี้', what)}</p>
         <div className="modal-actions">
-          <button onClick={cancel} data-testid="confirm-cancel">
-            ยกเลิก
-          </button>
-          <button className="danger" onClick={ok} data-testid="confirm-ok">
-            แทนที่
-          </button>
+          <button onClick={cancel} data-testid="confirm-cancel">{tx('ยกเลิก')}</button>
+          <button className="danger" onClick={ok} data-testid="confirm-ok">{tx('แทนที่')}</button>
         </div>
       </div>
     </div>
@@ -136,22 +129,18 @@ export function ConfirmDeleteDialog() {
     .filter((r) => ids.includes(r.id))
     .map((r) => r.name);
   return (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-label="ยืนยันการลบ">
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label={tx('ยืนยันการลบ')}>
       <div className="modal">
-        <h3>ลบ {ids.length} Lab?</h3>
+        <h3>{tx('ลบ {0} Lab?', ids.length)}</h3>
         <ul className="small" data-testid="delete-names">
           {names.map((n, i) => (
             <li key={i}>{n}</li>
           ))}
         </ul>
-        <p>การลบไม่สามารถกู้คืนได้ (ถ้าต้องการเก็บไว้ ให้ Export ก่อน)</p>
+        <p>{tx('การลบไม่สามารถกู้คืนได้ (ถ้าต้องการเก็บไว้ ให้ Export ก่อน)')}</p>
         <div className="modal-actions">
-          <button onClick={cancel} data-testid="confirm-delete-cancel">
-            ยกเลิก
-          </button>
-          <button className="danger" onClick={ok} data-testid="confirm-delete-ok">
-            ลบ
-          </button>
+          <button onClick={cancel} data-testid="confirm-delete-cancel">{tx('ยกเลิก')}</button>
+          <button className="danger" onClick={ok} data-testid="confirm-delete-ok">{tx('ลบ')}</button>
         </div>
       </div>
     </div>

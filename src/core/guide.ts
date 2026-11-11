@@ -1,4 +1,5 @@
 import type { Guide } from './types';
+import { tx } from '../i18n';
 
 export const GUIDE_LIMITS = { sections: 50, resources: 30 } as const;
 
@@ -6,7 +7,7 @@ export function emptyGuide(title = 'Lab Guide'): Guide {
   return {
     title,
     objective: '',
-    sections: [{ heading: 'ขั้นตอน', body: '1. อธิบายขั้นตอนแรกที่นี่\n2. ใช้ `คำสั่ง` ในเครื่องหมาย backtick เพื่อแสดงเป็นโค้ด' }],
+    sections: [{ heading: tx('ขั้นตอน'), body: tx('1. อธิบายขั้นตอนแรกที่นี่\n2. ใช้ `คำสั่ง` ในเครื่องหมาย backtick เพื่อแสดงเป็นโค้ด') }],
     resources: [],
   };
 }

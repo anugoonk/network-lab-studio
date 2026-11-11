@@ -3,6 +3,7 @@ import { arpTable, duplicateIps, fmtMacDash } from '../l2tables';
 import { ping, portLine } from '../network';
 import { parseIp } from '../ip';
 import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
+import { tx } from '../../i18n';
 
 const PC = ['pc', 'laptop', 'server'] as const;
 
@@ -60,32 +61,32 @@ function arpCmd(c: Ctx): RunResult {
 const specs: CommandSpec[] = [
   cmd({
     id: 'pc.ipconfig', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'ipconfig',
-    helpEn: 'Display IP configuration', descTh: 'แสดง IPv4, subnet mask และ default gateway ของ PC', topic: 'IP',
-    example: 'ipconfig', verify: 'ipconfig', verifyTh: 'ค่าต้องตรงกับหน้า IP Configuration',
+    helpEn: 'Display IP configuration', descTh: tx('แสดง IPv4, subnet mask และ default gateway ของ PC'), topic: 'IP',
+    example: 'ipconfig', verify: 'ipconfig', verifyTh: tx('ค่าต้องตรงกับหน้า IP Configuration'),
     run: ipconfig,
   }),
   cmd({
     id: 'pc.ping', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'ping <ipv4>',
-    helpEn: 'Send ICMP echo requests', descTh: 'ทดสอบ reachability ไปยัง IPv4 ปลายทาง (ผลเปลี่ยนตามสาย พอร์ต VLAN และ gateway ปัจจุบัน)', topic: 'Troubleshooting',
-    example: 'ping 192.168.1.110', verify: 'ping 192.168.1.1', verifyTh: 'Reply = สำเร็จ, Request timed out = ไม่ถึง',
+    helpEn: 'Send ICMP echo requests', descTh: tx('ทดสอบ reachability ไปยัง IPv4 ปลายทาง (ผลเปลี่ยนตามสาย พอร์ต VLAN และ gateway ปัจจุบัน)'), topic: 'Troubleshooting',
+    example: 'ping 192.168.1.110', verify: 'ping 192.168.1.1', verifyTh: tx('Reply = สำเร็จ, Request timed out = ไม่ถึง'),
     run: pingCmd,
   }),
   cmd({
     id: 'pc.arp', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'arp -a',
-    helpEn: 'Display ARP cache', descTh: 'ดูตาราง ARP ของ PC (IP → MAC ของเครื่องใน L2 เดียวกัน ไม่จำลองการเรียนรู้/หมดอายุ)', topic: 'Layer 2',
-    example: 'arp -a', verify: 'ping 192.168.1.1', verifyTh: 'ไม่เห็น gateway ในตาราง แปลว่า PC ไม่อยู่ L2 เดียวกับ gateway',
+    helpEn: 'Display ARP cache', descTh: tx('ดูตาราง ARP ของ PC (IP → MAC ของเครื่องใน L2 เดียวกัน ไม่จำลองการเรียนรู้/หมดอายุ)'), topic: 'Layer 2',
+    example: 'arp -a', verify: 'ping 192.168.1.1', verifyTh: tx('ไม่เห็น gateway ในตาราง แปลว่า PC ไม่อยู่ L2 เดียวกับ gateway'),
     run: arpCmd,
   }),
   cmd({
     id: 'pc.cls', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'cls',
-    helpEn: 'Clear the screen', descTh: 'ล้างหน้าจอ Terminal', topic: 'Troubleshooting',
-    example: 'cls', verify: '(หน้าจอว่าง)', verifyTh: 'Terminal ต้องถูกล้าง',
+    helpEn: 'Clear the screen', descTh: tx('ล้างหน้าจอ Terminal'), topic: 'Troubleshooting',
+    example: 'cls', verify: tx('(หน้าจอว่าง)'), verifyTh: tx('Terminal ต้องถูกล้าง'),
     run: () => ({ clear: true }),
   }),
   cmd({
     id: 'pc.help', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'help',
-    helpEn: 'List available commands', descTh: 'แสดงคำสั่งที่ PC รองรับ', topic: 'Troubleshooting',
-    example: 'help', verify: '(รายการคำสั่ง)', verifyTh: 'ต้องเห็น ipconfig, ping, cls, help',
+    helpEn: 'List available commands', descTh: tx('แสดงคำสั่งที่ PC รองรับ'), topic: 'Troubleshooting',
+    example: 'help', verify: tx('(รายการคำสั่ง)'), verifyTh: tx('ต้องเห็น ipconfig, ping, cls, help'),
     run: () => ({ lines: ['Supported commands:', '  ipconfig        Show IP configuration', '  ping <IPv4>     Test reachability', '  cls             Clear the screen', '  help            Show this list'] }),
   }),
 ];

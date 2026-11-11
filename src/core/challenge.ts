@@ -6,6 +6,7 @@ import { ipToString, maskToPrefix, networkOf, parseIp } from './ip';
 import { allowsVlan, l3Interfaces, linkStatus, ping } from './network';
 import { PROFILES } from './profiles';
 import type { Challenge, ChallengeStart, Check, Lab } from './types';
+import { tx } from '../i18n';
 
 export const CHALLENGE_LIMITS = { checks: 50, hints: 10 } as const;
 
@@ -16,7 +17,7 @@ export interface CheckResult {
 }
 
 export function emptyChallenge(title = 'Challenge'): Challenge {
-  return { title, goal: 'อธิบายเป้าหมายของโจทย์ที่นี่ แล้วเพิ่ม Check ที่ต้องผ่าน', checks: [] };
+  return { title, goal: tx('อธิบายเป้าหมายของโจทย์ที่นี่ แล้วเพิ่ม Check ที่ต้องผ่าน'), checks: [] };
 }
 
 export function nextCheckId(challenge: Challenge): string {
@@ -27,22 +28,22 @@ export function nextCheckId(challenge: Challenge): string {
 export function defaultLabel(lab: Lab, check: Check): string {
   if (check.kind === 'ping') {
     const from = getDevice(lab, check.from)?.name ?? '?';
-    return check.expect === 'success' ? `${from} ping ${check.to} ได้` : `${from} ping ${check.to} ต้องไม่ได้`;
+    return check.expect === 'success' ? tx('{0} ping {1} ได้', from, check.to) : tx('{0} ping {1} ต้องไม่ได้', from, check.to);
   }
   const name = ('deviceId' in check ? getDevice(lab, check.deviceId)?.name : undefined) ?? '?';
   switch (check.kind) {
     case 'link-up':
-      return `${name} ${check.port} ลิงก์ up`;
+      return tx('{0} {1} ลิงก์ up', name, check.port);
     case 'config-line':
-      return check.expect === 'present' ? `${name} มี config "${check.text}"` : `${name} ต้องไม่มี config "${check.text}"`;
+      return check.expect === 'present' ? tx('{0} มี config "{1}"', name, check.text) : tx('{0} ต้องไม่มี config "{1}"', name, check.text);
     case 'trunk-vlan':
-      return check.expect === 'allowed' ? `${name} ${check.port} ส่ง VLAN ${check.vlan} ได้` : `${name} ${check.port} ต้องไม่ส่ง VLAN ${check.vlan}`;
+      return check.expect === 'allowed' ? tx('{0} {1} ส่ง VLAN {2} ได้', name, check.port, check.vlan) : tx('{0} {1} ต้องไม่ส่ง VLAN {2}', name, check.port, check.vlan);
     case 'port-admin':
-      return `${name} ${check.port} ${check.expect === 'up' ? 'เปิดใช้งาน (no shutdown)' : 'ถูกปิด (shutdown)'}`;
+      return `${name} ${check.port} ${check.expect === 'up' ? tx('เปิดใช้งาน (no shutdown)') : tx('ถูกปิด (shutdown)')}`;
     case 'route':
-      return `${name} มีเส้นทางไป ${check.net}/${check.prefix}`;
+      return tx('{0} มีเส้นทางไป {1}/{2}', name, check.net, check.prefix);
     case 'no-dup-ip':
-      return 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน';
+      return tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน');
   }
 }
 
@@ -77,46 +78,46 @@ function runningConfigOf(lab: Lab, deviceId: string): string[] | null {
 
 export function evaluateCheck(lab: Lab, check: Check): CheckResult {
   if (check.kind === 'ping') {
-    if (!getDevice(lab, check.from)) return { pass: false, detail: 'ไม่พบอุปกรณ์ต้นทางใน Lab' };
+    if (!getDevice(lab, check.from)) return { pass: false, detail: tx('ไม่พบอุปกรณ์ต้นทางใน Lab') };
     const r = ping(lab, check.from, check.to);
     return {
       pass: r.ok === (check.expect === 'success'),
-      detail: r.ok ? 'ผลจริง: ping สำเร็จ' : 'ผลจริง: ping ไม่สำเร็จ',
+      detail: r.ok ? tx('ผลจริง: ping สำเร็จ') : tx('ผลจริง: ping ไม่สำเร็จ'),
     };
   }
   if (check.kind === 'no-dup-ip') {
     const dups = duplicateIps(lab);
-    return { pass: dups.length === 0, detail: dups.length === 0 ? 'ผลจริง: ไม่พบ IP ซ้ำ' : `ผลจริง: พบ IP ซ้ำ ${dups.length} รายการ` };
+    return { pass: dups.length === 0, detail: dups.length === 0 ? tx('ผลจริง: ไม่พบ IP ซ้ำ') : tx('ผลจริง: พบ IP ซ้ำ {0} รายการ', dups.length) };
   }
   const d = getDevice(lab, check.deviceId);
-  if (!d) return { pass: false, detail: 'ไม่พบอุปกรณ์ใน Lab' };
+  if (!d) return { pass: false, detail: tx('ไม่พบอุปกรณ์ใน Lab') };
   switch (check.kind) {
     case 'link-up': {
       const link = linkAt(lab, check.deviceId, check.port);
-      if (!link) return { pass: false, detail: 'ผลจริง: พอร์ตนี้ยังไม่มีสาย' };
+      if (!link) return { pass: false, detail: tx('ผลจริง: พอร์ตนี้ยังไม่มีสาย') };
       const st = linkStatus(lab, link);
-      return { pass: st.up, detail: st.up ? 'ผลจริง: ลิงก์ up' : 'ผลจริง: ลิงก์ down' };
+      return { pass: st.up, detail: st.up ? tx('ผลจริง: ลิงก์ up') : tx('ผลจริง: ลิงก์ down') };
     }
     case 'config-line': {
       const cfg = runningConfigOf(lab, check.deviceId);
-      if (!cfg) return { pass: false, detail: 'อุปกรณ์ชนิดนี้ไม่มี running-config ให้ตรวจ' };
+      if (!cfg) return { pass: false, detail: tx('อุปกรณ์ชนิดนี้ไม่มี running-config ให้ตรวจ') };
       const has = cfg.includes(check.text.trim());
-      return { pass: has === (check.expect === 'present'), detail: has ? 'ผลจริง: พบบรรทัดนี้ใน running-config' : 'ผลจริง: ไม่พบบรรทัดนี้ใน running-config' };
+      return { pass: has === (check.expect === 'present'), detail: has ? tx('ผลจริง: พบบรรทัดนี้ใน running-config') : tx('ผลจริง: ไม่พบบรรทัดนี้ใน running-config') };
     }
     case 'trunk-vlan': {
       const i = getIface(d, check.port);
-      if (!i) return { pass: false, detail: 'ไม่พบพอร์ต' };
+      if (!i) return { pass: false, detail: tx('ไม่พบพอร์ต') };
       const carries = i.trunk && !(PROFILES[d.kind].vendor === 'aruba' && i.routed) && allowsVlan(i, check.vlan);
-      return { pass: carries === (check.expect === 'allowed'), detail: carries ? `ผลจริง: พอร์ตส่ง VLAN ${check.vlan} ได้` : `ผลจริง: พอร์ตไม่ส่ง VLAN ${check.vlan}` };
+      return { pass: carries === (check.expect === 'allowed'), detail: carries ? tx('ผลจริง: พอร์ตส่ง VLAN {0} ได้', check.vlan) : tx('ผลจริง: พอร์ตไม่ส่ง VLAN {0}', check.vlan) };
     }
     case 'port-admin': {
       const i = getIface(d, check.port);
-      if (!i) return { pass: false, detail: 'ไม่พบพอร์ต' };
-      return { pass: i.adminUp === (check.expect === 'up'), detail: i.adminUp ? 'ผลจริง: พอร์ตเปิดอยู่' : 'ผลจริง: พอร์ตถูก shutdown' };
+      if (!i) return { pass: false, detail: tx('ไม่พบพอร์ต') };
+      return { pass: i.adminUp === (check.expect === 'up'), detail: i.adminUp ? tx('ผลจริง: พอร์ตเปิดอยู่') : tx('ผลจริง: พอร์ตถูก shutdown') };
     }
     case 'route': {
       const ok = hasRoute(lab, check.deviceId, check.net, check.prefix);
-      return { pass: ok, detail: ok ? 'ผลจริง: มีเส้นทางนี้ในตาราง routing' : 'ผลจริง: ไม่มีเส้นทางนี้ในตาราง routing' };
+      return { pass: ok, detail: ok ? tx('ผลจริง: มีเส้นทางนี้ในตาราง routing') : tx('ผลจริง: ไม่มีเส้นทางนี้ในตาราง routing') };
     }
   }
 }

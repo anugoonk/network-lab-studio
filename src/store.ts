@@ -34,6 +34,7 @@ import { SAMPLES, buildSampleLab, type SampleKind } from './core/sample';
 import { emptyHistory, reconcileCli, recordChange, redoStep, undoStep, type History } from './core/history';
 import { applyStart, captureStart, emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
 import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
+import { tx } from './i18n';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
 export type RightTab = 'details' | 'console' | 'inspector';
@@ -338,7 +339,7 @@ export const useStore = create<State>((set, get) => {
     shareLab: async () => {
       const lab = get().lab;
       if (lab.devices.length === 0) {
-        set({ notice: { kind: 'error', text: 'Lab ว่าง ไม่มีอะไรให้แชร์' } });
+        set({ notice: { kind: 'error', text: tx('Lab ว่าง ไม่มีอะไรให้แชร์') } });
         return;
       }
       const url = `${location.origin}${location.pathname}#${await encodeShare(lab)}`;
@@ -349,21 +350,21 @@ export const useStore = create<State>((set, get) => {
       } catch {
         /* no clipboard permission */
       }
-      const long = url.length > SHARE_LONG_LINK ? ` — ลิงก์ยาว ${url.length.toLocaleString('en-US')} ตัวอักษร แอปแชทบางตัวอาจตัดลิงก์ ถ้าเปิดไม่ได้ให้ส่งไฟล์ Export แทน` : '';
-      if (copied) set({ notice: { kind: 'ok', text: `คัดลอกลิงก์แชร์ของ "${lab.name}" แล้ว${long}` } });
+      const long = url.length > SHARE_LONG_LINK ? tx(' — ลิงก์ยาว {0} ตัวอักษร แอปแชทบางตัวอาจตัดลิงก์ ถ้าเปิดไม่ได้ให้ส่งไฟล์ Export แทน', url.length.toLocaleString('en-US')) : '';
+      if (copied) set({ notice: { kind: 'ok', text: tx('คัดลอกลิงก์แชร์ของ "{0}" แล้ว{1}', lab.name, long) } });
       else {
-        set({ shareUrl: url, notice: { kind: 'error', text: `คัดลอกอัตโนมัติไม่ได้ — คัดลอกลิงก์จากกล่องที่แสดงเอง${long}` } });
+        set({ shareUrl: url, notice: { kind: 'error', text: tx('คัดลอกอัตโนมัติไม่ได้ — คัดลอกลิงก์จากกล่องที่แสดงเอง{0}', long) } });
       }
     },
     openShared: async (fragment) => {
       const r = await parseShare(fragment);
       if (!r.ok) {
-        set({ notice: { kind: 'error', text: `เปิดลิงก์แชร์ไม่สำเร็จ (ไม่มีอะไรถูกเปลี่ยน): ${r.error}` } });
+        set({ notice: { kind: 'error', text: tx('เปิดลิงก์แชร์ไม่สำเร็จ (ไม่มีอะไรถูกเปลี่ยน): {0}', r.error) } });
         return false;
       }
       const e: LabEntry = { id: newLabId(), name: r.lab.name, updatedAt: Date.now(), savedSig: contentSignature(r.lab), lab: r.lab };
       loadEntry(e, [...get().others, activeEntry()]);
-      set({ notice: { kind: 'ok', text: `เปิด "${r.lab.name}" จากลิงก์แชร์แล้ว (เพิ่มเป็น Lab ใหม่ในรายการ — Lab เดิมของคุณยังอยู่)` } });
+      set({ notice: { kind: 'ok', text: tx('เปิด "{0}" จากลิงก์แชร์แล้ว (เพิ่มเป็น Lab ใหม่ในรายการ — Lab เดิมของคุณยังอยู่)', r.lab.name) } });
       return true;
     },
     copyConfig: async (deviceId) => {
@@ -371,15 +372,15 @@ export const useStore = create<State>((set, get) => {
       if (!dev) return;
       const p = PROFILES[dev.kind];
       if (!p.hasCli || p.isHost) {
-        set({ notice: { kind: 'error', text: `${dev.name} ไม่มี running-config ให้คัดลอก` } });
+        set({ notice: { kind: 'error', text: tx('{0} ไม่มี running-config ให้คัดลอก', dev.name) } });
         return;
       }
       const text = (p.vendor === 'aruba' ? arubaRunningConfig(dev) : ciscoRunningConfig(dev)).join('\n');
       try {
         await navigator.clipboard.writeText(text);
-        set({ notice: { kind: 'ok', text: `คัดลอก running-config ของ ${dev.name} แล้ว (${text.split('\n').length} บรรทัด)` } });
+        set({ notice: { kind: 'ok', text: tx('คัดลอก running-config ของ {0} แล้ว ({1} บรรทัด)', dev.name, text.split('\n').length) } });
       } catch {
-        set({ notice: { kind: 'error', text: 'คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้เขียน clipboard (ลองใช้ show running-config แล้วลากคลุมแทน)' } });
+        set({ notice: { kind: 'error', text: tx('คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้เขียน clipboard (ลองใช้ show running-config แล้วลากคลุมแทน)') } });
       }
     },
     summaries: () => {
@@ -456,14 +457,14 @@ export const useStore = create<State>((set, get) => {
     moveDevice: (id, x, y) => setLab(updateDevice(get().lab, id, (d) => ({ ...d, x, y }))),
     renameDevice: (id, name) => {
       const n = name.trim();
-      if (!NAME_RE.test(n)) return 'ชื่อใช้ได้เฉพาะ A-Z, 0-9, - และ _ (ขึ้นต้นด้วยตัวอักษรหรือตัวเลข ยาวไม่เกิน 24 ตัว)';
+      if (!NAME_RE.test(n)) return tx('ชื่อใช้ได้เฉพาะ A-Z, 0-9, - และ _ (ขึ้นต้นด้วยตัวอักษรหรือตัวเลข ยาวไม่เกิน 24 ตัว)');
       setLab(updateDevice(get().lab, id, (d) => ({ ...d, name: n })));
       return null;
     },
     renameLab: (name) => {
       const n = name.trim();
-      if (!n) return 'ชื่อ Lab ต้องไม่ว่าง';
-      if (n.length > 120) return 'ชื่อ Lab ยาวเกิน 120 ตัวอักษร';
+      if (!n) return tx('ชื่อ Lab ต้องไม่ว่าง');
+      if (n.length > 120) return tx('ชื่อ Lab ยาวเกิน 120 ตัวอักษร');
       setLab({ ...get().lab, name: n });
       return null;
     },
@@ -487,17 +488,17 @@ export const useStore = create<State>((set, get) => {
     setPcConfig: (id, ip, mask, gw) => {
       const lab = get().lab;
       const d = getDevice(lab, id);
-      if (!d) return 'ไม่พบอุปกรณ์';
+      if (!d) return tx('ไม่พบอุปกรณ์');
       const ipT = ip.trim();
       const maskT = mask.trim();
       const gwT = gw.trim();
       if (ipT === '' && maskT === '') {
-        if (gwT !== '') return 'ต้องกำหนด IP และ subnet mask ก่อนตั้ง gateway';
+        if (gwT !== '') return tx('ต้องกำหนด IP และ subnet mask ก่อนตั้ง gateway');
       } else {
-        if (parseIp(ipT) === null) return 'IPv4 address ไม่ถูกต้อง (รูปแบบ x.x.x.x)';
-        if (!isValidMask(maskT)) return 'Subnet mask ไม่ถูกต้อง (เช่น 255.255.255.0)';
-        if (!isHostAddress(ipT, maskT)) return 'IP นี้ใช้เป็น host address ใน subnet นี้ไม่ได้ (network/broadcast/ช่วงพิเศษ)';
-        if (gwT !== '' && parseIp(gwT) === null) return 'Default gateway ไม่ถูกต้อง';
+        if (parseIp(ipT) === null) return tx('IPv4 address ไม่ถูกต้อง (รูปแบบ x.x.x.x)');
+        if (!isValidMask(maskT)) return tx('Subnet mask ไม่ถูกต้อง (เช่น 255.255.255.0)');
+        if (!isHostAddress(ipT, maskT)) return tx('IP นี้ใช้เป็น host address ใน subnet นี้ไม่ได้ (network/broadcast/ช่วงพิเศษ)');
+        if (gwT !== '' && parseIp(gwT) === null) return tx('Default gateway ไม่ถูกต้อง');
       }
       setLab(
         updateDevice(lab, id, (dd) => ({
@@ -572,12 +573,12 @@ export const useStore = create<State>((set, get) => {
           kind: 'ok',
           text:
             p.kind === 'import'
-              ? `นำเข้า ${p.fileName} สำเร็จ`
+              ? tx('นำเข้า {0} สำเร็จ', p.fileName)
               : p.kind === 'new'
-                ? 'สร้าง Lab ใหม่แล้ว'
+                ? tx('สร้าง Lab ใหม่แล้ว')
                 : SAMPLES[p.which].challenge
-                  ? `เปิดโจทย์ ${SAMPLES[p.which].title} แล้ว`
-                  : `เปิด Sample Lab: ${SAMPLES[p.which].title} แล้ว`,
+                  ? tx('เปิดโจทย์ {0} แล้ว', SAMPLES[p.which].title)
+                  : tx('เปิด Sample Lab: {0} แล้ว', SAMPLES[p.which].title),
         },
       });
     },
@@ -585,12 +586,12 @@ export const useStore = create<State>((set, get) => {
     exportLab: () => {
       const lab = get().lab;
       download(fileName(lab), serializeExport(lab));
-      set({ savedSig: contentSignature(lab), notice: { kind: 'ok', text: 'Export Lab เป็น JSON แล้ว' } });
+      set({ savedSig: contentSignature(lab), notice: { kind: 'ok', text: tx('Export Lab เป็น JSON แล้ว') } });
     },
     importText: (text, name) => {
       const r = parseImport(text);
       if (!r.ok) {
-        set({ notice: { kind: 'error', text: `นำเข้าไม่สำเร็จ (Lab ปัจจุบันไม่ถูกเปลี่ยน): ${r.error}` } });
+        set({ notice: { kind: 'error', text: tx('นำเข้าไม่สำเร็จ (Lab ปัจจุบันไม่ถูกเปลี่ยน): {0}', r.error) } });
         return r.error;
       }
       get().requestReplace({ kind: 'import', lab: r.lab, fileName: name });
@@ -611,7 +612,7 @@ export const useStore = create<State>((set, get) => {
       const entry: LabEntry = { id: newLabId(), name: lab.name, updatedAt: Date.now(), savedSig: contentSignature(lab), lab };
       loadEntry(entry, [...s.others, activeEntry()]);
       set({
-        notice: { kind: 'ok', text: kind === 'blank' ? 'สร้าง Lab ใหม่ในรายการแล้ว' : `เพิ่ม Sample Lab "${lab.name}" ในรายการแล้ว` },
+        notice: { kind: 'ok', text: kind === 'blank' ? tx('สร้าง Lab ใหม่ในรายการแล้ว') : tx('เพิ่ม Sample Lab "{0}" ในรายการแล้ว', lab.name) },
       });
       return entry.id;
     },
@@ -619,9 +620,9 @@ export const useStore = create<State>((set, get) => {
       const s = get();
       const src = id === s.activeId ? activeEntry() : s.others.find((e) => e.id === id);
       if (!src) return;
-      const lab: Lab = { ...structuredClone(src.lab), name: `${src.lab.name} (สำเนา)`.slice(0, 120) };
+      const lab: Lab = { ...structuredClone(src.lab), name: tx('{0} (สำเนา)', src.lab.name).slice(0, 120) };
       const copy: LabEntry = { id: newLabId(), name: lab.name, updatedAt: Date.now(), savedSig: contentSignature(lab), lab };
-      set({ others: [...s.others, copy], notice: { kind: 'ok', text: `ทำสำเนา "${src.lab.name}" แล้ว` } });
+      set({ others: [...s.others, copy], notice: { kind: 'ok', text: tx('ทำสำเนา "{0}" แล้ว', src.lab.name) } });
     },
     requestDeleteLabs: (ids) => set({ confirmDelete: ids.length ? ids : null }),
     cancelDelete: () => set({ confirmDelete: null }),
@@ -631,7 +632,7 @@ export const useStore = create<State>((set, get) => {
       if (!ids.size) return;
       const remaining = s.others.filter((e) => !ids.has(e.id));
       if (!ids.has(s.activeId)) {
-        set({ others: remaining, confirmDelete: null, notice: { kind: 'ok', text: `ลบ ${ids.size} Lab แล้ว` } });
+        set({ others: remaining, confirmDelete: null, notice: { kind: 'ok', text: tx('ลบ {0} Lab แล้ว', ids.size) } });
         return;
       }
       // the open lab was deleted: open the most recent remaining one, or start a blank lab
@@ -641,7 +642,7 @@ export const useStore = create<State>((set, get) => {
         const lab = emptyLab('New Lab');
         loadEntry({ id: newLabId(), name: lab.name, updatedAt: Date.now(), savedSig: contentSignature(lab), lab }, []);
       }
-      set({ view: 'manager', confirmDelete: null, notice: { kind: 'ok', text: `ลบ ${ids.size} Lab แล้ว` } });
+      set({ view: 'manager', confirmDelete: null, notice: { kind: 'ok', text: tx('ลบ {0} Lab แล้ว', ids.size) } });
     },
     exportEntry: (id) => {
       const s = get();
@@ -651,17 +652,17 @@ export const useStore = create<State>((set, get) => {
       download(fileName(e.lab), serializeExport(e.lab));
       set({
         others: s.others.map((x) => (x.id === id ? { ...x, savedSig: contentSignature(x.lab) } : x)),
-        notice: { kind: 'ok', text: `Export "${e.lab.name}" แล้ว` },
+        notice: { kind: 'ok', text: tx('Export "{0}" แล้ว', e.lab.name) },
       });
     },
     importAsEntry: (text, name) => {
       const r = parseImport(text);
       if (!r.ok) {
-        set({ notice: { kind: 'error', text: `นำเข้าไม่สำเร็จ (ไม่มีอะไรถูกเปลี่ยน): ${r.error}` } });
+        set({ notice: { kind: 'error', text: tx('นำเข้าไม่สำเร็จ (ไม่มีอะไรถูกเปลี่ยน): {0}', r.error) } });
         return r.error;
       }
       const e: LabEntry = { id: newLabId(), name: r.lab.name, updatedAt: Date.now(), savedSig: contentSignature(r.lab), lab: r.lab };
-      set({ others: [...get().others, e], notice: { kind: 'ok', text: `นำเข้า ${name} เป็น "${r.lab.name}" ในรายการแล้ว` } });
+      set({ others: [...get().others, e], notice: { kind: 'ok', text: tx('นำเข้า {0} เป็น "{1}" ในรายการแล้ว', name, r.lab.name) } });
       return null;
     },
   };

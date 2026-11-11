@@ -1,5 +1,6 @@
 import { PROFILES, isAruba, makeIface } from './profiles';
 import type { CliMode, Device, DeviceKind, Endpoint, Iface, Lab, Link } from './types';
+import { tx } from '../i18n';
 
 export const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,23}$/;
 
@@ -75,12 +76,12 @@ export type ConnectError = string | null;
 export function validateLink(lab: Lab, a: Endpoint, b: Endpoint): ConnectError {
   const da = getDevice(lab, a.deviceId);
   const db = getDevice(lab, b.deviceId);
-  if (!da || !db) return 'ไม่พบอุปกรณ์';
-  if (da.id === db.id) return 'ไม่สามารถเชื่อมอุปกรณ์เข้ากับตัวเองได้';
-  if (!getIface(da, a.port)) return `ไม่พบพอร์ต ${a.port} บน ${da.name}`;
-  if (!getIface(db, b.port)) return `ไม่พบพอร์ต ${b.port} บน ${db.name}`;
-  if (portInUse(lab, a.deviceId, a.port)) return `พอร์ต ${a.port} ของ ${da.name} มีสายเชื่อมอยู่แล้ว`;
-  if (portInUse(lab, b.deviceId, b.port)) return `พอร์ต ${b.port} ของ ${db.name} มีสายเชื่อมอยู่แล้ว`;
+  if (!da || !db) return tx('ไม่พบอุปกรณ์');
+  if (da.id === db.id) return tx('ไม่สามารถเชื่อมอุปกรณ์เข้ากับตัวเองได้');
+  if (!getIface(da, a.port)) return tx('ไม่พบพอร์ต {0} บน {1}', a.port, da.name);
+  if (!getIface(db, b.port)) return tx('ไม่พบพอร์ต {0} บน {1}', b.port, db.name);
+  if (portInUse(lab, a.deviceId, a.port)) return tx('พอร์ต {0} ของ {1} มีสายเชื่อมอยู่แล้ว', a.port, da.name);
+  if (portInUse(lab, b.deviceId, b.port)) return tx('พอร์ต {0} ของ {1} มีสายเชื่อมอยู่แล้ว', b.port, db.name);
   return null;
 }
 

@@ -3,6 +3,7 @@ import { isValidMask, parseIp } from '../ip';
 import { parseVlanList, subName } from '../lab';
 import { PROFILES } from '../profiles';
 import type { CliMode, Device, DeviceKind, Lab, Vendor } from '../types';
+import { tx } from '../../i18n';
 
 export type PType = 'ifrange' | 'vlan' | 'vlanlist' | 'iface' | 'word' | 'text' | 'ip' | 'mask' | 'rmask' | 'cidr';
 export interface Tok {
@@ -271,22 +272,22 @@ export const MODE_LABEL: Record<Vendor, Partial<Record<CliMode, string>>> = {
 export const MODE_PATH: Record<Vendor, Partial<Record<CliMode, string>>> = {
   generic: {},
   cisco: {
-    user: 'โหมดเริ่มต้นหลังเปิดอุปกรณ์ (prompt ลงท้ายด้วย >)',
+    user: tx('โหมดเริ่มต้นหลังเปิดอุปกรณ์ (prompt ลงท้ายด้วย >)'),
     priv: 'enable',
     config: 'enable → configure terminal',
-    'config-if': 'enable → configure terminal → interface <ชื่อพอร์ต>',
-    'config-subif': 'enable → configure terminal → interface <พอร์ต>.<เลข เช่น gi0/0.10>',
+    'config-if': tx('enable → configure terminal → interface <ชื่อพอร์ต>'),
+    'config-subif': tx('enable → configure terminal → interface <พอร์ต>.<เลข เช่น gi0/0.10>'),
     'config-svi': 'enable → configure terminal → interface vlan <id>',
     'config-vlan': 'enable → configure terminal → vlan <id>',
   },
   aruba: {
-    priv: 'โหมดเริ่มต้นหลังเปิดอุปกรณ์ (prompt ลงท้ายด้วย #)',
+    priv: tx('โหมดเริ่มต้นหลังเปิดอุปกรณ์ (prompt ลงท้ายด้วย #)'),
     config: 'configure terminal',
-    'config-if': 'configure terminal → interface <พอร์ต เช่น 1/1/1>',
-    'config-svi': 'configure terminal → vlan <id> (สร้างก่อน) → interface vlan <id>',
+    'config-if': tx('configure terminal → interface <พอร์ต เช่น 1/1/1>'),
+    'config-svi': tx('configure terminal → vlan <id> (สร้างก่อน) → interface vlan <id>'),
     'config-vlan': 'configure terminal → vlan <id>',
   },
-  pc: { pc: 'เปิด Terminal ของ PC' },
+  pc: { pc: tx('เปิด Terminal ของ PC') },
 };
 
 // ───────── helpers shared by Cisco / Aruba handlers ─────────

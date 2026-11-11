@@ -3,6 +3,7 @@ import { promptFor, helpFor, completeLine } from '../core/cli/engine';
 import { getDevice } from '../core/lab';
 import { PROFILES } from '../core/profiles';
 import { useStore } from '../store';
+import { tx } from '../i18n';
 
 export function Console() {
   const sel = useStore((s) => s.selection);
@@ -42,7 +43,7 @@ export function Console() {
   if (!device) {
     return (
       <section className="card">
-        <p className="muted">เลือกอุปกรณ์บน canvas (หรือดับเบิลคลิกอุปกรณ์) เพื่อเปิด Console / Terminal</p>
+        <p className="muted">{tx('เลือกอุปกรณ์บน canvas (หรือดับเบิลคลิกอุปกรณ์) เพื่อเปิด Console / Terminal')}</p>
       </section>
     );
   }
@@ -50,7 +51,7 @@ export function Console() {
   if (!PROFILES[device.kind].hasCli) {
     return (
       <section className="card" data-testid="console-unavailable">
-        <p className="muted">{device.name} ({PROFILES[device.kind].label}) ไม่มี Console — โปรแกรมนี้จำลองเฉพาะการวางและต่อสายของอุปกรณ์ชนิดนี้</p>
+        <p className="muted">{tx('{0} ({1}) ไม่มี Console — โปรแกรมนี้จำลองเฉพาะการวางและต่อสายของอุปกรณ์ชนิดนี้', device.name, PROFILES[device.kind].label)}</p>
       </section>
     );
   }
@@ -124,18 +125,14 @@ export function Console() {
     <section className="console-wrap" data-testid="console">
       <div className="console-head">
         <b>{device.name}</b>
-        <span className="muted small"> · {PROFILES[device.kind].label} · {isPc ? 'ipconfig / ping <IPv4>' : 'พิมพ์ ? เพื่อดูคำสั่ง'}</span>
+        <span className="muted small"> · {PROFILES[device.kind].label} · {isPc ? 'ipconfig / ping <IPv4>' : tx('พิมพ์ ? เพื่อดูคำสั่ง')}</span>
         {!isPc && (
-          <button className="link-btn" onClick={() => void copyConfig(device.id)} data-testid="console-copy-config">
-            คัดลอก config
-          </button>
+          <button className="link-btn" onClick={() => void copyConfig(device.id)} data-testid="console-copy-config">{tx('คัดลอก config')}</button>
         )}
-        <button className="link-btn" onClick={() => clear(device.id)}>
-          ล้างหน้าจอ
-        </button>
+        <button className="link-btn" onClick={() => clear(device.id)}>{tx('ล้างหน้าจอ')}</button>
       </div>
       <div className="console-log" ref={logRef} onClick={() => inputRef.current?.focus()} data-testid="console-log">
-        {lines.length === 0 && <div className="out muted">{isPc ? 'Terminal พร้อมใช้งาน — ลอง ipconfig หรือ ping' : 'Console พร้อมใช้งาน — พิมพ์ ? เพื่อดูคำสั่งใน mode นี้'}</div>}
+        {lines.length === 0 && <div className="out muted">{isPc ? tx('Terminal พร้อมใช้งาน — ลอง ipconfig หรือ ping') : tx('Console พร้อมใช้งาน — พิมพ์ ? เพื่อดูคำสั่งใน mode นี้')}</div>}
         {lines.map((l, i) =>
           l.kind === 'cmd' ? (
             <div key={i} className="cmd">
@@ -168,17 +165,17 @@ export function Console() {
       </div>
       {PROFILES[device.kind].vendor === 'aruba' && (
         <details className="approx-note" data-testid="aruba-note">
-          <summary>ℹ ผลลัพธ์ AOS-CX บางส่วนเป็นค่าประมาณ — กดดูรายการ</summary>
+          <summary>{tx('ℹ ผลลัพธ์ AOS-CX บางส่วนเป็นค่าประมาณ — กดดูรายการ')}</summary>
           <ul>
-            <li><code>show arp</code> / <code>show mac-address-table</code>: รูปแบบและระยะห่างคอลัมน์เขียนจากความจำ ยังไม่ได้เทียบกับอุปกรณ์จริง</li>
-            <li><code>vlan trunk allowed</code>: จำลองให้ <b>เพิ่มต่อจากรายการเดิม</b> (ลบด้วย <code>no vlan trunk allowed</code>) ตามข้อมูลที่พบ แต่ยังยืนยันกับเอกสารทางการโดยตรงไม่ได้</li>
-            <li>prompt ตอนอยู่ใน <code>interface &lt;a&gt;-&lt;b&gt;</code> (range) เป็นรูปแบบโดยประมาณ</li>
-            <li>พฤติกรรมเริ่มต้น (พอร์ตเริ่มเป็น shutdown และ routed) เป็นไปตามความเข้าใจ ยังไม่ได้ยืนยันกับเอกสาร</li>
+            <li><code>show arp</code> / <code>show mac-address-table</code>{tx(': รูปแบบและระยะห่างคอลัมน์เขียนจากความจำ ยังไม่ได้เทียบกับอุปกรณ์จริง')}</li>
+            <li><code>vlan trunk allowed</code>{tx(': จำลองให้')}{' '}<b>{tx('เพิ่มต่อจากรายการเดิม')}</b>{' '}{tx('(ลบด้วย')}{' '}<code>no vlan trunk allowed</code>{tx(') ตามข้อมูลที่พบ แต่ยังยืนยันกับเอกสารทางการโดยตรงไม่ได้')}</li>
+            <li>{tx('prompt ตอนอยู่ใน')}{' '}<code>interface &lt;a&gt;-&lt;b&gt;</code>{' '}{tx('(range) เป็นรูปแบบโดยประมาณ')}</li>
+            <li>{tx('พฤติกรรมเริ่มต้น (พอร์ตเริ่มเป็น shutdown และ routed) เป็นไปตามความเข้าใจ ยังไม่ได้ยืนยันกับเอกสาร')}</li>
           </ul>
-          <p>ควรตรวจกับเอกสาร/อุปกรณ์ Aruba จริงก่อนใช้เป็นข้อสอบหรือขั้นตอนในงานจริง</p>
+          <p>{tx('ควรตรวจกับเอกสาร/อุปกรณ์ Aruba จริงก่อนใช้เป็นข้อสอบหรือขั้นตอนในงานจริง')}</p>
         </details>
       )}
-      <p className="muted small">Enter = รันคำสั่ง · Tab = เติมคำสั่ง · ↑/↓ = ย้อนประวัติ · ? = ดูคำสั่งที่ใช้ได้ (ไม่ต้องกด Enter)</p>
+      <p className="muted small">{tx('Enter = รันคำสั่ง · Tab = เติมคำสั่ง · ↑/↓ = ย้อนประวัติ · ? = ดูคำสั่งที่ใช้ได้ (ไม่ต้องกด Enter)')}</p>
     </section>
   );
 }

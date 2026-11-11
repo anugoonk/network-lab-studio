@@ -6,6 +6,7 @@ import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import type { Device } from '../core/types';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
+import { tx } from '../i18n';
 
 function PcConfig({ device }: { device: Device }) {
   const setPcConfig = useStore((s) => s.setPcConfig);
@@ -40,10 +41,8 @@ function PcConfig({ device }: { device: Device }) {
       <label>Default Gateway</label>
       <input value={gw} onChange={(e) => setGw(e.target.value)} placeholder="192.168.1.1" data-testid="pc-gw" />
       {err && <div className="error-box" role="alert">{err}</div>}
-      {saved && <div className="ok-box">บันทึกค่า IP แล้ว</div>}
-      <button className="primary" onClick={apply} data-testid="pc-apply">
-        ใช้ค่านี้
-      </button>
+      {saved && <div className="ok-box">{tx('บันทึกค่า IP แล้ว')}</div>}
+      <button className="primary" onClick={apply} data-testid="pc-apply">{tx('ใช้ค่านี้')}</button>
     </section>
   );
 }
@@ -62,7 +61,7 @@ function L3Section({ device }: { device: Device }) {
               <th>Interface</th>
               <th>VLAN</th>
               <th>IP</th>
-              <th>สถานะ</th>
+              <th>{tx('สถานะ')}</th>
             </tr>
           </thead>
           <tbody>
@@ -71,7 +70,7 @@ function L3Section({ device }: { device: Device }) {
               return (
                 <tr key={subName(x)}>
                   <td>{subName(x).replace('GigabitEthernet', 'Gi')}</td>
-                  <td>{x.vlan ?? 'ยังไม่ตั้ง dot1Q'}</td>
+                  <td>{x.vlan ?? tx('ยังไม่ตั้ง dot1Q')}</td>
                   <td>{x.ip ? `${x.ip}/${maskToPrefix(x.mask!)}` : '–'}</td>
                   <td><span className={`pill ${ifc?.up ? 'up' : 'down'}`}>{ifc?.up ? 'up' : 'down'}</span></td>
                 </tr>
@@ -102,7 +101,7 @@ function L3Section({ device }: { device: Device }) {
                   <tr key={`${r.net}/${r.mask}/${r.nextHop}`}>
                     <td>{r.net === '0.0.0.0' && r.mask === '0.0.0.0' ? 'default (0.0.0.0/0)' : `${r.net}/${maskToPrefix(r.mask)}`}</td>
                     <td>via {r.nextHop}</td>
-                    <td><span className={`pill ${ok ? 'up' : 'down'}`}>{ok ? 'ใช้งานได้' : 'next hop ถึงไม่ได้'}</span></td>
+                    <td><span className={`pill ${ok ? 'up' : 'down'}`}>{ok ? tx('ใช้งานได้') : tx('next hop ถึงไม่ได้')}</span></td>
                   </tr>
                 );
               })}
@@ -111,9 +110,7 @@ function L3Section({ device }: { device: Device }) {
         </>
       )}
       {device.kind === 'cisco-switch' && (
-        <p className="muted small">
-          L2 switch: SVI ใช้เป็น management IP เท่านั้น ไม่ route ระหว่าง VLAN{device.gateway ? ` · default-gateway ${device.gateway}` : ''}
-        </p>
+        <p className="muted small">{tx('L2 switch: SVI ใช้เป็น management IP เท่านั้น ไม่ route ระหว่าง VLAN{0}', device.gateway ? ` · default-gateway ${device.gateway}` : '')}</p>
       )}
     </section>
   );
@@ -147,11 +144,11 @@ function DeviceDetails({ id }: { id: string }) {
           <DeviceIcon kind={device.kind} size={48} />
           <div>
             <div className="dev-title">{p.label}</div>
-            <div className="muted small">รุ่นจำลอง: {p.model}</div>
-            <div className="muted small">CLI อ้างอิง: {p.osRef}</div>
+            <div className="muted small">{tx('รุ่นจำลอง: {0}', p.model)}</div>
+            <div className="muted small">{tx('CLI อ้างอิง: {0}', p.osRef)}</div>
           </div>
         </div>
-        <label htmlFor="dev-name">ชื่ออุปกรณ์ (hostname)</label>
+        <label htmlFor="dev-name">{tx('ชื่ออุปกรณ์ (hostname)')}</label>
         <input
           id="dev-name"
           value={name}
@@ -163,32 +160,24 @@ function DeviceDetails({ id }: { id: string }) {
         {err && <div className="error-box" role="alert">{err}</div>}
         <div className="row">
           {p.hasCli && !p.isHost && (
-            <button onClick={() => void copyConfig(id)} title="คัดลอก running-config ไปที่ clipboard" data-testid="copy-config">
-              คัดลอก config
-            </button>
+            <button onClick={() => void copyConfig(id)} title={tx('คัดลอก running-config ไปที่ clipboard')} data-testid="copy-config">{tx('คัดลอก config')}</button>
           )}
           {p.hasCli && (
-            <button className="primary" onClick={() => openConsole(id)} data-testid="open-console">
-              เปิด {p.isHost ? 'Terminal' : 'Console'}
-            </button>
+            <button className="primary" onClick={() => openConsole(id)} data-testid="open-console">{tx('เปิด {0}', p.isHost ? 'Terminal' : 'Console')}</button>
           )}
-          <button className="danger" onClick={del} data-testid="delete-device">
-            ลบอุปกรณ์
-          </button>
+          <button className="danger" onClick={del} data-testid="delete-device">{tx('ลบอุปกรณ์')}</button>
         </div>
       </section>
 
       {!p.hasCli && (
-        <p className="muted small" data-testid="no-cli-note">
-          อุปกรณ์ชนิดนี้ใช้วาดและต่อสายเท่านั้น — ยังไม่มี CLI, ping, routing หรือ policy ในโปรแกรมนี้
-        </p>
+        <p className="muted small" data-testid="no-cli-note">{tx('อุปกรณ์ชนิดนี้ใช้วาดและต่อสายเท่านั้น — ยังไม่มี CLI, ping, routing หรือ policy ในโปรแกรมนี้')}</p>
       )}
 
       {p.isHost && <PcConfig device={device} />}
 
       {p.isSwitch && (
         <section className="card">
-          <h4>VLAN บนอุปกรณ์นี้</h4>
+          <h4>{tx('VLAN บนอุปกรณ์นี้')}</h4>
           <div className="chips">
             {device.vlans.map((v) => (
               <span className="chip" key={v.id}>
@@ -204,14 +193,14 @@ function DeviceDetails({ id }: { id: string }) {
       )}
 
       <section className="card">
-        <h4>พอร์ต ({device.ifaces.length})</h4>
+        <h4>{tx('พอร์ต ({0})', device.ifaces.length)}</h4>
         <div className="table-scroll">
           <table className="ports" data-testid="port-table">
             <thead>
               <tr>
-                <th>พอร์ต</th>
-                <th>สถานะ</th>
-                <th>ต่อกับ</th>
+                <th>{tx('พอร์ต')}</th>
+                <th>{tx('สถานะ')}</th>
+                <th>{tx('ต่อกับ')}</th>
                 {!p.isSwitch && <th>IP</th>}
                 {p.isSwitch && <th>VLAN</th>}
               </tr>
@@ -263,7 +252,7 @@ function LinkDetails({ id }: { id: string }) {
   const db = getDevice(lab, link.b.deviceId)!;
   return (
     <section className="card" data-testid="link-details">
-      <h4>สาย Ethernet</h4>
+      <h4>{tx('สาย Ethernet')}</h4>
       <p>
         <b>{da.name}</b> {link.a.port}
         <br />↔ <b>{db.name}</b> {link.b.port}
@@ -271,19 +260,17 @@ function LinkDetails({ id }: { id: string }) {
       <table className="ports">
         <tbody>
           <tr>
-            <td>มีสายเชื่อม</td>
-            <td><span className="pill up">ใช่</span></td>
+            <td>{tx('มีสายเชื่อม')}</td>
+            <td><span className="pill up">{tx('ใช่')}</span></td>
           </tr>
           <tr>
-            <td>ลิงก์ใช้งานได้</td>
-            <td><span className={`pill ${st.up ? 'up' : 'down'}`}>{st.up ? 'ใช่ (up)' : 'ไม่ (down)'}</span></td>
+            <td>{tx('ลิงก์ใช้งานได้')}</td>
+            <td><span className={`pill ${st.up ? 'up' : 'down'}`}>{st.up ? tx('ใช่ (up)') : tx('ไม่ (down)')}</span></td>
           </tr>
         </tbody>
       </table>
       <p className="small">{st.reasonTh}</p>
-      <button className="danger" onClick={() => remove(id)} data-testid="delete-link">
-        ลบสายนี้
-      </button>
+      <button className="danger" onClick={() => remove(id)} data-testid="delete-link">{tx('ลบสายนี้')}</button>
     </section>
   );
 }
@@ -307,7 +294,7 @@ function LabDetails() {
   return (
     <section className="card" data-testid="lab-details">
       <h4>Lab details</h4>
-      <label htmlFor="lab-name-input">ชื่อ Lab</label>
+      <label htmlFor="lab-name-input">{tx('ชื่อ Lab')}</label>
       <input
         id="lab-name-input"
         value={name}
@@ -318,13 +305,10 @@ function LabDetails() {
         data-testid="lab-name-input"
       />
       {err && <div className="error-box" role="alert">{err}</div>}
-      <p className="small">
-        อุปกรณ์ {lab.devices.length} · สาย {lab.links.length} · Guide {lab.guide ? `${lab.guide.sections.length} ขั้นตอน` : 'ไม่มี'}
+      <p className="small">{tx('อุปกรณ์ {0} · สาย {1} · Guide', lab.devices.length, lab.links.length)}{' '}{lab.guide ? tx('{0} ขั้นตอน', lab.guide.sections.length) : tx('ไม่มี')}
       </p>
-      <p className="muted small">คลิกอุปกรณ์หรือสายเพื่อดูรายละเอียด ดับเบิลคลิกอุปกรณ์เพื่อเปิด Console</p>
-      <button onClick={() => openConnect()} data-testid="open-connect">
-        เชื่อมสายด้วยแบบฟอร์ม…
-      </button>
+      <p className="muted small">{tx('คลิกอุปกรณ์หรือสายเพื่อดูรายละเอียด ดับเบิลคลิกอุปกรณ์เพื่อเปิด Console')}</p>
+      <button onClick={() => openConnect()} data-testid="open-connect">{tx('เชื่อมสายด้วยแบบฟอร์ม…')}</button>
     </section>
   );
 }

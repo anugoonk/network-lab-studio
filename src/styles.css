@@ -200,7 +200,8 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .arrow { color: var(--muted); margin: 0 3px; }
 .explain { margin: 4px 0; padding-left: 18px; font-size: 13px; }
 
-.notice { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 50; padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 14px rgb(0 0 0 / 22%); cursor: pointer; max-width: 720px; }
+.notice-stack { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; gap: 8px; align-items: center; width: max-content; max-width: min(720px, calc(100vw - 32px)); pointer-events: none; }
+.notice { padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 14px rgb(0 0 0 / 22%); cursor: pointer; max-width: 100%; pointer-events: auto; }
 .notice.ok { background: #176a3b; color: #fff; }
 .notice.error { background: #8a1c1c; color: #fff; }
 .modal-back { position: fixed; inset: 0; background: rgb(20 26 30 / 50%); z-index: 60; display: grid; place-items: center; }
@@ -254,5 +255,9 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .approx-note summary { cursor: pointer; }
 .approx-note ul { margin: 4px 0 4px 18px; padding: 0; }
 
-.share-box { display: flex; gap: 8px; align-items: center; }
+.share-box { display: flex; gap: 8px; align-items: center; width: min(640px, calc(100vw - 32px)); background: #fff; color: #1c2429; border: 1px solid #b7c0c7; }
 .share-box input { flex: 1; min-width: 0; font-family: monospace; font-size: 12px; }
+
+.lang-switch { display: inline-flex; margin-right: 6px; border: 1px solid rgb(255 255 255 / 30%); border-radius: 6px; overflow: hidden; }
+.topbar .lang-switch button { border-radius: 0; padding: 3px 9px; font-weight: 600; }
+.topbar .lang-switch button.active { background: var(--accent); color: #fff; border-bottom: 0; }

@@ -7,6 +7,7 @@ import { fitLab } from './Canvas';
 import { GuidePanel } from './GuidePanel';
 import { Icon } from './Icons';
 import { Palette } from './Palette';
+import { tx } from '../i18n';
 
 interface Entry {
   id: string;
@@ -77,10 +78,10 @@ export function LeftDock() {
     },
     { id: 'manager', icon: 'manager', label: 'Lab Manager', onClick: () => setView('manager'), testId: 'menu-manager' },
     { id: 'library', icon: 'library', label: 'Command Library', onClick: () => setView('library'), testId: 'menu-library' },
-    { id: 'share', icon: 'share', label: 'แชร์ลิงก์ Lab', onClick: () => void shareLab(), testId: 'menu-share' },
-    { id: 'cable', icon: 'cable', label: 'เชื่อมสาย', onClick: () => openConnect(), testId: 'menu-connect' },
+    { id: 'share', icon: 'share', label: tx('แชร์ลิงก์ Lab'), onClick: () => void shareLab(), testId: 'menu-share' },
+    { id: 'cable', icon: 'cable', label: tx('เชื่อมสาย'), onClick: () => openConnect(), testId: 'menu-connect' },
     { id: 'fit', icon: 'fit', label: 'Fit view', onClick: () => fitLab(flow), testId: 'menu-fit' },
-    { id: 'hide', icon: 'tag', label: hideLabels ? 'แสดงป้ายพอร์ต/สถานะ' : 'ซ่อนป้ายพอร์ต/สถานะ', onClick: toggleHide, active: hideLabels, testId: 'menu-hide-labels' },
+    { id: 'hide', icon: 'tag', label: hideLabels ? tx('แสดงป้ายพอร์ต/สถานะ') : tx('ซ่อนป้ายพอร์ต/สถานะ'), onClick: toggleHide, active: hideLabels, testId: 'menu-hide-labels' },
     { id: 'full', icon: 'full', label: 'Fullscreen', onClick: toggleFullscreen, testId: 'menu-fullscreen' },
     { id: 'close', icon: 'close', label: 'Close lab', onClick: () => setView('manager'), testId: 'menu-close' },
   ];
@@ -92,16 +93,16 @@ export function LeftDock() {
 
   return (
     <div className={`dock ${expanded ? 'expanded' : 'rail'}`} data-testid="left-dock">
-      <nav className="menu" aria-label="เมนู Lab">
+      <nav className="menu" aria-label={tx('เมนู Lab')}>
         <button
           className="menu-item hamburger"
           onClick={toggleMenu}
           aria-expanded={expanded}
-          title={expanded ? 'ย่อเมนู' : 'ขยายเมนู'}
+          title={expanded ? tx('ย่อเมนู') : tx('ขยายเมนู')}
           data-testid="menu-toggle"
         >
           <Icon name="menu" />
-          {expanded && <span className="menu-label">เมนู</span>}
+          {expanded && <span className="menu-label">{tx('เมนู')}</span>}
         </button>
         {entries.map((e) => (
           <div key={e.id}>
@@ -119,7 +120,7 @@ export function LeftDock() {
                   <Icon name="chevron" size={16} />
                 </span>
               )}
-              {e.id === 'guide' && !hasGuide && <span className="dot" title="ยังไม่มี Guide" />}
+              {e.id === 'guide' && !hasGuide && <span className="dot" title={tx('ยังไม่มี Guide')} />}
             </button>
             {expanded && e.id === 'add' && e.open && (
               <div className="submenu" data-testid="submenu-add">
@@ -128,14 +129,14 @@ export function LeftDock() {
             )}
             {expanded && e.id === 'nodes' && e.open && (
               <div className="submenu" data-testid="submenu-nodes">
-                {devices.length === 0 && <p className="menu-hint">ยังไม่มีอุปกรณ์ใน Lab</p>}
+                {devices.length === 0 && <p className="menu-hint">{tx('ยังไม่มีอุปกรณ์ใน Lab')}</p>}
                 {devices.map((d) => (
                   <button
                     key={d.id}
                     className={`node-row${selection?.type === 'device' && selection.id === d.id ? ' active' : ''}`}
                     onClick={() => focusNode(d.id)}
                     onDoubleClick={() => openConsole(d.id)}
-                    title={`${PROFILES[d.kind].label} — ดับเบิลคลิกเพื่อเปิด Console`}
+                    title={tx('{0} — ดับเบิลคลิกเพื่อเปิด Console', PROFILES[d.kind].label)}
                     data-testid={`node-row-${d.name}`}
                   >
                     <span className="sq" />

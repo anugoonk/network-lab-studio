@@ -1,7 +1,8 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
 import { captureStart } from './challenge';
-import { campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
+import { campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
 import type { Check, Device, Lab } from './types';
+import { tx } from '../i18n';
 
 export const SAMPLE_NAME = 'Small Office – Cisco & Aruba';
 
@@ -174,7 +175,7 @@ export function buildInterVlanLab(): Lab {
   return lab;
 }
 
-export const TROUBLE_NAME = 'Challenge: Troubleshooting – ออฟฟิศ Inter-VLAN เสีย';
+export const TROUBLE_NAME = tx('Challenge: Troubleshooting – ออฟฟิศ Inter-VLAN เสีย');
 
 /**
  * Third sample (challenge mode): the Inter-VLAN lab with three faults injected.
@@ -193,25 +194,25 @@ export function buildTroubleshootLab(): Lab {
   lab = updateDevice(lab, id('PC-C'), (d) => ({ ...d, gateway: '192.168.10.2' }));
   const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
   const checks: Check[] = [
-    ping(1, 'PC-A', '192.168.10.12', 'PC-A ติดต่อ PC-C (VLAN 10 เดียวกัน) ได้'),
-    ping(2, 'PC-B', '192.168.20.12', 'PC-B ติดต่อ PC-D (VLAN 20 เดียวกัน ข้าม trunk) ได้'),
-    ping(3, 'PC-C', '192.168.20.11', 'PC-C ติดต่อ PC-B (ข้าม VLAN ผ่าน R1) ได้'),
-    ping(4, 'PC-A', '172.16.0.10', 'PC-A ติดต่อ PC-E (ผ่าน R1 และ R2) ได้'),
-    { id: 'c5', kind: 'link-up', label: 'R1 Gi0/0 ลิงก์ up', deviceId: id('R1'), port: 'GigabitEthernet0/0' },
-    { id: 'c6', kind: 'no-dup-ip', label: 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน' },
+    ping(1, 'PC-A', '192.168.10.12', tx('PC-A ติดต่อ PC-C (VLAN 10 เดียวกัน) ได้')),
+    ping(2, 'PC-B', '192.168.20.12', tx('PC-B ติดต่อ PC-D (VLAN 20 เดียวกัน ข้าม trunk) ได้')),
+    ping(3, 'PC-C', '192.168.20.11', tx('PC-C ติดต่อ PC-B (ข้าม VLAN ผ่าน R1) ได้')),
+    ping(4, 'PC-A', '172.16.0.10', tx('PC-A ติดต่อ PC-E (ผ่าน R1 และ R2) ได้')),
+    { id: 'c5', kind: 'link-up', label: tx('R1 Gi0/0 ลิงก์ up'), deviceId: id('R1'), port: 'GigabitEthernet0/0' },
+    { id: 'c6', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
   ];
   lab = {
     ...lab,
     guide: troubleshootGuide(),
     challenge: {
-      title: 'ซ่อมเครือข่ายออฟฟิศ',
-      goal: 'ผู้ใช้แจ้งว่าเครือข่ายมีหลายจุดใช้งานไม่ได้ ให้หาสาเหตุและแก้ไขจนทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสายที่ต่ออยู่',
+      title: tx('ซ่อมเครือข่ายออฟฟิศ'),
+      goal: tx('ผู้ใช้แจ้งว่าเครือข่ายมีหลายจุดใช้งานไม่ได้ ให้หาสาเหตุและแก้ไขจนทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสายที่ต่ออยู่'),
       checks,
       hints: [
-        'ปัญหามี 3 จุดต่างกัน: ดูว่า Check ข้อไหนไม่ผ่านก่อน แล้วไล่จากเครื่องต้นทางไปทีละ hop',
-        'ถ้าเครื่องใน VLAN เดียวกันแต่ต่าง switch คุยกันไม่ได้ ให้ดูว่า trunk ระหว่าง switch ยอมให้ VLAN นั้นผ่านหรือไม่ (show interfaces trunk)',
-        'ถ้าข้าม VLAN/ข้ามเครือข่ายไม่ได้ ให้ดู default gateway ของ PC และ routing table ของ router (ipconfig / show ip route)',
-        'เฉลย: SW1 Gi0/2 ต้องอนุญาต VLAN 20, R2 ต้องมี default route ไป R1, PC-C ต้องใช้ gateway ของ VLAN 10 ที่ถูกต้อง (192.168.10.1)',
+        tx('ปัญหามี 3 จุดต่างกัน: ดูว่า Check ข้อไหนไม่ผ่านก่อน แล้วไล่จากเครื่องต้นทางไปทีละ hop'),
+        tx('ถ้าเครื่องใน VLAN เดียวกันแต่ต่าง switch คุยกันไม่ได้ ให้ดูว่า trunk ระหว่าง switch ยอมให้ VLAN นั้นผ่านหรือไม่ (show interfaces trunk)'),
+        tx('ถ้าข้าม VLAN/ข้ามเครือข่ายไม่ได้ ให้ดู default gateway ของ PC และ routing table ของ router (ipconfig / show ip route)'),
+        tx('เฉลย: SW1 Gi0/2 ต้องอนุญาต VLAN 20, R2 ต้องมี default route ไป R1, PC-C ต้องใช้ gateway ของ VLAN 10 ที่ถูกต้อง (192.168.10.1)'),
       ],
     },
   };
@@ -225,7 +226,7 @@ function withStart(lab: Lab): Lab {
 
 // ───────────────────────── Challenge 2: duplicate IP + wrong VLAN + shut port ─────────────────────────
 
-export const DUPIP_NAME = 'Challenge: IP ซ้ำ + VLAN ผิด + พอร์ตปิด – Small Office';
+export const DUPIP_NAME = tx('Challenge: IP ซ้ำ + VLAN ผิด + พอร์ตปิด – Small Office');
 
 /** Small Office with three faults: PC-04 reuses PC-02's address, PC-08 sits in VLAN 20, PC-09's switch port is shut. */
 export function buildDupIpLab(): Lab {
@@ -238,23 +239,23 @@ export function buildDupIpLab(): Lab {
   }));
   const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
   const checks: Check[] = [
-    ping(1, 'PC-01', '192.168.1.1', 'PC-01 ติดต่อ gateway (R1) ได้'),
-    ping(2, 'PC-08', '192.168.1.1', 'PC-08 ติดต่อ gateway (R1) ได้'),
-    ping(3, 'PC-09', '192.168.1.1', 'PC-09 ติดต่อ gateway (R1) ได้'),
-    { id: 'c4', kind: 'no-dup-ip', label: 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน' },
+    ping(1, 'PC-01', '192.168.1.1', tx('PC-01 ติดต่อ gateway (R1) ได้')),
+    ping(2, 'PC-08', '192.168.1.1', tx('PC-08 ติดต่อ gateway (R1) ได้')),
+    ping(3, 'PC-09', '192.168.1.1', tx('PC-09 ติดต่อ gateway (R1) ได้')),
+    { id: 'c4', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
   ];
   return withStart({
     ...lab,
     guide: dupIpGuide(),
     challenge: {
-      title: 'หาเครื่องที่ IP ซ้ำ และเครื่องที่ต่อไม่ติด',
-      goal: 'ผู้ใช้แจ้งว่ามีเครื่องในออฟฟิศต่อเครือข่ายไม่ได้ และบางเครื่อง "ติดๆ ดับๆ" ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย',
+      title: tx('หาเครื่องที่ IP ซ้ำ และเครื่องที่ต่อไม่ติด'),
+      goal: tx('ผู้ใช้แจ้งว่ามีเครื่องในออฟฟิศต่อเครือข่ายไม่ได้ และบางเครื่อง "ติดๆ ดับๆ" ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย'),
       checks,
       hints: [
-        'ปัญหามี 3 จุด และเป็นคนละชนิดกัน: ดูว่าเครื่องไหนไม่ผ่าน Check แล้วเทียบกับเครื่องที่ผ่าน',
-        'ใช้ show ip arp บน router และ show mac address-table บน switch เพื่อหาเครื่องที่ IP ซ้ำ และดูว่าเครื่องอยู่ VLAN ไหน',
-        'ดู show interface brief / show vlan บน SW2 ว่ามีพอร์ตที่ถูก shutdown หรืออยู่ผิด VLAN หรือไม่',
-        'เฉลย: PC-04 ใช้ IP ซ้ำกับ PC-02 (192.168.1.102), SW2 1/1/3 (PC-08) อยู่ VLAN 20 ต้องกลับเป็น VLAN 10, SW2 1/1/4 (PC-09) ถูก shutdown',
+        tx('ปัญหามี 3 จุด และเป็นคนละชนิดกัน: ดูว่าเครื่องไหนไม่ผ่าน Check แล้วเทียบกับเครื่องที่ผ่าน'),
+        tx('ใช้ show ip arp บน router และ show mac address-table บน switch เพื่อหาเครื่องที่ IP ซ้ำ และดูว่าเครื่องอยู่ VLAN ไหน'),
+        tx('ดู show interface brief / show vlan บน SW2 ว่ามีพอร์ตที่ถูก shutdown หรืออยู่ผิด VLAN หรือไม่'),
+        tx('เฉลย: PC-04 ใช้ IP ซ้ำกับ PC-02 (192.168.1.102), SW2 1/1/3 (PC-08) อยู่ VLAN 20 ต้องกลับเป็น VLAN 10, SW2 1/1/4 (PC-09) ถูก shutdown'),
       ],
     },
   });
@@ -338,25 +339,175 @@ export function buildCampusLab(): Lab {
 
   const ping = (k: number, from: Device, to: string, label: string): Check => ({ id: `c${k}`, kind: 'ping', label, from: from.id, to, expect: 'success' });
   const checks: Check[] = [
-    ping(1, pc, '192.168.10.1', 'PC-01 ติดต่อ gateway (DSW1 VLAN 10) ได้'),
-    ping(2, lap, '192.168.20.1', 'LAP-01 ติดต่อ gateway (DSW1 VLAN 20) ได้'),
-    ping(3, pc, '203.0.113.10', 'PC-01 ติดต่อ SRV-01 (ฝั่ง ISP) ได้'),
-    ping(4, lap, '203.0.113.10', 'LAP-01 ติดต่อ SRV-01 (ฝั่ง ISP) ได้'),
-    { id: 'c5', kind: 'link-up', label: 'DSW1 1/1/24 (ลิงก์ไป ISP1) up', deviceId: dsw.id, port: '1/1/24' },
-    { id: 'c6', kind: 'no-dup-ip', label: 'ไม่มี IP ซ้ำใน L2 domain เดียวกัน' },
+    ping(1, pc, '192.168.10.1', tx('PC-01 ติดต่อ gateway (DSW1 VLAN 10) ได้')),
+    ping(2, lap, '192.168.20.1', tx('LAP-01 ติดต่อ gateway (DSW1 VLAN 20) ได้')),
+    ping(3, pc, '203.0.113.10', tx('PC-01 ติดต่อ SRV-01 (ฝั่ง ISP) ได้')),
+    ping(4, lap, '203.0.113.10', tx('LAP-01 ติดต่อ SRV-01 (ฝั่ง ISP) ได้')),
+    { id: 'c5', kind: 'link-up', label: tx('DSW1 1/1/24 (ลิงก์ไป ISP1) up'), deviceId: dsw.id, port: '1/1/24' },
+    { id: 'c6', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
   ];
   return withStart({
     ...lab,
     guide: campusGuide(),
     challenge: {
-      title: 'ซ่อมเครือข่าย Campus ที่ออกอินเทอร์เน็ตไม่ได้',
-      goal: 'เพิ่ง cutover โครงสร้างใหม่ (L3 switch เป็น gateway, ISP จำลองด้านบน) ผู้ใช้ใน VLAN ใดก็ออกไปหา server ฝั่ง ISP ไม่ได้ ให้หาสาเหตุทุกชั้นแล้วแก้ให้ทุก Check ผ่าน — มีปัญหามากกว่าหนึ่งจุด และบางจุดจะเห็นก็ต่อเมื่อแก้จุดก่อนหน้าแล้ว',
+      title: tx('ซ่อมเครือข่าย Campus ที่ออกอินเทอร์เน็ตไม่ได้'),
+      goal: tx('เพิ่ง cutover โครงสร้างใหม่ (L3 switch เป็น gateway, ISP จำลองด้านบน) ผู้ใช้ใน VLAN ใดก็ออกไปหา server ฝั่ง ISP ไม่ได้ ให้หาสาเหตุทุกชั้นแล้วแก้ให้ทุก Check ผ่าน — มีปัญหามากกว่าหนึ่งจุด และบางจุดจะเห็นก็ต่อเมื่อแก้จุดก่อนหน้าแล้ว'),
       checks,
       hints: [
-        'เริ่มจาก gateway ของแต่ละ VLAN: ถ้า PC ยัง ping gateway ของตัวเองไม่ได้ ปัญหาอยู่ใกล้ตัวเครื่องก่อน (ยังไม่ต้องดู ISP)',
-        'บน DSW1 ใช้ show ip interface brief (หรือ show interface) ดูว่า SVI ของ VLAN ไหนไม่ up',
-        'พอถึง gateway แล้วแต่ออก ISP ไม่ได้: ดู routing table ของ DSW1 ว่ามี default route หรือไม่ และ ISP1 รู้จักเครือข่ายภายใน (192.168.10.0/24, 192.168.20.0/24) หรือไม่ — ต้องมีทั้งขาไปและขากลับ',
-        'เฉลย: DSW1 interface vlan 20 ถูก shutdown, DSW1 ไม่มี default route ไป ISP1, ISP1 ไม่มี route กลับไป 192.168.10.0/24',
+        tx('เริ่มจาก gateway ของแต่ละ VLAN: ถ้า PC ยัง ping gateway ของตัวเองไม่ได้ ปัญหาอยู่ใกล้ตัวเครื่องก่อน (ยังไม่ต้องดู ISP)'),
+        tx('บน DSW1 ใช้ show ip interface brief (หรือ show interface) ดูว่า SVI ของ VLAN ไหนไม่ up'),
+        tx('พอถึง gateway แล้วแต่ออก ISP ไม่ได้: ดู routing table ของ DSW1 ว่ามี default route หรือไม่ และ ISP1 รู้จักเครือข่ายภายใน (192.168.10.0/24, 192.168.20.0/24) หรือไม่ — ต้องมีทั้งขาไปและขากลับ'),
+        tx('เฉลย: DSW1 interface vlan 20 ถูก shutdown, DSW1 ไม่มี default route ไป ISP1, ISP1 ไม่มี route กลับไป 192.168.10.0/24'),
+      ],
+    },
+  });
+}
+
+// ───────────────────────── Campus 3 Tier (Aruba CX), simplified ─────────────────────────
+
+export const CAMPUS3_NAME = 'Campus 3 Tier – Aruba CX (static route)';
+
+/**
+ * Simplified version of Aruba's "Campus 3 Tier L2 Access with VSX and OSPF" lab, using only what the simulator has:
+ * core (X, Y) – distribution (A, B) – access (C), routed /31 links, SVIs, static routes. No VSX, LAG, active-gateway, VRF,
+ * loopback or OSPF: SwitchA is the gateway of both VLANs, SwitchB is a second gateway reachable over the A–B trunk, and the
+ * access switch is single-homed (dual-homing without VSX/STP would form a Layer 2 loop).
+ */
+export function buildCampus3Lab(): Lab {
+  let lab = emptyLab(CAMPUS3_NAME);
+  let n = 0;
+  const mk = (kind: Device['kind'], name: string, x: number, y: number) => {
+    const d = createDevice(kind, `d${++n}`, name, x, y);
+    lab = { ...lab, devices: [...lab.devices, d] };
+    return d;
+  };
+  const core1 = mk('l3-switch', 'SwitchX-Core-1', 240, 20);
+  const core2 = mk('l3-switch', 'SwitchY-Core-2', 700, 20);
+  const swA = mk('l3-switch', 'SwitchA-VSX', 240, 230);
+  const swB = mk('l3-switch', 'SwitchB-VSX', 700, 230);
+  const acc = mk('aruba-switch', 'SwitchC-Access', 470, 430);
+  const vpc1 = mk('pc', 'VPC1', 330, 620);
+  const vpc2 = mk('pc', 'VPC2', 610, 620);
+
+  const setIface = (devId: string, port: string, patch: Record<string, unknown>) => {
+    lab = updateDevice(lab, devId, (d) => ({ ...d, ifaces: d.ifaces.map((i) => (i.name === port ? { ...i, ...patch } : i)) }));
+  };
+  const routed = (d: Device, port: string, ip: string) => setIface(d.id, port, { adminUp: true, routed: true, ip, mask: '255.255.255.254' });
+  const trunk = (d: Device, port: string) => setIface(d.id, port, { adminUp: true, routed: false, trunk: true, trunkAllowed: [100, 200] });
+  const access = (d: Device, port: string, vlan: number) => setIface(d.id, port, { adminUp: true, routed: false, accessVlan: vlan });
+  const vlans = [
+    { id: 1, name: 'DEFAULT_VLAN_1' },
+    { id: 100, name: 'VLAN100' },
+    { id: 200, name: 'VLAN200' },
+  ];
+  const route = (d: Device, net: string, mask: string, nextHop: string) => {
+    lab = updateDevice(lab, d.id, (x) => ({ ...x, routes: [...x.routes, { net, mask, nextHop }] }));
+  };
+  const withSvis = (d: Device, last: number) => {
+    lab = updateDevice(lab, d.id, (x) => ({
+      ...x,
+      vlans,
+      svis: [
+        { vlan: 100, adminUp: true, description: '', ip: `10.10.100.${last}`, mask: '255.255.255.0' },
+        { vlan: 200, adminUp: true, description: '', ip: `10.10.200.${last}`, mask: '255.255.255.0' },
+      ],
+    }));
+  };
+
+  // routed /31 links (core ↔ distribution, core ↔ core)
+  routed(core1, '1/1/1', '192.168.4.8');
+  routed(swA, '1/1/1', '192.168.4.9');
+  routed(core1, '1/1/2', '192.168.4.12');
+  routed(swB, '1/1/1', '192.168.4.13');
+  routed(core2, '1/1/1', '192.168.4.16');
+  routed(swA, '1/1/2', '192.168.4.17');
+  routed(core2, '1/1/2', '192.168.4.20');
+  routed(swB, '1/1/2', '192.168.4.21');
+  routed(core1, '1/1/3', '192.168.4.24');
+  routed(core2, '1/1/3', '192.168.4.25');
+
+  // distribution: SVIs (gateways), ISL trunk A–B, trunk down to the access switch
+  withSvis(swA, 252);
+  withSvis(swB, 253);
+  trunk(swA, '1/1/3');
+  trunk(swB, '1/1/3');
+  trunk(swA, '1/1/4');
+  lab = updateDevice(lab, acc.id, (x) => ({ ...x, vlans }));
+  trunk(acc, '1/1/1');
+  access(acc, '1/1/3', 100);
+  access(acc, '1/1/4', 200);
+
+  // static routes instead of OSPF: distribution defaults up to Core-1, cores point the user VLANs at SwitchA
+  route(swA, '0.0.0.0', '0.0.0.0', '192.168.4.8');
+  route(swB, '0.0.0.0', '0.0.0.0', '192.168.4.12');
+  for (const [core, viaA] of [[core1, '192.168.4.9'], [core2, '192.168.4.17']] as const) {
+    route(core, '10.10.100.0', '255.255.255.0', viaA);
+    route(core, '10.10.200.0', '255.255.255.0', viaA);
+  }
+
+  const host = (d: Device, ip: string, gw: string) => {
+    lab = updateDevice(lab, d.id, (x) => ({ ...x, gateway: gw, ifaces: x.ifaces.map((i) => ({ ...i, ip, mask: '255.255.255.0' })) }));
+  };
+  host(vpc1, '10.10.100.11', '10.10.100.252');
+  host(vpc2, '10.10.200.11', '10.10.200.252');
+
+  const link = (a: Device, ap_: string, b: Device, bp: string) => {
+    const r = addLink(lab, { deviceId: a.id, port: ap_ }, { deviceId: b.id, port: bp });
+    if (r.error) throw new Error(r.error);
+    lab = r.lab;
+  };
+  link(core1, '1/1/1', swA, '1/1/1');
+  link(core1, '1/1/2', swB, '1/1/1');
+  link(core2, '1/1/1', swA, '1/1/2');
+  link(core2, '1/1/2', swB, '1/1/2');
+  link(core1, '1/1/3', core2, '1/1/3');
+  link(swA, '1/1/3', swB, '1/1/3');
+  link(swA, '1/1/4', acc, '1/1/1');
+  link(acc, '1/1/3', vpc1, 'Ethernet0');
+  link(acc, '1/1/4', vpc2, 'Ethernet0');
+  lab = { ...lab, counters: { ...lab.counters, __id: n } };
+  return { ...lab, guide: campus3Guide() };
+}
+
+// ───────────────────────── Challenge 4: Campus 3 Tier with faults ─────────────────────────
+
+export const CAMPUS3_TROUBLE_NAME = 'Challenge: Campus 3 Tier – Aruba CX';
+
+/**
+ * Campus 3 Tier with three faults: (1) SwitchA's trunk to the access switch no longer allows VLAN 200,
+ * (2) SwitchA's default route points at a next hop that does not exist, (3) Core-2 lost its return route to 10.10.100.0/24.
+ */
+export function buildCampus3TroubleLab(): Lab {
+  let lab: Lab = { ...buildCampus3Lab(), name: CAMPUS3_TROUBLE_NAME };
+  const id = (name: string) => lab.devices.find((d) => d.name === name)!.id;
+  lab = updateDevice(lab, id('SwitchA-VSX'), (d) => ({
+    ...d,
+    ifaces: d.ifaces.map((i) => (i.name === '1/1/4' ? { ...i, trunkAllowed: [100] } : i)),
+    routes: d.routes.map((r) => (r.net === '0.0.0.0' ? { ...r, nextHop: '192.168.4.18' } : r)),
+  }));
+  lab = updateDevice(lab, id('SwitchY-Core-2'), (d) => ({ ...d, routes: d.routes.filter((r) => r.net !== '10.10.100.0') }));
+  const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
+  const checks: Check[] = [
+    ping(1, 'VPC1', '10.10.100.252', tx('VPC1 ติดต่อ gateway (SwitchA VLAN 100) ได้')),
+    ping(2, 'VPC2', '10.10.200.252', tx('VPC2 ติดต่อ gateway (SwitchA VLAN 200) ได้')),
+    ping(3, 'VPC1', '10.10.200.11', tx('VPC1 ติดต่อ VPC2 (ข้าม VLAN ผ่าน SwitchA) ได้')),
+    ping(4, 'VPC1', '192.168.4.8', tx('VPC1 ติดต่อ Core-1 ได้')),
+    ping(5, 'VPC1', '192.168.4.25', tx('VPC1 ติดต่อ Core-2 (ผ่าน Core-1) ได้')),
+    { id: 'c6', kind: 'link-up', label: tx('SwitchA 1/1/4 (ลิงก์ไป Access) up'), deviceId: id('SwitchA-VSX'), port: '1/1/4' },
+    { id: 'c7', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
+  ];
+  return withStart({
+    ...lab,
+    guide: campus3ChallengeGuide(),
+    challenge: {
+      title: tx('ซ่อม Campus 3 Tier ที่ใช้งานได้ไม่ครบ'),
+      goal: tx('หลังแก้ config ล่าสุด ผู้ใช้บาง VLAN ใช้งานไม่ได้ และเครื่องใน VLAN 100 ไปไม่ถึง Core-2 ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย — มีปัญหามากกว่าหนึ่งจุด และบางจุดจะเห็นก็ต่อเมื่อแก้จุดก่อนหน้าแล้ว'),
+      checks,
+      hints: [
+        tx('เริ่มจากชั้นล่างสุด: ถ้า VPC ยัง ping gateway ของตัวเองไม่ได้ ให้ดูเส้นทาง L2 ระหว่างเครื่องกับ SwitchA ก่อน (ยังไม่ต้องดู Core)'),
+        tx('บน SwitchA ใช้ show interface 1/1/4 หรือ show vlan ดูว่า trunk ไป Access ยอมให้ VLAN ไหนผ่านบ้าง'),
+        tx('ถ้าถึง gateway แล้วแต่ไปไม่ถึง Core-2: ดู show ip route บน SwitchA ว่า next-hop ของ default route เป็น IP ที่อยู่ในเครือข่าย /31 ที่ต่ออยู่จริงหรือไม่ แล้วดูว่า Core-2 มี route กลับมายัง 10.10.100.0/24 หรือไม่'),
+        tx('เฉลย: SwitchA 1/1/4 ต้องอนุญาต VLAN 200 (vlan trunk allowed 100,200), default route ของ SwitchA ต้องชี้ 192.168.4.8, Core-2 ต้องมี ip route 10.10.100.0/24 192.168.4.17'),
       ],
     },
   });
@@ -364,7 +515,7 @@ export function buildCampusLab(): Lab {
 
 // ───────────────────────── catalog ─────────────────────────
 
-export type SampleKind = 'office' | 'intervlan' | 'trouble' | 'dupip' | 'campus';
+export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble';
 
 export interface SampleInfo {
   /** short name used on buttons and in confirmations */
@@ -378,7 +529,9 @@ export interface SampleInfo {
 export const SAMPLES: Record<SampleKind, SampleInfo> = {
   office: { title: 'Small Office', hint: 'Cisco + Aruba, VLAN, ping', challenge: false, build: buildSampleLab },
   intervlan: { title: 'Inter-VLAN', hint: 'Trunk, router-on-a-stick, static route, SVI', challenge: false, build: buildInterVlanLab },
-  trouble: { title: 'Challenge 1: Inter-VLAN เสีย', hint: 'trunk allowed + default route + gateway ผิด (3 จุด)', challenge: true, build: buildTroubleshootLab },
-  dupip: { title: 'Challenge 2: IP ซ้ำ + VLAN ผิด', hint: 'ใช้ show mac address-table / show ip arp หาเครื่องที่ผิด (3 จุด)', challenge: true, build: buildDupIpLab },
-  campus: { title: 'Challenge 3: Campus + ISP', hint: 'L3 switch, server, AP — ปัญหาซ้อนกันหลายชั้น (3 จุด)', challenge: true, build: buildCampusLab },
+  campus3: { title: 'Campus 3 Tier (Aruba CX)', hint: tx('Core / Distribution / Access, routed /31, SVI, static route แทน OSPF — ย่อจาก Lab ของ Aruba'), challenge: false, build: buildCampus3Lab },
+  trouble: { title: tx('Challenge 1: Inter-VLAN เสีย'), hint: tx('trunk allowed + default route + gateway ผิด (3 จุด)'), challenge: true, build: buildTroubleshootLab },
+  dupip: { title: tx('Challenge 2: IP ซ้ำ + VLAN ผิด'), hint: tx('ใช้ show mac address-table / show ip arp หาเครื่องที่ผิด (3 จุด)'), challenge: true, build: buildDupIpLab },
+  campus: { title: 'Challenge 3: Campus + ISP', hint: tx('L3 switch, server, AP — ปัญหาซ้อนกันหลายชั้น (3 จุด)'), challenge: true, build: buildCampusLab },
+  campus3trouble: { title: 'Challenge 4: Campus 3 Tier', hint: tx('Trunk allowed + default route ผิด + route ขากลับหาย บน Aruba CX (3 จุด)'), challenge: true, build: buildCampus3TroubleLab },
 };

@@ -14,6 +14,7 @@ import { maskToPrefix, sameSubnet, networkOf, parseIp } from './ip';
 import { getDevice, getIface, linkAt, peerOf, subName } from './lab';
 import { PROFILES, shortPort } from './profiles';
 import type { Device, Endpoint, Iface, Lab, Link } from './types';
+import { tx } from '../i18n';
 
 const isSwitch = (d: Device) => PROFILES[d.kind].isSwitch;
 const canForward = (d: Device) => PROFILES[d.kind].canForward;
@@ -39,14 +40,14 @@ export function linkStatus(lab: Lab, link: Link): LinkStatus {
   const aAdmin = !!ia?.adminUp;
   const bAdmin = !!ib?.adminUp;
   const down: string[] = [];
-  if (!aAdmin) down.push(`${shortPort(link.a.port)} ของ ${da?.name ?? '?'}`);
-  if (!bAdmin) down.push(`${shortPort(link.b.port)} ของ ${db?.name ?? '?'}`);
+  if (!aAdmin) down.push(tx('{0} ของ {1}', shortPort(link.a.port), da?.name ?? '?'));
+  if (!bAdmin) down.push(tx('{0} ของ {1}', shortPort(link.b.port), db?.name ?? '?'));
   return {
     cable: true,
     up: aAdmin && bAdmin,
     aAdmin,
     bAdmin,
-    reasonTh: down.length ? `พอร์ต ${down.join(' และ ')} ถูก shutdown` : 'พอร์ตทั้งสองฝั่งเปิดใช้งาน',
+    reasonTh: down.length ? tx('พอร์ต {0} ถูก shutdown', down.join(tx(' และ '))) : tx('พอร์ตทั้งสองฝั่งเปิดใช้งาน'),
   };
 }
 
@@ -61,10 +62,10 @@ export function portLine(lab: Lab, dev: Device, iface: Iface): PortLine {
 }
 
 export const PORT_LINE_TH: Record<PortLine, string> = {
-  up: 'ใช้งานได้ (up)',
-  down: 'มีสายแต่ลิงก์ down',
-  'admin-down': 'ถูก shutdown',
-  'no-cable': 'ไม่มีสาย',
+  up: tx('ใช้งานได้ (up)'),
+  down: tx('มีสายแต่ลิงก์ down'),
+  'admin-down': tx('ถูก shutdown'),
+  'no-cable': tx('ไม่มีสาย'),
 };
 
 const linkUp = (lab: Lab, dev: Device, port: string): boolean => {
@@ -93,10 +94,10 @@ export function isL2Member(dev: Device, iface: Iface): boolean {
 /** Thai reason why a switch port does not carry VLAN v ('' when it does). */
 function whyNotCarry(dev: Device, i: Iface, v: number): string {
   if (arubaSw(dev) && i.routed)
-    return `พอร์ต ${i.name} ของ ${dev.name} ยังเป็น routed port (AOS-CX ต้องสั่ง no routing ก่อนใช้เป็น L2 port)`;
-  if (!dev.vlans.some((x) => x.id === v)) return `VLAN ${v} ยังไม่ได้สร้างบน ${dev.name}`;
-  if (i.trunk && !allowsVlan(i, v)) return `trunk ${i.name} ของ ${dev.name} ไม่อนุญาต VLAN ${v} (allowed vlan)`;
-  if (!i.trunk && i.accessVlan !== v) return `พอร์ต ${i.name} ของ ${dev.name} เป็น access VLAN ${i.accessVlan} ไม่ใช่ VLAN ${v}`;
+    return tx('พอร์ต {0} ของ {1} ยังเป็น routed port (AOS-CX ต้องสั่ง no routing ก่อนใช้เป็น L2 port)', i.name, dev.name);
+  if (!dev.vlans.some((x) => x.id === v)) return tx('VLAN {0} ยังไม่ได้สร้างบน {1}', v, dev.name);
+  if (i.trunk && !allowsVlan(i, v)) return tx('trunk {0} ของ {1} ไม่อนุญาต VLAN {2} (allowed vlan)', i.name, dev.name, v);
+  if (!i.trunk && i.accessVlan !== v) return tx('พอร์ต {0} ของ {1} เป็น access VLAN {2} ไม่ใช่ VLAN {3}', i.name, dev.name, i.accessVlan, v);
   return '';
 }
 
@@ -317,7 +318,7 @@ function findPhysicalPath(lab: Lab, first: Step, start: Device, goal: Device): S
 
 function walkSteps(cur: Device, src: L3If, target: L3If, steps: Step[]): string | null {
   let reached = cur;
-  const lead = () => (reached.id === cur.id ? `${cur.name}:` : `${cur.name} ไปถึง ${reached.name} ได้ แต่`);
+  const lead = () => (reached.id === cur.id ? `${cur.name}:` : tx('{0} ไปถึง {1} ได้ แต่', cur.name, reached.name));
   let tag: number | null = src.kind === 'sub' ? (src.tag ?? null) : null;
 
   if (src.kind === 'svi' && steps.length) {
@@ -326,46 +327,46 @@ function walkSteps(cur: Device, src: L3If, target: L3If, steps: Step[]): string 
     if (why) return `${lead()} ${why}`;
     tag = R.trunk && src.vlan !== R.nativeVlan ? src.vlan! : null;
   }
-  if (src.kind === 'sub' && src.tag === null) return `${cur.name}: sub-interface ${src.name} ยังไม่ได้ตั้ง encapsulation dot1Q`;
+  if (src.kind === 'sub' && src.tag === null) return tx('{0}: sub-interface {1} ยังไม่ได้ตั้ง encapsulation dot1Q', cur.name, src.name);
 
   for (let k = 0; k < steps.length; k++) {
     const s = steps[k];
     const oi = getIface(s.from, s.out);
     const ii = getIface(s.to, s.in);
-    if (oi && !oi.adminUp) return `${lead()} พอร์ต ${s.out} ของ ${s.from.name} ถูก shutdown (administratively down)`;
-    if (ii && !ii.adminUp) return `${lead()} พอร์ต ${s.in} ของ ${s.to.name} ถูก shutdown (administratively down)`;
+    if (oi && !oi.adminUp) return tx('{0} พอร์ต {1} ของ {2} ถูก shutdown (administratively down)', lead(), s.out, s.from.name);
+    if (ii && !ii.adminUp) return tx('{0} พอร์ต {1} ของ {2} ถูก shutdown (administratively down)', lead(), s.in, s.to.name);
 
     if (isSwitch(s.to)) {
       const Q = ii!;
       if (arubaSw(s.to) && Q.routed)
-        return `${lead()} พอร์ต ${s.in} ของ ${s.to.name} ยังเป็น routed port (AOS-CX ต้องสั่ง no routing ก่อนใช้เป็น L2 port)`;
+        return tx('{0} พอร์ต {1} ของ {2} ยังเป็น routed port (AOS-CX ต้องสั่ง no routing ก่อนใช้เป็น L2 port)', lead(), s.in, s.to.name);
       let v: number;
       if (Q.trunk) {
         v = tag === null ? Q.nativeVlan : tag;
-        if (!allowsVlan(Q, v)) return `${lead()} trunk ${s.in} ของ ${s.to.name} ไม่อนุญาต VLAN ${v} (${tag === null ? 'native VLAN ' : ''}ไม่อยู่ใน allowed vlan)`;
+        if (!allowsVlan(Q, v)) return tx('{0} trunk {1} ของ {2} ไม่อนุญาต VLAN {3} ({4}ไม่อยู่ใน allowed vlan)', lead(), s.in, s.to.name, v, tag === null ? 'native VLAN ' : '');
       } else {
         if (tag !== null)
-          return `${lead()} ${cur.name} ส่งเฟรม tagged VLAN ${tag} แต่พอร์ต ${s.in} ของ ${s.to.name} เป็น access port (ต้องตั้งเป็น trunk)`;
+          return tx('{0} {1} ส่งเฟรม tagged VLAN {2} แต่พอร์ต {3} ของ {4} เป็น access port (ต้องตั้งเป็น trunk)', lead(), cur.name, tag, s.in, s.to.name);
         v = Q.accessVlan;
       }
-      if (!s.to.vlans.some((x) => x.id === v)) return `${lead()} VLAN ${v} ยังไม่ได้สร้างบน ${s.to.name}`;
+      if (!s.to.vlans.some((x) => x.id === v)) return tx('{0} VLAN {1} ยังไม่ได้สร้างบน {2}', lead(), v, s.to.name);
       const next = steps[k + 1];
       if (next) {
         const R = getIface(s.to, next.out)!;
         if (!portCarries(s.to, R, v)) {
           const base = whyNotCarry(s.to, R, v);
-          const via = !R.trunk && !Q.trunk ? ` — ใน ${s.to.name} พอร์ต ${s.in} อยู่ VLAN ${v} แต่พอร์ต ${next.out} อยู่ VLAN ${R.accessVlan} จึงส่งข้ามกันไม่ได้` : '';
+          const via = !R.trunk && !Q.trunk ? tx(' — ใน {0} พอร์ต {1} อยู่ VLAN {2} แต่พอร์ต {3} อยู่ VLAN {4} จึงส่งข้ามกันไม่ได้', s.to.name, s.in, v, next.out, R.accessVlan) : '';
           return `${lead()} ${base}${via}`;
         }
         tag = R.trunk && v !== R.nativeVlan ? v : null;
       } else if (target.kind === 'svi' && target.vlan !== v) {
-        return `${lead()} เฟรมเข้า ${s.to.name} ใน VLAN ${v} แต่ ${target.name} อยู่ VLAN ${target.vlan}`;
+        return tx('{0} เฟรมเข้า {1} ใน VLAN {2} แต่ {3} อยู่ VLAN {4}', lead(), s.to.name, v, target.name, target.vlan);
       }
     } else if (!steps[k + 1]) {
       if (target.kind === 'sub' && tag !== target.tag)
-        return `${lead()} ปลายทาง ${target.name} ต้องการเฟรม tagged VLAN ${target.tag} แต่ได้รับ ${tag === null ? 'untagged' : `tagged VLAN ${tag}`} (ตรวจ trunk/encapsulation)`;
+        return tx('{0} ปลายทาง {1} ต้องการเฟรม tagged VLAN {2} แต่ได้รับ {3} (ตรวจ trunk/encapsulation)', lead(), target.name, target.tag, tag === null ? 'untagged' : `tagged VLAN ${tag}`);
       if (target.kind === 'port' && tag !== null)
-        return `${lead()} ${s.to.name} (${s.in}) ไม่รองรับเฟรม tagged VLAN ${tag}`;
+        return tx('{0} {1} ({2}) ไม่รองรับเฟรม tagged VLAN {3}', lead(), s.to.name, s.in, tag);
     }
     reached = s.to;
   }
@@ -374,37 +375,37 @@ function walkSteps(cur: Device, src: L3If, target: L3If, steps: Step[]): string 
 
 /** Explain (in Thai) why `cur` cannot resolve `targetIp` on `out`. */
 export function diagnoseUnresolved(lab: Lab, cur: Device, out: L3If, targetIp: string, role: 'destination' | 'gateway'): string {
-  const roleTh = role === 'gateway' ? `Default gateway ${targetIp}` : `ปลายทาง ${targetIp}`;
-  if (!out.adminUp) return `${out.name} ของ ${cur.name} ถูก shutdown จึงส่งข้อมูลออกไม่ได้`;
+  const roleTh = role === 'gateway' ? `Default gateway ${targetIp}` : tx('ปลายทาง {0}', targetIp);
+  if (!out.adminUp) return tx('{0} ของ {1} ถูก shutdown จึงส่งข้อมูลออกไม่ได้', out.name, cur.name);
 
   const owners = lab.devices
     .filter((d) => d.id !== cur.id)
     .flatMap((d) => l3Interfaces(lab, d).filter((i) => i.ip === targetIp).map((i) => ({ d, i })));
   if (owners.length === 0) {
     return role === 'gateway'
-      ? `${cur.name} ส่งไปที่ gateway ${targetIp} แต่ไม่มีอุปกรณ์ใดใช้ IP นี้ในเครือข่ายที่เข้าถึงได้ (gateway ตั้งผิด หรืออุปกรณ์ gateway ยังไม่ได้ตั้ง IP / ยังปิดพอร์ตอยู่)`
-      : `ไม่พบอุปกรณ์ที่ใช้ IP ${targetIp} ในเครือข่ายที่ ${cur.name} เข้าถึงได้ (IP พิมพ์ผิด หรืออุปกรณ์ปลายทางยังไม่ได้ตั้ง IP / พอร์ตยัง shutdown)`;
+      ? tx('{0} ส่งไปที่ gateway {1} แต่ไม่มีอุปกรณ์ใดใช้ IP นี้ในเครือข่ายที่เข้าถึงได้ (gateway ตั้งผิด หรืออุปกรณ์ gateway ยังไม่ได้ตั้ง IP / ยังปิดพอร์ตอยู่)', cur.name, targetIp)
+      : tx('ไม่พบอุปกรณ์ที่ใช้ IP {0} ในเครือข่ายที่ {1} เข้าถึงได้ (IP พิมพ์ผิด หรืออุปกรณ์ปลายทางยังไม่ได้ตั้ง IP / พอร์ตยัง shutdown)', targetIp, cur.name);
   }
 
   // candidate first links
   const firstLinks: Link[] = [];
   if (out.kind === 'svi') {
     for (const l of lab.links) if (l.a.deviceId === cur.id || l.b.deviceId === cur.id) firstLinks.push(l);
-    if (!firstLinks.length) return `${out.name} ของ ${cur.name}: ${cur.name} ยังไม่มีสายเชื่อมพอร์ตใดเลย`;
+    if (!firstLinks.length) return tx('{0} ของ {1}: {2} ยังไม่มีสายเชื่อมพอร์ตใดเลย', out.name, cur.name, cur.name);
   } else {
     const l = linkAt(lab, cur.id, out.port!);
-    if (!l) return `พอร์ต ${out.port} ของ ${cur.name} ยังไม่ได้เชื่อมสาย จึงเข้าถึง ${roleTh} ไม่ได้`;
+    if (!l) return tx('พอร์ต {0} ของ {1} ยังไม่ได้เชื่อมสาย จึงเข้าถึง {2} ไม่ได้', out.port, cur.name, roleTh);
     firstLinks.push(l);
   }
 
   const problems: string[] = [];
   for (const { d: owner, i: oi } of owners) {
     if (!oi.adminUp) {
-      problems.push(`${oi.name} ของ ${owner.name} (ที่ใช้ IP ${targetIp}) ถูก shutdown`);
+      problems.push(tx('{0} ของ {1} (ที่ใช้ IP {2}) ถูก shutdown', oi.name, owner.name, targetIp));
       continue;
     }
     if (oi.kind === 'svi' && !oi.up) {
-      problems.push(`${oi.name} ของ ${owner.name} ยัง down (VLAN ไม่มีอยู่ หรือไม่มีพอร์ตที่ up ใน VLAN ${oi.vlan})`);
+      problems.push(tx('{0} ของ {1} ยัง down (VLAN ไม่มีอยู่ หรือไม่มีพอร์ตที่ up ใน VLAN {2})', oi.name, owner.name, oi.vlan));
       continue;
     }
     let found = false;
@@ -419,9 +420,9 @@ export function diagnoseUnresolved(lab: Lab, cur: Device, out: L3If, targetIp: s
         break;
       }
     }
-    if (!found) problems.push(`ไม่มีสายเชื่อมต่อเนื่องจาก ${cur.name} ไปยัง ${owner.name} (ที่ใช้ IP ${targetIp})`);
+    if (!found) problems.push(tx('ไม่มีสายเชื่อมต่อเนื่องจาก {0} ไปยัง {1} (ที่ใช้ IP {2})', cur.name, owner.name, targetIp));
   }
-  return problems[0] ?? `${cur.name} หา ${roleTh} บนลิงก์เดียวกันไม่พบ`;
+  return problems[0] ?? tx('{0} หา {1} บนลิงก์เดียวกันไม่พบ', cur.name, roleTh);
 }
 
 // ───────────────────────── routing / delivery / ping ─────────────────────────
@@ -477,8 +478,8 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
       const hasStatic = cur.routes.some((r) => sameSubnet(r.net, dstIp, r.mask));
       return {
         fail: hasStatic
-          ? `${cur.name} มี static route ไป ${dstIp} แต่ next hop ไม่อยู่ใน subnet ของ interface ที่ up/up จึงใช้ route นี้ไม่ได้`
-          : `${cur.name} ไม่มีเส้นทางไป ${dstIp} (ไม่มี connected route หรือ static route ที่ตรง)`,
+          ? tx('{0} มี static route ไป {1} แต่ next hop ไม่อยู่ใน subnet ของ interface ที่ up/up จึงใช้ route นี้ไม่ได้', cur.name, dstIp)
+          : tx('{0} ไม่มีเส้นทางไป {1} (ไม่มี connected route หรือ static route ที่ตรง)', cur.name, dstIp),
         kind: 'noroute',
       };
     }
@@ -486,16 +487,16 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
   }
 
   if (best) return { out: best.out, nextHop: best.nextHop, role: best.role };
-  if (!all.length) return { fail: `${cur.name} ยังไม่ได้ตั้งค่า IP address`, kind: 'general' };
-  if (!usable.length) return { fail: `${all[0].name} ของ ${cur.name} ถูก shutdown`, kind: 'general' };
+  if (!all.length) return { fail: tx('{0} ยังไม่ได้ตั้งค่า IP address', cur.name), kind: 'general' };
+  if (!usable.length) return { fail: tx('{0} ของ {1} ถูก shutdown', all[0].name, cur.name), kind: 'general' };
   if (!cur.gateway) {
-    return { fail: `ปลายทาง ${dstIp} อยู่นอก subnet ของ ${cur.name} แต่ ${cur.name} ไม่ได้ตั้ง default gateway`, kind: 'general' };
+    return { fail: tx('ปลายทาง {0} อยู่นอก subnet ของ {1} แต่ {2} ไม่ได้ตั้ง default gateway', dstIp, cur.name, cur.name), kind: 'general' };
   }
   const via = usable.find((i) => sameSubnet(i.ip, cur.gateway!, i.mask));
   if (!via) {
     const f = usable[0];
     return {
-      fail: `Default gateway ${cur.gateway} ไม่อยู่ใน subnet เดียวกับ ${cur.name} (${f.ip}/${maskToPrefix(f.mask)}) จึงส่งต่อออกนอก subnet ไม่ได้`,
+      fail: tx('Default gateway {0} ไม่อยู่ใน subnet เดียวกับ {1} ({2}/{3}) จึงส่งต่อออกนอก subnet ไม่ได้', cur.gateway, cur.name, f.ip, maskToPrefix(f.mask)),
       kind: 'general',
     };
   }
@@ -541,12 +542,12 @@ function deliver(lab: Lab, from: Device, dstIp: string): DeliverOk | DeliverFail
         path,
         kind: 'general',
         atDeviceId: nh.id,
-        th: `Gateway/next hop ${sel.nextHop} คือ ${nh.name} ซึ่งไม่ใช่อุปกรณ์ที่ส่งต่อแพ็กเก็ต (L3) จึงไม่ส่งต่อให้`,
+        th: tx('Gateway/next hop {0} คือ {1} ซึ่งไม่ใช่อุปกรณ์ที่ส่งต่อแพ็กเก็ต (L3) จึงไม่ส่งต่อให้', sel.nextHop, nh.name),
       };
     }
     cur = nh;
   }
-  return { ok: false, path, kind: 'noroute', atDeviceId: cur.id, th: 'แพ็กเก็ตวนเกินจำนวน hop ที่กำหนด (routing loop)' };
+  return { ok: false, path, kind: 'noroute', atDeviceId: cur.id, th: tx('แพ็กเก็ตวนเกินจำนวน hop ที่กำหนด (routing loop)') };
 }
 
 export interface PingResult {
@@ -568,7 +569,7 @@ export function ping(lab: Lab, srcId: string, dstIp: string): PingResult {
   const src = getDevice(lab, srcId);
   const base = { srcId, dstIp, forwardPath: [] as string[], returnPath: [] as string[], srcIp: null };
   if (!src) {
-    return { ...base, ok: false, kind: 'general-failure', direction: 'forward', explanation: ['ไม่พบอุปกรณ์ต้นทาง'] };
+    return { ...base, ok: false, kind: 'general-failure', direction: 'forward', explanation: [tx('ไม่พบอุปกรณ์ต้นทาง')] };
   }
   const nameOf = (id: string) => getDevice(lab, id)?.name ?? id;
   const fwd = deliver(lab, src, dstIp);
@@ -581,7 +582,7 @@ export function ping(lab: Lab, srcId: string, dstIp: string): PingResult {
       direction: 'forward',
       forwardPath: fwd.path,
       failAtDeviceId: fwd.atDeviceId,
-      explanation: [`ขาไป: ${fwd.th}`],
+      explanation: [tx('ขาไป: {0}', fwd.th)],
     };
   }
   const dst = getDevice(lab, fwd.dstDeviceId)!;
@@ -597,8 +598,8 @@ export function ping(lab: Lab, srcId: string, dstIp: string): PingResult {
       srcIp: fwd.srcIp,
       failAtDeviceId: back.atDeviceId,
       explanation: [
-        `ขาไปสำเร็จ: ${fwd.path.map(nameOf).join(' → ')}`,
-        `แต่ขากลับ (${dst.name} → ${src.name}) ไม่สำเร็จ: ${back.th}`,
+        tx('ขาไปสำเร็จ: {0}', fwd.path.map(nameOf).join(' → ')),
+        tx('แต่ขากลับ ({0} → {1}) ไม่สำเร็จ: {2}', dst.name, src.name, back.th),
       ],
     };
   }
@@ -611,9 +612,9 @@ export function ping(lab: Lab, srcId: string, dstIp: string): PingResult {
     returnPath: back.path,
     srcIp: fwd.srcIp,
     explanation: [
-      `ขาไป: ${fwd.path.map(nameOf).join(' → ')}`,
-      `ขากลับ: ${back.path.map(nameOf).join(' → ')}`,
-      'ping สำเร็จ — เส้นทางขาไปและขากลับใช้งานได้ทั้งหมด',
+      tx('ขาไป: {0}', fwd.path.map(nameOf).join(' → ')),
+      tx('ขากลับ: {0}', back.path.map(nameOf).join(' → ')),
+      tx('ping สำเร็จ — เส้นทางขาไปและขากลับใช้งานได้ทั้งหมด'),
     ],
   };
 }

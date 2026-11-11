@@ -3,6 +3,7 @@ import { PALETTE_GROUPS, PROFILES } from '../core/profiles';
 import type { DeviceKind } from '../core/types';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
+import { tx } from '../i18n';
 
 export const DRAG_MIME = 'application/x-nls-device';
 
@@ -24,7 +25,7 @@ export function Palette() {
 
   return (
     <div className="palette-list" aria-label="Device Palette">
-      <p className="menu-hint">ลากลงพื้นที่วาด หรือกดเพื่อเพิ่มกลางจอ</p>
+      <p className="menu-hint">{tx('ลากลงพื้นที่วาด หรือกดเพื่อเพิ่มกลางจอ')}</p>
       {PALETTE_GROUPS.map((g) => (
         <div key={g.title} className="palette-group" data-testid={`palette-group-${g.title}`}>
           <div className="menu-hint palette-group-title"><b>{g.title}</b></div>

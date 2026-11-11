@@ -11,6 +11,7 @@ import { NAME_RE, formatVlanList, getIface, parseVlanList } from '../lab';
 import { allowsVlan, ping, portLine, sviLineUp, l3Interfaces } from '../network';
 import type { Device, Iface, Lab } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
+import { tx } from '../../i18n';
 
 const SW = ['aruba-switch', 'l3-switch'] as const;
 const DT = [...SW];
@@ -255,45 +256,45 @@ const IF_MODES = ['config-if', 'config-svi'] as const;
 const specs: CommandSpec[] = [
   cmd({
     id: 'aruba.configure', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'configure terminal',
-    helpEn: 'Configuration from the terminal', descTh: 'เข้า Global Configuration mode (prompt เป็น (config)#)', topic: 'Mode',
-    example: 'configure terminal', verify: 'hostname TEST', verifyTh: 'prompt ต้องเป็น (config)#',
+    helpEn: 'Configuration from the terminal', descTh: tx('เข้า Global Configuration mode (prompt เป็น (config)#)'), topic: 'Mode',
+    example: 'configure terminal', verify: 'hostname TEST', verifyTh: tx('prompt ต้องเป็น (config)#'),
     run: () => ({ mode: 'config' }),
   }),
   cmd({
     id: 'aruba.exit', vendor: 'aruba', deviceTypes: DT, modes: ['priv', 'config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'exit',
-    helpEn: 'Exit current mode and change to previous mode', descTh: 'ถอยออกหนึ่งระดับ (config-if → config → priv)', topic: 'Mode',
-    example: 'exit', verify: '(ดู prompt)', verifyTh: 'prompt ต้องย้อนกลับหนึ่งระดับ',
+    helpEn: 'Exit current mode and change to previous mode', descTh: tx('ถอยออกหนึ่งระดับ (config-if → config → priv)'), topic: 'Mode',
+    example: 'exit', verify: tx('(ดู prompt)'), verifyTh: tx('prompt ต้องย้อนกลับหนึ่งระดับ'),
     run: exitCmd,
   }),
   cmd({
     id: 'aruba.end', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'end',
-    helpEn: 'End the current configuration session and return to privileged mode', descTh: 'กลับ Manager mode (#) ทันทีจากทุกระดับของ config', topic: 'Mode',
-    example: 'end', verify: 'show running-config', verifyTh: 'prompt ต้องเป็น hostname#',
+    helpEn: 'End the current configuration session and return to privileged mode', descTh: tx('กลับ Manager mode (#) ทันทีจากทุกระดับของ config'), topic: 'Mode',
+    example: 'end', verify: 'show running-config', verifyTh: tx('prompt ต้องเป็น hostname#'),
     run: () => ({ mode: 'priv', ctxIface: null, ctxVlan: null }),
   }),
   cmd({
     id: 'aruba.do', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'do <command>',
-    helpEn: 'Execute a manager-level command from config mode', descTh: 'รันคำสั่ง show จากใน config mode โดยไม่ต้องออก', topic: 'Troubleshooting',
-    example: 'do show vlan', verify: '(ผลลัพธ์แสดงทันที)', verifyTh: 'ต้องเห็นผล show โดย prompt ไม่เปลี่ยน',
+    helpEn: 'Execute a manager-level command from config mode', descTh: tx('รันคำสั่ง show จากใน config mode โดยไม่ต้องออก'), topic: 'Troubleshooting',
+    example: 'do show vlan', verify: tx('(ผลลัพธ์แสดงทันที)'), verifyTh: tx('ต้องเห็นผล show โดย prompt ไม่เปลี่ยน'),
     special: 'do',
   }),
 
   cmd({
     id: 'aruba.show.run', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show running-config',
-    helpEn: 'Show running configuration', descTh: 'ดู configuration ปัจจุบัน (VLAN, interface, trunk, SVI, route)', topic: 'Config',
-    example: 'show running-config', verify: 'show running-config', verifyTh: 'หา interface ที่เพิ่งแก้',
+    helpEn: 'Show running configuration', descTh: tx('ดู configuration ปัจจุบัน (VLAN, interface, trunk, SVI, route)'), topic: 'Config',
+    example: 'show running-config', verify: 'show running-config', verifyTh: tx('หา interface ที่เพิ่งแก้'),
     run: (c) => ({ lines: arubaRunningConfig(c.dev) }),
   }),
   cmd({
     id: 'aruba.show.start', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show startup-config',
-    helpEn: 'Show startup configuration', descTh: 'ดู config ที่บันทึกไว้ (หลัง write memory)', topic: 'Config',
-    example: 'show startup-config', verify: 'show startup-config', verifyTh: 'ถ้ายังไม่เคยบันทึกจะขึ้นข้อความว่าไม่มี',
+    helpEn: 'Show startup configuration', descTh: tx('ดู config ที่บันทึกไว้ (หลัง write memory)'), topic: 'Config',
+    example: 'show startup-config', verify: 'show startup-config', verifyTh: tx('ถ้ายังไม่เคยบันทึกจะขึ้นข้อความว่าไม่มี'),
     run: (c) => (c.dev.startupConfig ? { lines: c.dev.startupConfig.split('\n') } : { lines: ['Startup configuration is empty (no saved configuration).'] }),
   }),
   cmd({
     id: 'aruba.show.version', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show version',
-    helpEn: 'Show version information', descTh: 'ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน AOS-CX อ้างอิง', topic: 'Troubleshooting',
-    example: 'show version', verify: 'show version', verifyTh: 'ดูรุ่นและเวอร์ชัน',
+    helpEn: 'Show version information', descTh: tx('ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน AOS-CX อ้างอิง'), topic: 'Troubleshooting',
+    example: 'show version', verify: 'show version', verifyTh: tx('ดูรุ่นและเวอร์ชัน'),
     run: () => ({
       lines: ['ArubaOS-CX', '(c) Copyright 2017-2023 Hewlett Packard Enterprise Development LP', '-----------------------------------------------------------------------------',
         'Version      : FL.10.10.1000', 'Product Name : Aruba 6100 24G 4SFP+ Swch (simulated)', '*** Simulated device — Network Lab Studio ***'],
@@ -301,80 +302,80 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.show.intbrief', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show interface brief',
-    helpEn: 'Show brief interface information', descTh: 'ตารางสรุปทุกพอร์ต: Native VLAN, Mode (access/trunk/routed), Enabled, Status, Reason', topic: 'Interface',
-    example: 'show interface brief', verify: 'show interface brief', verifyTh: 'Status=down + Reason=Administratively down แปลว่าถูก shutdown',
+    helpEn: 'Show brief interface information', descTh: tx('ตารางสรุปทุกพอร์ต: Native VLAN, Mode (access/trunk/routed), Enabled, Status, Reason'), topic: 'Interface',
+    example: 'show interface brief', verify: 'show interface brief', verifyTh: tx('Status=down + Reason=Administratively down แปลว่าถูก shutdown'),
     run: (c) => ({ lines: showInterfaceBrief(c.lab, c.dev) }),
   }),
   cmd({
     id: 'aruba.show.int', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show interface <interface>',
-    helpEn: 'Show details of one interface', descTh: 'ดูรายละเอียดพอร์ตเดียว เช่น show interface 1/1/24 (รวม allowed VLAN ของ trunk)', topic: 'Interface',
-    example: 'show interface 1/1/1', verify: 'show interface 1/1/1', verifyTh: 'ดู Admin state, Mode และ Native VLAN',
+    helpEn: 'Show details of one interface', descTh: tx('ดูรายละเอียดพอร์ตเดียว เช่น show interface 1/1/24 (รวม allowed VLAN ของ trunk)'), topic: 'Interface',
+    example: 'show interface 1/1/1', verify: 'show interface 1/1/1', verifyTh: tx('ดู Admin state, Mode และ Native VLAN'),
     run: (c) => ({ lines: showInterface(c.lab, c.dev, getIface(c.dev, c.args[0])!) }),
   }),
   cmd({
     id: 'aruba.show.vlan', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show vlan',
-    helpEn: 'Show VLAN information', descTh: 'ดู VLAN ทั้งหมดและพอร์ตที่เป็นสมาชิก (access และ trunk ที่อนุญาต VLAN นั้น; เฉพาะพอร์ตที่ no routing)', topic: 'VLAN',
-    example: 'show vlan', verify: 'show vlan', verifyTh: 'พอร์ตที่ตั้ง vlan access หรือ trunk ต้องอยู่ในแถว VLAN นั้น',
+    helpEn: 'Show VLAN information', descTh: tx('ดู VLAN ทั้งหมดและพอร์ตที่เป็นสมาชิก (access และ trunk ที่อนุญาต VLAN นั้น; เฉพาะพอร์ตที่ no routing)'), topic: 'VLAN',
+    example: 'show vlan', verify: 'show vlan', verifyTh: tx('พอร์ตที่ตั้ง vlan access หรือ trunk ต้องอยู่ในแถว VLAN นั้น'),
     run: (c) => ({ lines: showVlan(c.dev) }),
   }),
   cmd({
     id: 'aruba.show.ipbrief', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show ip interface brief',
-    helpEn: 'Show brief IP interface information', descTh: 'สรุป IP ของ routed port และ VLAN interface (SVI) พร้อมสถานะ up/down', topic: 'IP',
-    example: 'show ip interface brief', verify: 'show ip interface brief', verifyTh: 'SVI ต้อง up เมื่อ VLAN มีพอร์ตที่ up',
+    helpEn: 'Show brief IP interface information', descTh: tx('สรุป IP ของ routed port และ VLAN interface (SVI) พร้อมสถานะ up/down'), topic: 'IP',
+    example: 'show ip interface brief', verify: 'show ip interface brief', verifyTh: tx('SVI ต้อง up เมื่อ VLAN มีพอร์ตที่ up'),
     run: (c) => ({ lines: showIpIntBrief(c.lab, c.dev) }),
   }),
   cmd({
     id: 'aruba.show.arp', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show arp',
-    helpEn: 'Show ARP table', descTh: 'ดูตาราง ARP (IP → MAC) ของ switch — เฉพาะ SVI/พอร์ต routed ที่ up; แสดงเครื่องใน L2 domain เดียวกัน (ไม่จำลองการเรียนรู้/หมดอายุ)', topic: 'Layer 2',
-    example: 'show arp', verify: 'show mac-address-table', verifyTh: 'IP เดียวกันที่มี MAC ต่างกันบ่งชี้ IP ซ้ำ',
+    helpEn: 'Show ARP table', descTh: tx('ดูตาราง ARP (IP → MAC) ของ switch — เฉพาะ SVI/พอร์ต routed ที่ up; แสดงเครื่องใน L2 domain เดียวกัน (ไม่จำลองการเรียนรู้/หมดอายุ)'), topic: 'Layer 2',
+    example: 'show arp', verify: 'show mac-address-table', verifyTh: tx('IP เดียวกันที่มี MAC ต่างกันบ่งชี้ IP ซ้ำ'),
     run: (c) => ({ lines: showArp(c.lab, c.dev) }),
   }),
   cmd({
     id: 'aruba.show.mac', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show mac-address-table',
-    helpEn: 'Show MAC address table', descTh: 'ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging)', topic: 'Layer 2',
-    example: 'show mac-address-table', verify: 'show vlan', verifyTh: 'MAC ต้องอยู่ VLAN เดียวกับ access VLAN ของพอร์ตที่เสียบเครื่อง',
+    helpEn: 'Show MAC address table', descTh: tx('ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging)'), topic: 'Layer 2',
+    example: 'show mac-address-table', verify: 'show vlan', verifyTh: tx('MAC ต้องอยู่ VLAN เดียวกับ access VLAN ของพอร์ตที่เสียบเครื่อง'),
     run: (c) => ({ lines: showMacAddressTable(c.lab, c.dev) }),
   }),
   cmd({
     id: 'aruba.show.iproute', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'show ip route',
-    helpEn: 'Show IPv4 routing table', descTh: 'ดูตาราง routing: C/L (connected), S (static)', topic: 'IP',
-    example: 'show ip route', verify: 'show ip route', verifyTh: 'ต้องเห็น C ของ SVI ที่ up และ S ของ static route ที่ next hop ถึงได้',
+    helpEn: 'Show IPv4 routing table', descTh: tx('ดูตาราง routing: C/L (connected), S (static)'), topic: 'IP',
+    example: 'show ip route', verify: 'show ip route', verifyTh: tx('ต้องเห็น C ของ SVI ที่ up และ S ของ static route ที่ next hop ถึงได้'),
     run: (c) => ({ lines: showIpRoute(c.lab, c.dev) }),
   }),
   cmd({
     id: 'aruba.ping', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'ping <ip-address>',
-    helpEn: 'Send ICMP echo requests', descTh: 'ทดสอบ ping จาก switch (ที่มี SVI/routed port) ไปยัง IPv4 ปลายทาง', topic: 'Troubleshooting',
-    example: 'ping 192.168.1.1', verify: 'ping 192.168.1.1', verifyTh: '5 received = สำเร็จ, 0 received = ไม่ถึง',
+    helpEn: 'Send ICMP echo requests', descTh: tx('ทดสอบ ping จาก switch (ที่มี SVI/routed port) ไปยัง IPv4 ปลายทาง'), topic: 'Troubleshooting',
+    example: 'ping 192.168.1.1', verify: 'ping 192.168.1.1', verifyTh: tx('5 received = สำเร็จ, 0 received = ไม่ถึง'),
     run: arubaPing,
   }),
 
   cmd({
     id: 'aruba.write', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'write memory',
-    helpEn: 'Save running configuration to startup configuration', descTh: 'บันทึก running-config เป็น startup-config', topic: 'Config',
-    example: 'write memory', verify: 'show startup-config', verifyTh: 'startup-config ต้องไม่ว่างแล้ว',
+    helpEn: 'Save running configuration to startup configuration', descTh: tx('บันทึก running-config เป็น startup-config'), topic: 'Config',
+    example: 'write memory', verify: 'show startup-config', verifyTh: tx('startup-config ต้องไม่ว่างแล้ว'),
     run: save,
   }),
   cmd({
     id: 'aruba.copy', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'copy running-config startup-config',
-    helpEn: 'Copy running configuration to startup configuration', descTh: 'บันทึก running-config เป็น startup-config (เทียบเท่า write memory)', topic: 'Config',
-    example: 'copy running-config startup-config', verify: 'show startup-config', verifyTh: 'startup-config ต้องไม่ว่างแล้ว',
+    helpEn: 'Copy running configuration to startup configuration', descTh: tx('บันทึก running-config เป็น startup-config (เทียบเท่า write memory)'), topic: 'Config',
+    example: 'copy running-config startup-config', verify: 'show startup-config', verifyTh: tx('startup-config ต้องไม่ว่างแล้ว'),
     run: save,
   }),
 
   cmd({
     id: 'aruba.hostname', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'hostname <hostname>',
-    helpEn: 'Set the system hostname', descTh: 'เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม)', topic: 'Config',
-    example: 'hostname ACCESS2', verify: 'show running-config', verifyTh: 'prompt ต้องเปลี่ยนเป็นชื่อใหม่',
+    helpEn: 'Set the system hostname', descTh: tx('เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม)'), topic: 'Config',
+    example: 'hostname ACCESS2', verify: 'show running-config', verifyTh: tx('prompt ต้องเปลี่ยนเป็นชื่อใหม่'),
     run: (c) => {
-      if (!NAME_RE.test(c.args[0])) return { error: ['% Invalid hostname (ใช้ A-Z, 0-9, -, _ ได้ไม่เกิน 24 ตัวอักษร)'] };
+      if (!NAME_RE.test(c.args[0])) return { error: [tx('% Invalid hostname (ใช้ A-Z, 0-9, -, _ ได้ไม่เกิน 24 ตัวอักษร)')] };
       c.dev.name = c.args[0];
       return {};
     },
   }),
   cmd({
     id: 'aruba.vlan', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'vlan <vlan-id>',
-    helpEn: 'Create or edit a VLAN', descTh: 'สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan', topic: 'VLAN',
-    example: 'vlan 30', verify: 'show vlan', verifyTh: 'VLAN ใหม่ต้องปรากฏในตาราง',
+    helpEn: 'Create or edit a VLAN', descTh: tx('สร้าง VLAN (หรือเข้าแก้ VLAN เดิม) แล้วเข้า config-vlan'), topic: 'VLAN',
+    example: 'vlan 30', verify: 'show vlan', verifyTh: tx('VLAN ใหม่ต้องปรากฏในตาราง'),
     run: (c) => {
       const id = Number(c.args[0]);
       if (!c.dev.vlans.some((v) => v.id === id)) {
@@ -386,8 +387,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.no.vlan', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'no vlan <vlan-id>',
-    helpEn: 'Delete a VLAN', descTh: 'ลบ VLAN (VLAN 1 ลบไม่ได้)', topic: 'VLAN',
-    example: 'no vlan 30', verify: 'show vlan', verifyTh: 'VLAN ต้องหายไปจากตาราง',
+    helpEn: 'Delete a VLAN', descTh: tx('ลบ VLAN (VLAN 1 ลบไม่ได้)'), topic: 'VLAN',
+    example: 'no vlan 30', verify: 'show vlan', verifyTh: tx('VLAN ต้องหายไปจากตาราง'),
     run: (c) => {
       const id = Number(c.args[0]);
       if (id === 1) return { error: ['Cannot delete the default VLAN 1.'] };
@@ -397,8 +398,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.vlan.name', vendor: 'aruba', deviceTypes: DT, modes: ['config-vlan'], syntax: 'name <name>',
-    helpEn: 'Set the VLAN name', descTh: 'ตั้งชื่อ VLAN', topic: 'VLAN',
-    example: 'name STAFF', verify: 'show vlan', verifyTh: 'ชื่อ VLAN ต้องเปลี่ยน',
+    helpEn: 'Set the VLAN name', descTh: tx('ตั้งชื่อ VLAN'), topic: 'VLAN',
+    example: 'name STAFF', verify: 'show vlan', verifyTh: tx('ชื่อ VLAN ต้องเปลี่ยน'),
     run: (c) => {
       const v = c.dev.vlans.find((x) => x.id === c.dev.cli.ctxVlan);
       if (!v) return { error: ['% No VLAN selected'] };
@@ -409,20 +410,20 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.interface', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface <interface>',
-    helpEn: 'Select an interface to configure', descTh: 'เข้า Interface Configuration ของพอร์ต เช่น interface 1/1/1', topic: 'Interface',
-    example: 'interface 1/1/1', verify: 'show interface brief', verifyTh: 'prompt ต้องเป็น (config-if)#',
+    helpEn: 'Select an interface to configure', descTh: tx('เข้า Interface Configuration ของพอร์ต เช่น interface 1/1/1'), topic: 'Interface',
+    example: 'interface 1/1/1', verify: 'show interface brief', verifyTh: tx('prompt ต้องเป็น (config-if)#'),
     run: (c) => ({ mode: 'config-if', ctxIface: c.args[0], ctxVlan: null }),
   }),
   cmd({
     id: 'aruba.interface.range', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface <if-range>',
-    helpEn: 'Select a range of interfaces to configure', descTh: 'เลือกหลายพอร์ตพร้อมกัน เช่น interface 1/1/1-1/1/4 หรือ 1/1/1-4,1/1/10 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง', topic: 'Interface',
-    example: 'interface 1/1/1-1/1/4', verify: 'show running-config', verifyTh: 'prompt เป็น (config-if-<1/1/1-1/1/4>)# และคำสั่งถัดไปมีผลกับทุกพอร์ตในช่วง',
+    helpEn: 'Select a range of interfaces to configure', descTh: tx('เลือกหลายพอร์ตพร้อมกัน เช่น interface 1/1/1-1/1/4 หรือ 1/1/1-4,1/1/10 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง'), topic: 'Interface',
+    example: 'interface 1/1/1-1/1/4', verify: 'show running-config', verifyTh: tx('prompt เป็น (config-if-<1/1/1-1/1/4>)# และคำสั่งถัดไปมีผลกับทุกพอร์ตในช่วง'),
     run: (c) => enterInterfaceRange(c, 'aruba'),
   }),
   cmd({
     id: 'aruba.interface.vlan', vendor: 'aruba', deviceTypes: DT, modes: ['config', 'config-if', 'config-svi', 'config-vlan'], syntax: 'interface vlan <vlan-id>',
-    helpEn: 'Configure a VLAN interface (SVI)', descTh: 'สร้าง/เข้า VLAN interface (SVI) ให้ switch route ระหว่าง VLAN — VLAN ต้องถูกสร้างไว้ก่อน', topic: 'IP',
-    example: 'interface vlan 10', verify: 'show ip interface brief', verifyTh: 'ต้องเห็น vlan10 ในตาราง',
+    helpEn: 'Configure a VLAN interface (SVI)', descTh: tx('สร้าง/เข้า VLAN interface (SVI) ให้ switch route ระหว่าง VLAN — VLAN ต้องถูกสร้างไว้ก่อน'), topic: 'IP',
+    example: 'interface vlan 10', verify: 'show ip interface brief', verifyTh: tx('ต้องเห็น vlan10 ในตาราง'),
     run: (c) => {
       const id = Number(c.args[0]);
       if (!c.dev.vlans.some((v) => v.id === id)) return { error: [`VLAN ${id} does not exist. Create it first with 'vlan ${id}'.`] };
@@ -435,8 +436,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.nointerface.vlan', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'no interface vlan <vlan-id>',
-    helpEn: 'Delete a VLAN interface (SVI)', descTh: 'ลบ VLAN interface', topic: 'IP',
-    example: 'no interface vlan 10', verify: 'show ip interface brief', verifyTh: 'vlan10 ต้องหายไป',
+    helpEn: 'Delete a VLAN interface (SVI)', descTh: tx('ลบ VLAN interface'), topic: 'IP',
+    example: 'no interface vlan 10', verify: 'show ip interface brief', verifyTh: tx('vlan10 ต้องหายไป'),
     run: (c) => {
       const id = Number(c.args[0]);
       c.dev.svis = c.dev.svis.filter((v) => v.vlan !== id);
@@ -445,11 +446,11 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.ip.route', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'ip route <prefix> <next-hop>',
-    helpEn: 'Configure a static route', descTh: 'เพิ่ม static route แบบ prefix/ความยาว เช่น 172.16.0.0/24 ผ่าน next hop (default route = 0.0.0.0/0)', topic: 'IP',
-    example: 'ip route 172.16.0.0/24 192.168.1.1', verify: 'show ip route', verifyTh: 'ต้องเห็นบรรทัด S เมื่อ next hop อยู่ใน subnet ของ interface ที่ up',
+    helpEn: 'Configure a static route', descTh: tx('เพิ่ม static route แบบ prefix/ความยาว เช่น 172.16.0.0/24 ผ่าน next hop (default route = 0.0.0.0/0)'), topic: 'IP',
+    example: 'ip route 172.16.0.0/24 192.168.1.1', verify: 'show ip route', verifyTh: tx('ต้องเห็นบรรทัด S เมื่อ next hop อยู่ใน subnet ของ interface ที่ up'),
     run: (c) => {
       const cidr = parseCidr(c.args[0])!;
-      if (networkOf(cidr.ip, cidr.mask) !== parseIp(cidr.ip)) return { error: ['Invalid prefix: host bits are set (ใช้ network address เช่น 172.16.0.0/24).'] };
+      if (networkOf(cidr.ip, cidr.mask) !== parseIp(cidr.ip)) return { error: [tx('Invalid prefix: host bits are set (ใช้ network address เช่น 172.16.0.0/24).')] };
       c.dev.routes = c.dev.routes.filter((r) => !(r.net === cidr.ip && r.mask === cidr.mask));
       c.dev.routes.push({ net: cidr.ip, mask: cidr.mask, nextHop: c.args[1] });
       return {};
@@ -457,9 +458,9 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.noip.route', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'no ip route <prefix> <next-hop>',
-    helpEn: 'Remove a static route', descTh: 'ลบ static route', topic: 'IP',
+    helpEn: 'Remove a static route', descTh: tx('ลบ static route'), topic: 'IP',
     prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', nextHop: '192.168.1.1' }),
-    example: 'no ip route 172.16.0.0/24 192.168.1.1', verify: 'show ip route', verifyTh: 'บรรทัด S ของ route นั้นต้องหายไป',
+    example: 'no ip route 172.16.0.0/24 192.168.1.1', verify: 'show ip route', verifyTh: tx('บรรทัด S ของ route นั้นต้องหายไป'),
     run: (c) => {
       const cidr = parseCidr(c.args[0])!;
       const before = c.dev.routes.length;
@@ -471,7 +472,7 @@ const specs: CommandSpec[] = [
 
   cmd({
     id: 'aruba.shutdown', vendor: 'aruba', deviceTypes: DT, modes: [...IF_MODES], syntax: 'shutdown',
-    helpEn: 'Disable the interface', descTh: 'ปิดพอร์ต/VLAN interface — ลิงก์ที่ต่อกับพอร์ตนี้จะ down', topic: 'Interface',
+    helpEn: 'Disable the interface', descTh: tx('ปิดพอร์ต/VLAN interface — ลิงก์ที่ต่อกับพอร์ตนี้จะ down'), topic: 'Interface',
     example: 'shutdown', verify: 'show interface brief', verifyTh: 'Status=down, Reason=Administratively down',
     run: (c) => {
       const t = curTarget(c);
@@ -482,8 +483,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.noshutdown', vendor: 'aruba', deviceTypes: DT, modes: [...IF_MODES], syntax: 'no shutdown',
-    helpEn: 'Enable the interface', descTh: 'เปิดพอร์ต (พอร์ต AOS-CX เริ่มต้นเป็น shutdown)', topic: 'Interface',
-    example: 'no shutdown', verify: 'show interface brief', verifyTh: 'Enabled=yes และ Status=up เมื่อปลายสายอีกฝั่งเปิดอยู่',
+    helpEn: 'Enable the interface', descTh: tx('เปิดพอร์ต (พอร์ต AOS-CX เริ่มต้นเป็น shutdown)'), topic: 'Interface',
+    example: 'no shutdown', verify: 'show interface brief', verifyTh: tx('Enabled=yes และ Status=up เมื่อปลายสายอีกฝั่งเปิดอยู่'),
     run: (c) => {
       const t = curTarget(c);
       if (!t) return { error: ['% No interface selected'] };
@@ -493,8 +494,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.norouting', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'no routing',
-    helpEn: 'Disable routing on this interface (make it a Layer 2 port)', descTh: 'เปลี่ยนพอร์ตจาก routed เป็น Layer 2 — ต้องทำก่อนใช้ vlan access / vlan trunk', topic: 'VLAN',
-    example: 'no routing', verify: 'show interface brief', verifyTh: 'Mode ต้องเป็น access',
+    helpEn: 'Disable routing on this interface (make it a Layer 2 port)', descTh: tx('เปลี่ยนพอร์ตจาก routed เป็น Layer 2 — ต้องทำก่อนใช้ vlan access / vlan trunk'), topic: 'VLAN',
+    example: 'no routing', verify: 'show interface brief', verifyTh: tx('Mode ต้องเป็น access'),
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
@@ -505,8 +506,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.routing', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'routing',
-    helpEn: 'Enable routing on this interface', descTh: 'เปลี่ยนพอร์ตกลับเป็น routed (L3) — พอร์ตจะไม่ส่งต่อ VLAN แต่ตั้ง IP ได้', topic: 'VLAN',
-    example: 'routing', verify: 'show interface brief', verifyTh: 'Mode ต้องเป็น routed',
+    helpEn: 'Enable routing on this interface', descTh: tx('เปลี่ยนพอร์ตกลับเป็น routed (L3) — พอร์ตจะไม่ส่งต่อ VLAN แต่ตั้ง IP ได้'), topic: 'VLAN',
+    example: 'routing', verify: 'show interface brief', verifyTh: tx('Mode ต้องเป็น routed'),
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
@@ -520,8 +521,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.vlan.access', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'vlan access <vlan-id>',
-    helpEn: 'Set the access VLAN of the interface', descTh: 'กำหนด access VLAN (untagged) ให้พอร์ต L2 — VLAN ต้องถูกสร้างไว้ก่อน (ถ้าเป็น trunk จะกลับเป็น access)', topic: 'VLAN',
-    example: 'vlan access 10', verify: 'show vlan', verifyTh: 'พอร์ตต้องอยู่ในแถว VLAN ที่ตั้ง',
+    helpEn: 'Set the access VLAN of the interface', descTh: tx('กำหนด access VLAN (untagged) ให้พอร์ต L2 — VLAN ต้องถูกสร้างไว้ก่อน (ถ้าเป็น trunk จะกลับเป็น access)'), topic: 'VLAN',
+    example: 'vlan access 10', verify: 'show vlan', verifyTh: tx('พอร์ตต้องอยู่ในแถว VLAN ที่ตั้ง'),
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
@@ -535,8 +536,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.trunk.allowed', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'vlan trunk allowed <vlan-list>',
-    helpEn: 'Add VLANs to the trunk allowed list', descTh: 'ตั้งพอร์ตเป็น trunk และ **เพิ่ม** VLAN ที่อนุญาต เช่น 10,20,30-40 — เพิ่มต่อจากรายการเดิม ไม่ได้แทนที่ทั้งรายการ (ตามข้อมูลที่พบ ยังไม่ได้ยืนยันกับเอกสารทางการ); ถ้าพอร์ตกำลังอนุญาตทุก VLAN (all) จะเหลือเฉพาะรายการที่ระบุ; ลบออกด้วย no vlan trunk allowed', topic: 'VLAN',
-    example: 'vlan trunk allowed 10,20', verify: 'show interface 1/1/1', verifyTh: 'Mode ต้องเป็น trunk และเห็น Allowed VLAN List',
+    helpEn: 'Add VLANs to the trunk allowed list', descTh: tx('ตั้งพอร์ตเป็น trunk และ **เพิ่ม** VLAN ที่อนุญาต เช่น 10,20,30-40 — เพิ่มต่อจากรายการเดิม ไม่ได้แทนที่ทั้งรายการ (ตามข้อมูลที่พบ ยังไม่ได้ยืนยันกับเอกสารทางการ); ถ้าพอร์ตกำลังอนุญาตทุก VLAN (all) จะเหลือเฉพาะรายการที่ระบุ; ลบออกด้วย no vlan trunk allowed'), topic: 'VLAN',
+    example: 'vlan trunk allowed 10,20', verify: 'show interface 1/1/1', verifyTh: tx('Mode ต้องเป็น trunk และเห็น Allowed VLAN List'),
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
@@ -550,8 +551,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.trunk.allowed.no', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'no vlan trunk allowed <vlan-list>',
-    helpEn: 'Remove VLANs from the trunk allowed list', descTh: 'ลบ VLAN ออกจากรายการที่ trunk อนุญาต (ถ้าตอนนี้เป็น all จะกลายเป็น 1-4094 ยกเว้นที่ระบุ)', topic: 'VLAN',
-    example: 'no vlan trunk allowed 20', verify: 'show interface 1/1/1', verifyTh: 'VLAN ที่ลบต้องหายไปจาก Allowed VLAN List',
+    helpEn: 'Remove VLANs from the trunk allowed list', descTh: tx('ลบ VLAN ออกจากรายการที่ trunk อนุญาต (ถ้าตอนนี้เป็น all จะกลายเป็น 1-4094 ยกเว้นที่ระบุ)'), topic: 'VLAN',
+    example: 'no vlan trunk allowed 20', verify: 'show interface 1/1/1', verifyTh: tx('VLAN ที่ลบต้องหายไปจาก Allowed VLAN List'),
     prepare: (d) => {
       const i = d.ifaces.find((x) => x.name === '1/1/1');
       if (i) Object.assign(i, { routed: false, trunk: true, trunkAllowed: [10, 20] });
@@ -569,8 +570,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.trunk.allowed.all', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'vlan trunk allowed all',
-    helpEn: 'Allow all VLANs on the trunk', descTh: 'ตั้งพอร์ตเป็น trunk ที่อนุญาตทุก VLAN', topic: 'VLAN',
-    example: 'vlan trunk allowed all', verify: 'show interface 1/1/1', verifyTh: 'Allowed VLAN List ต้องเป็น all',
+    helpEn: 'Allow all VLANs on the trunk', descTh: tx('ตั้งพอร์ตเป็น trunk ที่อนุญาตทุก VLAN'), topic: 'VLAN',
+    example: 'vlan trunk allowed all', verify: 'show interface 1/1/1', verifyTh: tx('Allowed VLAN List ต้องเป็น all'),
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
@@ -582,8 +583,8 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.trunk.native', vendor: 'aruba', deviceTypes: DT, modes: ['config-if'], syntax: 'vlan trunk native <vlan-id>',
-    helpEn: 'Set the native (untagged) VLAN of the trunk', descTh: 'ตั้งพอร์ตเป็น trunk และกำหนด native VLAN (untagged) — ต้องตรงกันทั้งสองฝั่ง', topic: 'VLAN',
-    example: 'vlan trunk native 99', verify: 'show interface brief', verifyTh: 'คอลัมน์ Native VLAN ต้องเป็นค่าที่ตั้ง',
+    helpEn: 'Set the native (untagged) VLAN of the trunk', descTh: tx('ตั้งพอร์ตเป็น trunk และกำหนด native VLAN (untagged) — ต้องตรงกันทั้งสองฝั่ง'), topic: 'VLAN',
+    example: 'vlan trunk native 99', verify: 'show interface brief', verifyTh: tx('คอลัมน์ Native VLAN ต้องเป็นค่าที่ตั้ง'),
     run: (c) => {
       const i = physIface(c);
       if (!i) return { error: ['% No interface selected'] };
@@ -595,23 +596,23 @@ const specs: CommandSpec[] = [
   }),
   cmd({
     id: 'aruba.ipaddress', vendor: 'aruba', deviceTypes: DT, modes: [...IF_MODES], syntax: 'ip address <cidr>',
-    helpEn: 'Set the IPv4 address', descTh: 'ตั้ง IPv4 แบบ a.b.c.d/ความยาว ให้ routed port หรือ VLAN interface (SVI) — SVI ทำให้ switch เป็น gateway ของ VLAN', topic: 'IP',
+    helpEn: 'Set the IPv4 address', descTh: tx('ตั้ง IPv4 แบบ a.b.c.d/ความยาว ให้ routed port หรือ VLAN interface (SVI) — SVI ทำให้ switch เป็น gateway ของ VLAN'), topic: 'IP',
     prepare: (d) => {
       for (const i of d.ifaces) i.routed = true; // routed port: `ip address` needs L3 mode
     },
-    example: 'ip address 192.168.10.1/24', verify: 'show ip interface brief', verifyTh: 'ต้องเห็น IP ใหม่และสถานะ up',
+    example: 'ip address 192.168.10.1/24', verify: 'show ip interface brief', verifyTh: tx('ต้องเห็น IP ใหม่และสถานะ up'),
     run: ipAddressHandler,
   }),
   cmd({
     id: 'aruba.noipaddress', vendor: 'aruba', deviceTypes: DT, modes: [...IF_MODES], syntax: 'no ip address',
-    helpEn: 'Remove the IPv4 address', descTh: 'ลบ IP ออกจาก interface', topic: 'IP',
-    example: 'no ip address', verify: 'show ip interface brief', verifyTh: 'แถวของ interface ต้องหายไป',
+    helpEn: 'Remove the IPv4 address', descTh: tx('ลบ IP ออกจาก interface'), topic: 'IP',
+    example: 'no ip address', verify: 'show ip interface brief', verifyTh: tx('แถวของ interface ต้องหายไป'),
     run: noIpAddressHandler,
   }),
   cmd({
     id: 'aruba.description', vendor: 'aruba', deviceTypes: DT, modes: [...IF_MODES], syntax: 'description <text>',
-    helpEn: 'Set the interface description', descTh: 'ตั้งคำอธิบายพอร์ต', topic: 'Interface',
-    example: 'description UPLINK', verify: 'show running-config', verifyTh: 'ต้องเห็นบรรทัด description ใต้ interface',
+    helpEn: 'Set the interface description', descTh: tx('ตั้งคำอธิบายพอร์ต'), topic: 'Interface',
+    example: 'description UPLINK', verify: 'show running-config', verifyTh: tx('ต้องเห็นบรรทัด description ใต้ interface'),
     run: (c) => {
       const t = curTarget(c);
       if (!t) return { error: ['% No interface selected'] };
