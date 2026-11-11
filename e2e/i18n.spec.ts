@@ -109,7 +109,7 @@ test('English mode: challenges, hints, editors, dialogs and messages have no Tha
   expect(await thaiLeft(page), 'challenge editor').toEqual([]);
   await page.getByTestId('challenge-edit-toggle').click();
 
-  for (const k of ['campus', 'dupip', 'campus3trouble', 'addressing', 'layer2']) {
+  for (const k of ['campus', 'dupip', 'campus3trouble', 'addressing', 'layer2', 'scratch']) {
     await page.getByTestId('select-challenge').selectOption(k);
     await page.getByTestId('challenge-check').click();
     expect(await thaiLeft(page), `challenge ${k}`).toEqual([]);

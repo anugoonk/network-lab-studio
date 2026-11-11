@@ -397,3 +397,36 @@ export function layer2Guide(): Guide {
     resources: references(),
   };
 }
+
+export function scratchGuide(): Guide {
+  return {
+    title: tx('Build — เครือข่าย 2 VLAN จากศูนย์'),
+    objective: [
+      tx('เมื่อจบโจทย์นี้ ผู้เรียนจะสามารถ:'),
+      tx('- สร้าง VLAN และกำหนดพอร์ต access บน switch Cisco และ Aruba'),
+      tx('- ตั้ง trunk 802.1Q ระหว่าง switch และไปหา router'),
+      tx('- ตั้ง router-on-a-stick (sub-interface + dot1Q) ให้เป็น gateway ของแต่ละ VLAN'),
+    ].join('\n'),
+    sections: [
+      {
+        heading: tx('ข้อกำหนด'),
+        body: [
+          tx('อุปกรณ์ต่อสายครบแล้ว ห้ามลบหรือเปลี่ยนสาย และ PC ตั้ง IP/gateway ไว้แล้ว ให้ตั้งค่า R1, SW1 และ SW2 ตามตารางนี้'),
+          tx('- VLAN 10 ชื่อ USERS: 192.168.10.0/24, gateway 192.168.10.1 (R1) — PC-A (SW1 Fa0/1) และ PC-C (SW2 1/1/1)'),
+          tx('- VLAN 20 ชื่อ GUEST: 192.168.20.0/24, gateway 192.168.20.1 (R1) — PC-B (SW1 Fa0/2)'),
+          tx('- SW1 Gi0/1 → R1 Gi0/0 เป็น trunk, SW1 Gi0/2 → SW2 1/1/24 เป็น trunk (ส่ง VLAN 10 และ 20 ทั้งคู่)'),
+          tx('- R1 ใช้ sub-interface Gi0/0.10 และ Gi0/0.20 เป็น gateway'),
+        ].join('\n'),
+      },
+      {
+        heading: tx('กติกา'),
+        body: [
+          tx('1. กด **Check** เพื่อดูว่ายังไม่ผ่านข้อไหน (บอกแค่ผ่าน/ไม่ผ่าน)'),
+          tx('2. ห้ามลบหรือเปลี่ยนสาย แก้ได้เฉพาะ config ของอุปกรณ์'),
+          tx('3. ถ้าตั้งพังจนไปต่อไม่ได้ กด **รีเซ็ตโจทย์** เพื่อกลับสถานะเริ่มต้น (ย้อนกลับด้วย Undo ได้)'),
+        ].join('\n'),
+      },
+    ],
+    resources: references(),
+  };
+}

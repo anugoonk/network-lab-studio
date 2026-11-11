@@ -3,7 +3,7 @@ import { applyStart, captureStart, evaluateChallenge } from '../src/core/challen
 import { duplicateIps } from '../src/core/l2tables';
 import { updateDevice } from '../src/core/lab';
 import { parseImport, serializeExport } from '../src/core/persist';
-import { SAMPLES, buildAddressingLab, buildLayer2Lab, buildCampusLab, buildDupIpLab, type SampleKind } from '../src/core/sample';
+import { SAMPLES, buildAddressingLab, buildFromScratchLab, buildLayer2Lab, buildCampusLab, buildDupIpLab, type SampleKind } from '../src/core/sample';
 import type { Lab } from '../src/core/types';
 import { byName, run } from './helpers';
 
@@ -170,6 +170,33 @@ describe('Challenge 6: Layer 2 faults', () => {
     lab = run(lab, 'SW1', ['enable', 'configure terminal', 'interface GigabitEthernet0/1', 'switchport trunk allowed vlan 10,20', 'end']).lab;
     expect(passes(lab)).toEqual(['c1', 'c2', 'c3', 'c6', 'c7']);
     lab = run(lab, 'SW2', ['configure terminal', 'vlan 20', 'end']).lab;
+    expect(score(lab).allPassed).toBe(true);
+  });
+});
+
+describe('Challenge 7: build from scratch', () => {
+  const solve = (lab: Lab): Lab => {
+    const cisco = (name: string, lines: string[]) => (lab = run(lab, name, ['enable', 'configure terminal', ...lines, 'end']).lab);
+    cisco('SW1', ['vlan 10', 'name USERS', 'vlan 20', 'name GUEST', 'interface FastEthernet0/1', 'switchport mode access', 'switchport access vlan 10',
+      'interface FastEthernet0/2', 'switchport mode access', 'switchport access vlan 20',
+      'interface GigabitEthernet0/1', 'switchport mode trunk', 'interface GigabitEthernet0/2', 'switchport mode trunk']);
+    lab = run(lab, 'SW2', ['configure terminal', 'vlan 10', 'name USERS', 'vlan 20', 'name GUEST', 'interface 1/1/1', 'no shutdown', 'no routing', 'vlan access 10',
+      'interface 1/1/24', 'no shutdown', 'no routing', 'vlan trunk allowed 10,20', 'end']).lab;
+    cisco('R1', ['interface GigabitEthernet0/0', 'no shutdown', 'interface GigabitEthernet0/0.10', 'encapsulation dot1Q 10', 'ip address 192.168.10.1 255.255.255.0',
+      'interface GigabitEthernet0/0.20', 'encapsulation dot1Q 20', 'ip address 192.168.20.1 255.255.255.0']);
+    return lab;
+  };
+
+  it('starts unconfigured: the cabling is there, only the duplicate-IP check passes', () => {
+    const lab = buildFromScratchLab();
+    expect(lab.links).toHaveLength(5);
+    expect(passes(lab)).toEqual(['c11']);
+  });
+
+  it('the full configuration from the requirements makes every check pass', () => {
+    const lab = solve(buildFromScratchLab());
+    const bad = Object.entries(score(lab).results).filter(([, r]) => !r.pass).map(([k]) => k);
+    expect(bad).toEqual([]);
     expect(score(lab).allPassed).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
 import { captureStart } from './challenge';
-import { addressingGuide, layer2Guide, campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
+import { scratchGuide, addressingGuide, layer2Guide, campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
 import type { Check, Device, Lab } from './types';
 import { tx } from '../i18n';
 
@@ -599,9 +599,80 @@ export function buildLayer2Lab(): Lab {
   });
 }
 
+// ───────────────────────── Challenge 7: build from scratch ─────────────────────────
+
+export const BUILD_NAME = tx('Challenge: สร้างเครือข่าย 2 VLAN จากศูนย์');
+
+/**
+ * "Build" challenge: devices are cabled and the PCs already have their addresses, but R1, SW1 and SW2 have no
+ * configuration at all. The learner builds VLANs, trunks and router-on-a-stick from the requirements in the guide.
+ */
+export function buildFromScratchLab(): Lab {
+  let lab = emptyLab(BUILD_NAME);
+  let n = 0;
+  const mk = (kind: Device['kind'], name: string, x: number, y: number) => {
+    const d = createDevice(kind, `d${++n}`, name, x, y);
+    lab = { ...lab, devices: [...lab.devices, d] };
+    return d;
+  };
+  const r1 = mk('cisco-router', 'R1', 420, 30);
+  const sw1 = mk('cisco-switch', 'SW1', 420, 210);
+  const sw2 = mk('aruba-switch', 'SW2', 820, 210);
+  const pcA = mk('pc', 'PC-A', 320, 400);
+  const pcB = mk('pc', 'PC-B', 500, 400);
+  const pcC = mk('pc', 'PC-C', 820, 400);
+  const host = (d: Device, ip: string, gw: string) => {
+    lab = updateDevice(lab, d.id, (x) => ({ ...x, gateway: gw, ifaces: x.ifaces.map((i) => ({ ...i, ip, mask: '255.255.255.0' })) }));
+  };
+  host(pcA, '192.168.10.11', '192.168.10.1');
+  host(pcB, '192.168.20.11', '192.168.20.1');
+  host(pcC, '192.168.10.12', '192.168.10.1');
+  const link = (aId: string, ap: string, bId: string, bp: string) => {
+    const r = addLink(lab, { deviceId: aId, port: ap }, { deviceId: bId, port: bp });
+    if (r.error) throw new Error(r.error);
+    lab = r.lab;
+  };
+  link(r1.id, 'GigabitEthernet0/0', sw1.id, 'GigabitEthernet0/1');
+  link(sw1.id, 'GigabitEthernet0/2', sw2.id, '1/1/24');
+  link(pcA.id, 'Ethernet0', sw1.id, 'FastEthernet0/1');
+  link(pcB.id, 'Ethernet0', sw1.id, 'FastEthernet0/2');
+  link(pcC.id, 'Ethernet0', sw2.id, '1/1/1');
+  lab = { ...lab, counters: { ...lab.counters, __id: n, R: 1, SW: 2, 'PC-': 3 } };
+
+  const ping = (k: number, from: Device, to: string, label: string): Check => ({ id: `c${k}`, kind: 'ping', label, from: from.id, to, expect: 'success' });
+  const checks: Check[] = [
+    { id: 'c1', kind: 'port-admin', label: tx('R1 Gi0/0 เปิดใช้งาน (no shutdown)'), deviceId: r1.id, port: 'GigabitEthernet0/0', expect: 'up' },
+    { id: 'c2', kind: 'trunk-vlan', label: tx('SW1 Gi0/1 (ไป R1) เป็น trunk ที่ส่ง VLAN 10 และ 20'), deviceId: sw1.id, port: 'GigabitEthernet0/1', vlan: 20, expect: 'allowed' },
+    { id: 'c3', kind: 'trunk-vlan', label: tx('SW1 Gi0/2 (ไป SW2) เป็น trunk ที่ส่ง VLAN 10'), deviceId: sw1.id, port: 'GigabitEthernet0/2', vlan: 10, expect: 'allowed' },
+    { id: 'c4', kind: 'trunk-vlan', label: tx('SW2 1/1/24 (ไป SW1) เป็น trunk ที่ส่ง VLAN 10'), deviceId: sw2.id, port: '1/1/24', vlan: 10, expect: 'allowed' },
+    ping(5, pcA, '192.168.10.1', tx('PC-A ติดต่อ gateway (R1 VLAN 10) ได้')),
+    ping(6, pcB, '192.168.20.1', tx('PC-B ติดต่อ gateway (R1 VLAN 20) ได้')),
+    ping(7, pcC, '192.168.10.1', tx('PC-C ติดต่อ gateway (R1 VLAN 10) ได้')),
+    ping(8, pcA, '192.168.10.12', tx('PC-A ติดต่อ PC-C (VLAN 10 เดียวกัน ข้าม trunk) ได้')),
+    ping(9, pcA, '192.168.20.11', tx('PC-A ติดต่อ PC-B (ข้าม VLAN ผ่าน R1) ได้')),
+    ping(10, pcC, '192.168.20.11', tx('PC-C ติดต่อ PC-B (ข้าม switch และข้าม VLAN) ได้')),
+    { id: 'c11', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
+  ];
+  return withStart({
+    ...lab,
+    guide: scratchGuide(),
+    challenge: {
+      title: tx('สร้างเครือข่าย 2 VLAN จากศูนย์'),
+      goal: tx('อุปกรณ์ต่อสายครบและ PC ตั้ง IP แล้ว แต่ R1, SW1 และ SW2 ยังไม่มี config เลย ให้ตั้งค่าตามข้อกำหนดใน Guide (VLAN 10 USERS, VLAN 20 GUEST, trunk, router-on-a-stick) จนทุก Check ผ่าน'),
+      checks,
+      hints: [
+        tx('ทำจากชั้นล่างขึ้นบน: (1) สร้าง VLAN และกำหนดพอร์ต access บน switch, (2) ตั้ง trunk ระหว่าง switch และไป router, (3) ตั้ง sub-interface บน router แล้วเปิดพอร์ต'),
+        tx('Cisco switch: vlan 10 / name USERS, interface Fa0/1 → switchport mode access + switchport access vlan 10, interface Gi0/1 → switchport mode trunk. Aruba: vlan 10, interface 1/1/1 → no routing + vlan access 10, interface 1/1/24 → no routing + vlan trunk allowed 10,20'),
+        tx('Router: interface Gi0/0 → no shutdown; interface Gi0/0.10 → encapsulation dot1Q 10 + ip address 192.168.10.1 255.255.255.0 (ทำเหมือนกันกับ VLAN 20 ด้วย .20.1)'),
+        tx('ตรวจทีละชั้นด้วย show vlan brief, show interfaces trunk, show ip interface brief แล้วกด Check ดูว่าข้อไหนยังไม่ผ่านก่อนไปชั้นถัดไป'),
+      ],
+    },
+  });
+}
+
 // ───────────────────────── catalog ─────────────────────────
 
-export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble' | 'addressing' | 'layer2';
+export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble' | 'addressing' | 'layer2' | 'scratch';
 
 export interface SampleInfo {
   /** short name used on buttons and in confirmations */
@@ -622,4 +693,5 @@ export const SAMPLES: Record<SampleKind, SampleInfo> = {
   campus3trouble: { title: 'Challenge 4: Campus 3 Tier', hint: tx('Trunk allowed + default route ผิด + route ขากลับหาย บน Aruba CX (3 จุด)'), challenge: true, build: buildCampus3TroubleLab },
   addressing: { title: tx('Challenge 5: Subnet + Encapsulation'), hint: tx('mask ผิด + dot1Q ผิด + IP ฝั่ง WAN ไม่ตรงกัน (3 จุด)'), challenge: true, build: buildAddressingLab },
   layer2: { title: tx('Challenge 6: VLAN + Trunk'), hint: tx('พอร์ตผิด VLAN + trunk ไป router ไม่ครบ + VLAN ไม่ได้สร้างบน switch (3 จุด)'), challenge: true, build: buildLayer2Lab },
+  scratch: { title: tx('Challenge 7: สร้างจากศูนย์'), hint: tx('ตั้งค่า VLAN, trunk และ router-on-a-stick เองทั้งหมดตามข้อกำหนด'), challenge: true, build: buildFromScratchLab },
 };
