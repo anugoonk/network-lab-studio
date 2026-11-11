@@ -1,5 +1,5 @@
 /** PC terminal profile (Windows-style `ipconfig` and `ping <IPv4>`). Runs only against the simulated lab. */
-import { arpTable, duplicateIps, fmtMacDash } from '../l2tables';
+import { arpTable, duplicateIps, fmtMacDash, macOf } from '../l2tables';
 import { TRACE_DEFAULT_MAX_TTL, ping, portLine, trace } from '../network';
 import { parseIp } from '../ip';
 import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
@@ -19,6 +19,32 @@ function ipconfig(c: Ctx): RunResult {
   out.push('   Connection-specific DNS Suffix  . :');
   const dup = nic.ip !== null && duplicateIps(c.lab).some((d) => d.ip === nic.ip && d.members.some((m) => m.deviceId === c.dev.id));
   out.push(`   IPv4 Address. . . . . . . . . . . : ${nic.ip ?? '0.0.0.0'}${dup ? '(Duplicate)' : ''}`);
+  out.push(`   Subnet Mask . . . . . . . . . . . : ${nic.mask ?? '0.0.0.0'}`);
+  out.push(`   Default Gateway . . . . . . . . . : ${c.dev.gateway ?? ''}`);
+  return { lines: out };
+}
+
+/**
+ * Windows `ipconfig /all`, limited to what the simulator models: host name, adapter, MAC, static addressing.
+ * DNS / WINS / NetBIOS / lease lines are omitted (not modelled); DHCP is always "No" (addresses are static here).
+ */
+function ipconfigAll(c: Ctx): RunResult {
+  const nic = c.dev.ifaces[0];
+  const line = portLine(c.lab, c.dev, nic);
+  const mac = fmtMacDash(macOf(c.dev.id, nic.name)).toUpperCase();
+  const out = ['', 'Windows IP Configuration', '', `   Host Name . . . . . . . . . . . . : ${c.dev.name}`, '', `Ethernet adapter ${nic.name}:`, ''];
+  if (line !== 'up') {
+    out.push('   Media State . . . . . . . . . . . : Media disconnected');
+    out.push('   Connection-specific DNS Suffix  . :');
+    out.push(`   Physical Address. . . . . . . . . : ${mac}`);
+    out.push('   DHCP Enabled. . . . . . . . . . . : No');
+    return { lines: out };
+  }
+  const dup = nic.ip !== null && duplicateIps(c.lab).some((d) => d.ip === nic.ip && d.members.some((m) => m.deviceId === c.dev.id));
+  out.push('   Connection-specific DNS Suffix  . :');
+  out.push(`   Physical Address. . . . . . . . . : ${mac}`);
+  out.push('   DHCP Enabled. . . . . . . . . . . : No');
+  out.push(`   IPv4 Address. . . . . . . . . . . : ${nic.ip ?? '0.0.0.0'}${nic.ip ? (dup ? '(Duplicate)' : '(Preferred)') : ''}`);
   out.push(`   Subnet Mask . . . . . . . . . . . : ${nic.mask ?? '0.0.0.0'}`);
   out.push(`   Default Gateway . . . . . . . . . : ${c.dev.gateway ?? ''}`);
   return { lines: out };
@@ -98,6 +124,12 @@ const specs: CommandSpec[] = [
     run: ipconfig,
   }),
   cmd({
+    id: 'pc.ipconfig.all', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'ipconfig /all',
+    helpEn: 'Display full IP configuration', descTh: tx('แสดงรายละเอียดเพิ่ม: ชื่อเครื่อง, MAC (Physical Address), DHCP และ IP — ไม่แสดง DNS/WINS เพราะ simulator ไม่จำลอง'), topic: 'IP',
+    example: 'ipconfig /all', verify: 'arp -a', verifyTh: tx('Physical Address ต้องตรงกับ MAC ที่เครื่องอื่นเห็นใน arp -a'),
+    run: ipconfigAll,
+  }),
+  cmd({
     id: 'pc.ping', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'ping <ipv4>',
     helpEn: 'Send ICMP echo requests', descTh: tx('ทดสอบ reachability ไปยัง IPv4 ปลายทาง (ผลเปลี่ยนตามสาย พอร์ต VLAN และ gateway ปัจจุบัน)'), topic: 'Troubleshooting',
     example: 'ping 192.168.1.110', verify: 'ping 192.168.1.1', verifyTh: tx('Reply = สำเร็จ, Request timed out = ไม่ถึง'),
@@ -131,7 +163,7 @@ const specs: CommandSpec[] = [
     id: 'pc.help', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'help',
     helpEn: 'List available commands', descTh: tx('แสดงคำสั่งที่ PC รองรับ'), topic: 'Troubleshooting',
     example: 'help', verify: tx('(รายการคำสั่ง)'), verifyTh: tx('ต้องเห็น ipconfig, ping, cls, help'),
-    run: () => ({ lines: ['Supported commands:', '  ipconfig        Show IP configuration', '  ping <IPv4>     Test reachability', '  tracert <IPv4>  Trace the route (tracert -h <n> <IPv4>: max hops)', '  cls             Clear the screen', '  help            Show this list'] }),
+    run: () => ({ lines: ['Supported commands:', '  ipconfig        Show IP configuration (ipconfig /all: details)', '  ping <IPv4>     Test reachability', '  tracert <IPv4>  Trace the route (tracert -h <n> <IPv4>: max hops)', '  cls             Clear the screen', '  help            Show this list'] }),
   }),
 ];
 

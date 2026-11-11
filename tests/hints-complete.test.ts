@@ -41,7 +41,9 @@ describe('Tab completion', () => {
 
   it('extends to the common prefix, then lists the options when ambiguous', () => {
     r1.cli.mode = 'priv';
-    expect(completeLine(r1, 'show i').value).toBe('show ip '); // only `ip` starts with i
+    expect(completeLine(r1, 'show ip').value).toBe('show ip '); // `ip` is the only keyword starting with "ip"
+    // `interfaces` and `ip` both start with "i" (as on IOS): nothing longer to complete, both are listed
+    expect(completeLine(r1, 'show i')).toEqual({ value: 'show i', options: ['interfaces', 'ip'] });
     const c = completeLine(r1, 'show ip ');
     expect(c.value).toBe('show ip ');
     expect(c.options).toEqual(expect.arrayContaining(['route', 'arp']));
