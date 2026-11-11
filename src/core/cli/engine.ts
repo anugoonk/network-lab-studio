@@ -7,6 +7,7 @@
 import { PROFILES, shortPort } from '../profiles';
 import { allAddresses } from '../network';
 import { getDevice } from '../lab';
+import { cdpMismatchLog } from '../trunkcheck';
 import type { Device, Lab, Vendor } from '../types';
 import { SPECS } from './registry';
 import {
@@ -393,5 +394,7 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
     return { lab: safe, output: res.output, ok: false, prompt, hintTh: res.hintTh };
   }
   pushHistory(dev, line);
-  return { lab: work, output: res.output, ok: true, prompt, clear: res.clear };
+  // a Cisco switch logs (via CDP) a native VLAN mismatch the command has just created on one of its trunks
+  const syslog = cdpMismatchLog(lab, work, deviceId);
+  return { lab: work, output: syslog.length ? [...res.output, ...syslog] : res.output, ok: true, prompt, clear: res.clear };
 }

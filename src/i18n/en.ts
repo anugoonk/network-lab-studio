@@ -901,4 +901,9 @@ export const EN: Record<string, string> = {
   "ไล่ดูเส้นทาง L3 ทีละ hop จาก PC ถึงปลายทาง (gateway และ router ที่ route จริง) — ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency": "Trace the L3 path hop by hop from the PC to the destination (the gateway and the routers that really route) — no times are shown because the simulator does not model latency",
   "hop แรกต้องเป็น default gateway เมื่อปลายทางอยู่นอก subnet; ปลายทางใน subnet เดียวกันมี 1 hop": "The first hop must be the default gateway when the destination is outside the subnet; a destination in the same subnet is 1 hop",
   "เหมือน tracert แต่กำหนดจำนวน hop สูงสุด (1-255)": "Like tracert, with a maximum number of hops (1-255)",
+  "ตรวจ native VLAN ของ trunk": "Trunk native VLAN check",
+  "ไม่พบ native VLAN ที่ไม่ตรงกันบน trunk ที่ลิงก์ up": "No native VLAN mismatch on trunks whose link is up",
+  "{0} {1} ใช้ native VLAN {2} แต่ {3} {4} ใช้ native VLAN {5} — เฟรม untagged จะข้ามไปอยู่คนละ VLAN ให้ตั้งให้ตรงกันทั้งสองฝั่ง": "{0} {1} uses native VLAN {2} but {3} {4} uses native VLAN {5} — untagged frames end up in a different VLAN; set the same native VLAN on both ends",
+  "(Cisco ทั้งสองฝั่งจะแจ้ง %CDP-4-NATIVE_VLAN_MISMATCH ผ่าน CDP)": "(both Cisco ends report %CDP-4-NATIVE_VLAN_MISMATCH via CDP)",
+  "ข้อนี้เป็นการตรวจของ simulator — forwarding ไม่เปลี่ยน และ simulator ไม่แก้ค่าให้อัตโนมัติ": "This is a simulator check — forwarding is not changed and the simulator does not fix the configuration for you",
 };

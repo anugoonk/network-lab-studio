@@ -4,6 +4,7 @@ import { getDevice } from '../core/lab';
 import { allAddresses, l3Interfaces, linkStatus, type PingResult } from '../core/network';
 import { shortPort } from '../core/profiles';
 import { parseIp } from '../core/ip';
+import { nativeVlanMismatches } from '../core/trunkcheck';
 import { useStore } from '../store';
 import { tx } from '../i18n';
 
@@ -57,6 +58,29 @@ function DuplicateIps() {
   );
 }
 
+function NativeVlanMismatches() {
+  const lab = useStore((s) => s.lab);
+  const list = nativeVlanMismatches(lab);
+  return (
+    <section className="card" data-testid="native-section">
+      <h4>{tx('ตรวจ native VLAN ของ trunk')}</h4>
+      {list.length === 0 ? (
+        <p className="muted small" data-testid="native-none">{tx('ไม่พบ native VLAN ที่ไม่ตรงกันบน trunk ที่ลิงก์ up')}</p>
+      ) : (
+        <ul className="explain" data-testid="native-list">
+          {list.map((m) => (
+            <li key={m.linkId}>
+              {tx('{0} {1} ใช้ native VLAN {2} แต่ {3} {4} ใช้ native VLAN {5} — เฟรม untagged จะข้ามไปอยู่คนละ VLAN ให้ตั้งให้ตรงกันทั้งสองฝั่ง', m.a.deviceName, shortPort(m.a.port), m.a.nativeVlan, m.b.deviceName, shortPort(m.b.port), m.b.nativeVlan)}
+              {m.cdp ? ` ${tx('(Cisco ทั้งสองฝั่งจะแจ้ง %CDP-4-NATIVE_VLAN_MISMATCH ผ่าน CDP)')}` : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small">{tx('ข้อนี้เป็นการตรวจของ simulator — forwarding ไม่เปลี่ยน และ simulator ไม่แก้ค่าให้อัตโนมัติ')}</p>
+    </section>
+  );
+}
+
 export function Inspector() {
   const lab = useStore((s) => s.lab);
   const lastPing = useStore((s) => s.lastPing);
@@ -105,6 +129,8 @@ export function Inspector() {
       </section>
 
       <DuplicateIps />
+
+      <NativeVlanMismatches />
 
       <section className="card">
         <h4>{tx('ผลล่าสุด')}{' '}{lastPing ? '' : tx('(ยังไม่มี)')}</h4>

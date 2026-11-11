@@ -156,6 +156,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 **รองรับ**
 
 - Ethernet point-to-point, access VLAN (untagged) และ **802.1Q trunk** (allowed VLAN list, native VLAN), IPv4 + subnet mask, default gateway
+- **ตรวจ native VLAN ไม่ตรงกัน** บน trunk ที่ลิงก์ up (ทั้งสองฝั่งเป็น trunk): Lab Inspector แสดงทุกคู่ (Cisco/Aruba/ผสม); ถ้าเป็น Cisco switch ทั้งสองฝั่ง (CDP) คำสั่งที่ทำให้เกิด mismatch จะพิมพ์ `%CDP-4-NATIVE_VLAN_MISMATCH: …` หนึ่งครั้งบน console ของ switch ที่สั่ง (ของจริง CDP แจ้งซ้ำทุกนาทีบนทั้งสองตัว — simulator ไม่จำลองเวลา) · Aruba ไม่พิมพ์ข้อความ (ยังไม่พบหลักฐานข้อความของ AOS-CX) · ไม่เปลี่ยน forwarding (เฟรม untagged ยังข้ามไปอยู่คนละ VLAN ตามจริง) และไม่แก้ค่าให้อัตโนมัติ; ไม่ตรวจกรณี trunk ↔ access
 - **Router-on-a-stick**: sub-interface (`interface gi0/0.10` + `encapsulation dot1Q 10`) บน Cisco router
 - **SVI** (`interface vlan N`): บน Aruba AOS-CX ทำให้ switch route ระหว่าง VLAN ได้ (เป็น gateway ของ VLAN); บน Cisco 2960 (L2 switch) เป็น management IP เท่านั้น + `ip default-gateway` (ไม่ route ระหว่าง VLAN ตามของจริง)
 - **Static route / default route** บน Cisco router (`ip route net mask next-hop`) และ Aruba (`ip route a.b.c.d/len next-hop`); route จะใช้ได้ก็ต่อเมื่อ next hop อยู่ใน subnet ของ interface ที่ up/up; Aruba routed port ตั้ง IP ได้ (`routing` + `ip address`)
@@ -373,9 +374,9 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 22 ไฟล์) | **558/558 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน + แถว `act/unsup` ใน `show vlan brief`, `show ip route` บน 2960), traceroute/tracert (hop ที่ route จริง, `!N`, loop, hop limit) |
+| `npm test` (Vitest, 23 ไฟล์) | **570/570 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน + แถว `act/unsup` ใน `show vlan brief`, `show ip route` บน 2960), traceroute/tracert (hop ที่ route จริง, `!N`, loop, hop limit), native VLAN mismatch (ตรวจ/CDP syslog/หายเมื่อแก้) |
 | `npm run build` | ผ่าน (tsc strict + vite) |
-| `npm run e2e` (Playwright + Chromium, 75 flow) | **75/75 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 7 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
+| `npm run e2e` (Playwright + Chromium, 76 flow) | **76/76 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 7 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ, คำเตือน native VLAN ไม่ตรงกันใน Inspector |
 
 หมายเหตุ: Playwright ทดสอบบน Chromium เท่านั้น และเนื้อหา output ของอุปกรณ์ยังไม่ได้เทียบกับอุปกรณ์จริง
 
