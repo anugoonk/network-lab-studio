@@ -1,6 +1,6 @@
 import { addLink, createDevice, emptyLab, updateDevice } from './lab';
 import { captureStart } from './challenge';
-import { campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
+import { addressingGuide, campus3ChallengeGuide, campus3Guide, campusGuide, dupIpGuide, interVlanGuide, officeGuide, troubleshootGuide } from './sampleGuides';
 import type { Check, Device, Lab } from './types';
 import { tx } from '../i18n';
 
@@ -513,9 +513,50 @@ export function buildCampus3TroubleLab(): Lab {
   });
 }
 
+// ───────────────────────── Challenge 5: addressing faults on Inter-VLAN ─────────────────────────
+
+export const ADDRESSING_NAME = tx('Challenge: Subnet / Encapsulation / WAN IP – Inter-VLAN');
+
+/**
+ * Inter-VLAN lab with three addressing faults: (1) R1 Gi0/0.20 uses `encapsulation dot1Q 200` instead of 20,
+ * (2) PC-C has mask /30 so its gateway is off-subnet, (3) R2's WAN address is 10.0.0.3 while R1's route points at 10.0.0.2.
+ */
+export function buildAddressingLab(): Lab {
+  let lab: Lab = { ...buildInterVlanLab(), name: ADDRESSING_NAME };
+  const id = (name: string) => lab.devices.find((d) => d.name === name)!.id;
+  lab = updateDevice(lab, id('R1'), (d) => ({ ...d, subifs: d.subifs.map((s) => (s.id === 20 ? { ...s, vlan: 200 } : s)) }));
+  lab = updateDevice(lab, id('PC-C'), (d) => ({ ...d, ifaces: d.ifaces.map((i) => ({ ...i, mask: '255.255.255.252' })) }));
+  lab = updateDevice(lab, id('R2'), (d) => ({ ...d, ifaces: d.ifaces.map((i) => (i.name === 'GigabitEthernet0/0' ? { ...i, ip: '10.0.0.3' } : i)) }));
+  const ping = (n: number, from: string, to: string, label: string): Check => ({ id: `c${n}`, kind: 'ping', label, from: id(from), to, expect: 'success' });
+  const checks: Check[] = [
+    ping(1, 'PC-A', '192.168.10.1', tx('PC-A ติดต่อ gateway (R1 VLAN 10) ได้')),
+    ping(2, 'PC-B', '192.168.20.1', tx('PC-B ติดต่อ gateway (R1 VLAN 20) ได้')),
+    ping(3, 'PC-C', '192.168.10.1', tx('PC-C ติดต่อ gateway (R1 VLAN 10) ได้')),
+    ping(4, 'PC-D', '192.168.20.1', tx('PC-D ติดต่อ gateway (R1 VLAN 20) ได้')),
+    ping(5, 'PC-A', '172.16.0.10', tx('PC-A ติดต่อ PC-E (ผ่าน R1 และ R2) ได้')),
+    { id: 'c6', kind: 'link-up', label: tx('R1 Gi0/1 ลิงก์ up'), deviceId: id('R1'), port: 'GigabitEthernet0/1' },
+    { id: 'c7', kind: 'no-dup-ip', label: tx('ไม่มี IP ซ้ำใน L2 domain เดียวกัน') },
+  ];
+  return withStart({
+    ...lab,
+    guide: addressingGuide(),
+    challenge: {
+      title: tx('หาจุดผิดเรื่อง IP/Subnet และ sub-interface'),
+      goal: tx('ทุกลิงก์ต่ออยู่และเปิดใช้งานอยู่ แต่ผู้ใช้หลายกลุ่มยังติดต่อไม่ได้ ให้หาสาเหตุทุกจุดแล้วแก้ให้ทุก Check ผ่าน โดยไม่ลบหรือเปลี่ยนสาย — ปัญหาอยู่ที่การตั้งค่า IP / subnet / VLAN ไม่ใช่ที่สายหรือพอร์ตปิด'),
+      checks,
+      hints: [
+        tx('Check ที่ไม่ผ่านบอกกลุ่มอาการ: ลองเทียบว่า PC ไหนไปถึง gateway ได้ และไม่ได้ แล้วหาความต่างของค่าที่ตั้ง'),
+        tx('ใช้ ipconfig บน PC และ show ip interface brief บน R1/R2 เทียบ IP, mask และสถานะของแต่ละ interface'),
+        tx('ถ้า PC ใน VLAN เดียวกันบางเครื่องผ่านบางเครื่องไม่ผ่าน ให้ดู subnet mask ของเครื่องที่ไม่ผ่าน; ถ้าทั้ง VLAN ไม่ผ่านให้ดู sub-interface ของ VLAN นั้นบน router (show running-config)'),
+        tx('เฉลย: R1 Gi0/0.20 ต้องใช้ encapsulation dot1Q 20, PC-C ต้องใช้ mask 255.255.255.0, R2 Gi0/0 ต้องเป็น 10.0.0.2 (ตรงกับ next-hop ของ R1)'),
+      ],
+    },
+  });
+}
+
 // ───────────────────────── catalog ─────────────────────────
 
-export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble';
+export type SampleKind = 'office' | 'intervlan' | 'campus3' | 'trouble' | 'dupip' | 'campus' | 'campus3trouble' | 'addressing';
 
 export interface SampleInfo {
   /** short name used on buttons and in confirmations */
@@ -534,4 +575,5 @@ export const SAMPLES: Record<SampleKind, SampleInfo> = {
   dupip: { title: tx('Challenge 2: IP ซ้ำ + VLAN ผิด'), hint: tx('ใช้ show mac address-table / show ip arp หาเครื่องที่ผิด (3 จุด)'), challenge: true, build: buildDupIpLab },
   campus: { title: 'Challenge 3: Campus + ISP', hint: tx('L3 switch, server, AP — ปัญหาซ้อนกันหลายชั้น (3 จุด)'), challenge: true, build: buildCampusLab },
   campus3trouble: { title: 'Challenge 4: Campus 3 Tier', hint: tx('Trunk allowed + default route ผิด + route ขากลับหาย บน Aruba CX (3 จุด)'), challenge: true, build: buildCampus3TroubleLab },
+  addressing: { title: tx('Challenge 5: Subnet + Encapsulation'), hint: tx('mask ผิด + dot1Q ผิด + IP ฝั่ง WAN ไม่ตรงกัน (3 จุด)'), challenge: true, build: buildAddressingLab },
 };

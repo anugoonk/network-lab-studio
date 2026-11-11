@@ -333,3 +333,35 @@ export function campus3ChallengeGuide(): Guide {
     resources: references(),
   };
 }
+
+export function addressingGuide(): Guide {
+  return {
+    title: tx('Troubleshooting — IP, Subnet และ sub-interface'),
+    objective: [
+      tx('เมื่อจบโจทย์นี้ ผู้เรียนจะสามารถ:'),
+      tx('- ตรวจว่า IP, subnet mask และ default gateway ของเครื่องอยู่ใน subnet เดียวกันหรือไม่'),
+      tx('- ตรวจว่า sub-interface บน router ใช้ VLAN ID (dot1Q) ตรงกับ VLAN บน switch'),
+      tx('- ตรวจว่าสองฝั่งของลิงก์ /30 ใช้ IP ที่อยู่ในเครือข่ายเดียวกันและตรงกับ next-hop'),
+    ].join('\n'),
+    sections: [
+      {
+        heading: tx('สถานการณ์'),
+        body: [
+          tx('ออฟฟิศ Inter-VLAN (ดูรายละเอียดที่ Open Sample Lab) ทุกสายต่ออยู่และพอร์ตเปิดหมด แต่ผู้ใช้แจ้งว่า'),
+          tx('- ทั้ง VLAN 20 ใช้งานไม่ได้เลย'),
+          tx('- ใน VLAN 10 มีเครื่องหนึ่งไปไหนไม่ได้ ขณะที่อีกเครื่องปกติ'),
+          tx('- ไม่มีใครไปถึงเครือข่ายฝั่ง R2 (172.16.0.0/24)'),
+        ].join('\n'),
+      },
+      {
+        heading: tx('กติกา'),
+        body: [
+          tx('1. กด **Check** เพื่อดูว่ายังไม่ผ่านข้อไหน (บอกแค่ผ่าน/ไม่ผ่าน)'),
+          tx('2. ห้ามลบหรือเปลี่ยนสาย แก้ได้เฉพาะ config ของอุปกรณ์'),
+          tx('3. ถ้าแก้พังจนไปต่อไม่ได้ กด **รีเซ็ตโจทย์** เพื่อกลับสถานะเริ่มต้น (ย้อนกลับด้วย Undo ได้)'),
+        ].join('\n'),
+      },
+    ],
+    resources: references(),
+  };
+}

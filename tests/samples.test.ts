@@ -3,7 +3,7 @@ import { applyStart, captureStart, evaluateChallenge } from '../src/core/challen
 import { duplicateIps } from '../src/core/l2tables';
 import { updateDevice } from '../src/core/lab';
 import { parseImport, serializeExport } from '../src/core/persist';
-import { SAMPLES, buildCampusLab, buildDupIpLab, type SampleKind } from '../src/core/sample';
+import { SAMPLES, buildAddressingLab, buildCampusLab, buildDupIpLab, type SampleKind } from '../src/core/sample';
 import type { Lab } from '../src/core/types';
 import { byName, run } from './helpers';
 
@@ -145,5 +145,18 @@ describe('AOS-CX routed port as a router uplink (regression found while building
     lab = run(lab, 'ISP1', ['enable']).lab;
     const ciscoOut = run(lab, 'ISP1', ['ping 10.1.1.2']).results[0].output;
     expect(ciscoOut.some((l) => l.includes('Success rate is 100 percent'))).toBe(true);
+  });
+});
+
+describe('Challenge 5: addressing faults', () => {
+  it('starts with c1, c6, c7 passing; each fix unlocks its checks', () => {
+    let lab = buildAddressingLab();
+    expect(passes(lab)).toEqual(['c1', 'c6', 'c7']);
+    lab = run(lab, 'R1', ['enable', 'configure terminal', 'interface GigabitEthernet0/0.20', 'encapsulation dot1Q 20', 'end']).lab;
+    expect(passes(lab)).toEqual(['c1', 'c2', 'c4', 'c6', 'c7']);
+    lab = updateDevice(lab, byName(lab, 'PC-C').id, (d) => ({ ...d, ifaces: d.ifaces.map((i) => ({ ...i, mask: '255.255.255.0' })) }));
+    expect(passes(lab)).toEqual(['c1', 'c2', 'c3', 'c4', 'c6', 'c7']);
+    lab = run(lab, 'R2', ['enable', 'configure terminal', 'interface GigabitEthernet0/0', 'ip address 10.0.0.2 255.255.255.252', 'end']).lab;
+    expect(score(lab).allPassed).toBe(true);
   });
 });
