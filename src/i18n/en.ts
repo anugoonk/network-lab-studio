@@ -892,4 +892,13 @@ export const EN: Record<string, string> = {
   "L2 switch ไม่ route (ไม่มี ip routing) จึงแสดงเฉพาะ default gateway ที่ตั้งด้วย ip default-gateway": "An L2 switch does not route (no ip routing), so this only shows the default gateway set with ip default-gateway",
   "ต้องเห็น Default gateway is … ตรงกับ ip default-gateway": "Must show \"Default gateway is …\" matching ip default-gateway",
   "ยังไม่ได้เชื่อมสาย": "no cable is connected",
+  "ไล่ดูเส้นทาง L3 ทีละ hop (router ที่ส่งต่อจริงตาม routing table ปัจจุบัน) — !N = router ไม่มี route, * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency": "Trace the L3 path hop by hop (the routers that really forward, per the current routing tables) — !N = a router has no route, * = no answer; no times are shown because the simulator does not model latency",
+  "ต้องเห็น router ทุกตัวที่ route ตามลำดับ จนถึงปลายทาง (switch L2 ไม่ปรากฏเป็น hop)": "Every routing router must appear in order up to the destination (L2 switches are not hops)",
+  "ไล่ดูเส้นทาง L3 ทีละ hop (สูงสุด 30) — !N = router ไม่มี route, * * * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency": "Trace the L3 path hop by hop (up to 30) — !N = a router has no route, * * * = no answer; no times are shown because the simulator does not model latency",
+  "ต้องเห็น router/L3 switch ที่ route ตามลำดับ จนถึงปลายทาง": "The routing routers / L3 switches must appear in order up to the destination",
+  "เหมือน traceroute แต่กำหนดจำนวน hop สูงสุด (1-255)": "Like traceroute, with a maximum number of hops (1-255)",
+  "ต้องหยุดไม่เกินจำนวน hop ที่กำหนด": "Must stop at or before the given number of hops",
+  "ไล่ดูเส้นทาง L3 ทีละ hop จาก PC ถึงปลายทาง (gateway และ router ที่ route จริง) — ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency": "Trace the L3 path hop by hop from the PC to the destination (the gateway and the routers that really route) — no times are shown because the simulator does not model latency",
+  "hop แรกต้องเป็น default gateway เมื่อปลายทางอยู่นอก subnet; ปลายทางใน subnet เดียวกันมี 1 hop": "The first hop must be the default gateway when the destination is outside the subnet; a destination in the same subnet is 1 hop",
+  "เหมือน tracert แต่กำหนดจำนวน hop สูงสุด (1-255)": "Like tracert, with a maximum number of hops (1-255)",
 };

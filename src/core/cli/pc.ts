@@ -1,6 +1,6 @@
 /** PC terminal profile (Windows-style `ipconfig` and `ping <IPv4>`). Runs only against the simulated lab. */
 import { arpTable, duplicateIps, fmtMacDash } from '../l2tables';
-import { ping, portLine } from '../network';
+import { TRACE_DEFAULT_MAX_TTL, ping, portLine, trace } from '../network';
 import { parseIp } from '../ip';
 import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
@@ -49,6 +49,36 @@ function pingCmd(c: Ctx): RunResult {
   return { lines };
 }
 
+/**
+ * Windows `tracert [-h max] <IPv4>`. No latency model → the three time columns are not printed.
+ * Local failures: no link / no usable gateway → "General failure."; first next hop does not answer ARP →
+ * "<own IP> reports: Destination host unreachable." (both lines are approximations, not verified against Windows).
+ */
+function tracertCmd(c: Ctx): RunResult {
+  const hasMax = c.args.length === 2;
+  const dst = hasMax ? c.args[1] : c.args[0];
+  let max = TRACE_DEFAULT_MAX_TTL;
+  if (hasMax) {
+    if (!/^\d{1,3}$/.test(c.args[0]) || Number(c.args[0]) < 1 || Number(c.args[0]) > 255) return { lines: ['Bad value for option -h, valid range is from 1 to 255.'] };
+    max = Number(c.args[0]);
+  }
+  if (parseIp(dst) === null) return { lines: [`Unable to resolve target system name ${dst}.`] };
+  const r = trace(c.lab, c.dev.id, dst, max);
+  const lines = ['', `Tracing route to ${dst} over a maximum of ${max} hops`, ''];
+  const n = (t: number) => String(t).padStart(3);
+  if (r.local === 'general-failure') lines.push(`${n(1)}  General failure.`);
+  else if (r.local === 'host-unreachable') lines.push(`${n(1)}  ${r.srcIp ?? c.dev.ifaces[0].ip ?? '0.0.0.0'}  reports: Destination host unreachable.`);
+  else {
+    for (const h of r.hops) {
+      if (h.reply === 'none') lines.push(`${n(h.ttl)}     *        *        *     Request timed out.`);
+      else if (h.reply === 'net-unreachable') lines.push(`${n(h.ttl)}  ${h.ip}  reports: Destination net unreachable.`);
+      else lines.push(`${n(h.ttl)}  ${h.ip}`);
+    }
+  }
+  lines.push('', 'Trace complete.');
+  return { lines };
+}
+
 function arpCmd(c: Ctx): RunResult {
   const nic = c.dev.ifaces[0];
   const rows = arpTable(c.lab, c.dev).filter((e) => !e.own);
@@ -74,6 +104,18 @@ const specs: CommandSpec[] = [
     run: pingCmd,
   }),
   cmd({
+    id: 'pc.tracert', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'tracert <ipv4>',
+    helpEn: 'Trace the route to a destination', descTh: tx('ไล่ดูเส้นทาง L3 ทีละ hop จาก PC ถึงปลายทาง (gateway และ router ที่ route จริง) — ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency'), topic: 'Troubleshooting',
+    example: 'tracert 192.168.1.110', verify: 'tracert 192.168.1.1', verifyTh: tx('hop แรกต้องเป็น default gateway เมื่อปลายทางอยู่นอก subnet; ปลายทางใน subnet เดียวกันมี 1 hop'),
+    run: tracertCmd,
+  }),
+  cmd({
+    id: 'pc.tracert.h', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'tracert -h <max-hops> <ipv4>',
+    helpEn: 'Trace the route with a maximum number of hops', descTh: tx('เหมือน tracert แต่กำหนดจำนวน hop สูงสุด (1-255)'), topic: 'Troubleshooting',
+    example: 'tracert -h 5 192.168.1.110', verify: 'tracert -h 5 192.168.1.1', verifyTh: tx('ต้องหยุดไม่เกินจำนวน hop ที่กำหนด'),
+    run: tracertCmd,
+  }),
+  cmd({
     id: 'pc.arp', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'arp -a',
     helpEn: 'Display ARP cache', descTh: tx('ดูตาราง ARP ของ PC (IP → MAC ของเครื่องใน L2 เดียวกัน ไม่จำลองการเรียนรู้/หมดอายุ)'), topic: 'Layer 2',
     example: 'arp -a', verify: 'ping 192.168.1.1', verifyTh: tx('ไม่เห็น gateway ในตาราง แปลว่า PC ไม่อยู่ L2 เดียวกับ gateway'),
@@ -89,7 +131,7 @@ const specs: CommandSpec[] = [
     id: 'pc.help', vendor: 'pc', deviceTypes: [...PC], modes: ['pc'], syntax: 'help',
     helpEn: 'List available commands', descTh: tx('แสดงคำสั่งที่ PC รองรับ'), topic: 'Troubleshooting',
     example: 'help', verify: tx('(รายการคำสั่ง)'), verifyTh: tx('ต้องเห็น ipconfig, ping, cls, help'),
-    run: () => ({ lines: ['Supported commands:', '  ipconfig        Show IP configuration', '  ping <IPv4>     Test reachability', '  cls             Clear the screen', '  help            Show this list'] }),
+    run: () => ({ lines: ['Supported commands:', '  ipconfig        Show IP configuration', '  ping <IPv4>     Test reachability', '  tracert <IPv4>  Trace the route (tracert -h <n> <IPv4>: max hops)', '  cls             Clear the screen', '  help            Show this list'] }),
   }),
 ];
 

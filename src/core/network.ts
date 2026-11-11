@@ -434,6 +434,8 @@ interface DeliverOk {
   srcIp: string;
   /** L3 devices that forwarded the packet (each one decrements TTL) */
   routed: number;
+  /** observational: ids of the devices that did an L3 forwarding step, in order (length === routed) */
+  hops: string[];
 }
 interface DeliverFail {
   ok: false;
@@ -443,6 +445,8 @@ interface DeliverFail {
   atDeviceId: string;
   /** source address chosen on the first hop (null when it failed before choosing one) */
   srcIp: string | null;
+  /** observational: ids of the non-source devices that started an L3 forwarding step, in order (incl. the one that failed) */
+  hops: string[];
 }
 
 function ownedAddress(lab: Lab, d: Device, ip: string): L3If | undefined {
@@ -519,21 +523,31 @@ function pushPath(path: string[], ids: string[]) {
   for (const id of ids) if (path[path.length - 1] !== id) path.push(id);
 }
 
-function deliver(lab: Lab, from: Device, dstIp: string): DeliverOk | DeliverFail {
+/**
+ * Walks a packet from `from` towards `dstIp` one routing step at a time.
+ * `maxSteps` bounds the number of routing steps (the source's own step included) — a guard against routing loops,
+ * not an IP TTL: the engine never decrements or expires a TTL. Default 16 (what ping has always used).
+ * `hops` is observational only: it records which devices performed each step and never influences a decision.
+ */
+function deliver(lab: Lab, from: Device, dstIp: string, maxSteps = 16): DeliverOk | DeliverFail {
   const path: string[] = [from.id];
   let cur = from;
   let srcIp: string | null = null;
   let routed = 0;
+  const hops: string[] = [];
 
-  for (let hop = 0; hop < 16; hop++) {
+  for (let hop = 0; hop < maxSteps; hop++) {
     const own = ownedAddress(lab, cur, dstIp);
     if (own && (cur.id === from.id || own.up)) {
-      return { ok: true, path, dstDeviceId: cur.id, srcIp: srcIp ?? dstIp, routed };
+      return { ok: true, path, dstDeviceId: cur.id, srcIp: srcIp ?? dstIp, routed, hops };
     }
-    if (cur.id !== from.id) routed++; // this device forwards the packet
+    if (cur.id !== from.id) {
+      routed++; // this device forwards the packet
+      hops.push(cur.id);
+    }
 
     const sel = selectRoute(lab, cur, dstIp);
-    if ('fail' in sel) return { ok: false, path, kind: sel.kind, atDeviceId: cur.id, th: sel.fail, srcIp };
+    if ('fail' in sel) return { ok: false, path, kind: sel.kind, atDeviceId: cur.id, th: sel.fail, srcIp, hops };
     if (srcIp === null) srcIp = sel.out.ip;
 
     const domain = l2Domain(lab, sel.out);
@@ -544,26 +558,132 @@ function deliver(lab: Lab, from: Device, dstIp: string): DeliverOk | DeliverFail
         path,
         kind: 'unresolved',
         srcIp,
+        hops,
         atDeviceId: cur.id,
         th: diagnoseUnresolved(lab, cur, sel.out, sel.nextHop, sel.role),
       };
     }
     pushPath(path, [...hit.via, hit.ifc.deviceId]);
     const nh = getDevice(lab, hit.ifc.deviceId)!;
-    if (sel.nextHop === dstIp) return { ok: true, path, dstDeviceId: nh.id, srcIp, routed };
+    if (sel.nextHop === dstIp) return { ok: true, path, dstDeviceId: nh.id, srcIp, routed, hops };
     if (!canForward(nh)) {
       return {
         ok: false,
         path,
         kind: 'general',
         srcIp,
+        hops,
         atDeviceId: nh.id,
         th: tx('Gateway/next hop {0} คือ {1} ซึ่งไม่ใช่อุปกรณ์ที่ส่งต่อแพ็กเก็ต (L3) จึงไม่ส่งต่อให้', sel.nextHop, nh.name),
       };
     }
     cur = nh;
   }
-  return { ok: false, path, kind: 'loop', atDeviceId: cur.id, srcIp, th: tx('แพ็กเก็ตวนเกินจำนวน hop ที่กำหนด (routing loop)') };
+  return { ok: false, path, kind: 'loop', atDeviceId: cur.id, srcIp, hops, th: tx('แพ็กเก็ตวนเกินจำนวน hop ที่กำหนด (routing loop)') };
+}
+
+// ───────────────────────── traceroute (read-only, derived from one deliver() walk) ─────────────────────────
+
+export interface TraceHop {
+  /** probe TTL, 1-based */
+  ttl: number;
+  /**
+   * what came back for the probes of this TTL:
+   * time-exceeded = a router on the path; dest = the destination answered; net-unreachable = a router had no route;
+   * none = nothing came back (printed as `*`)
+   */
+  reply: 'time-exceeded' | 'dest' | 'net-unreachable' | 'none';
+  /** address the answer came from (null for `none`) */
+  ip: string | null;
+  deviceId: string | null;
+}
+
+export interface TraceResult {
+  srcId: string;
+  dstIp: string;
+  maxTtl: number;
+  /** source address of the probes (null when nothing could be sent) */
+  srcIp: string | null;
+  /** the probes could not leave the source: no link / no gateway (general-failure) or the first next hop did not answer ARP */
+  local: null | 'general-failure' | 'host-unreachable';
+  hops: TraceHop[];
+  end: 'reached' | 'net-unreachable' | 'max-ttl' | 'local-failure';
+  /** a forwarding device appears more than once on the path (routing loop) */
+  loop: boolean;
+}
+
+export const TRACE_DEFAULT_MAX_TTL = 30;
+
+/**
+ * Traceroute derived from the SAME forwarding walk ping uses (deliver), without changing any decision:
+ * the engine never expires a TTL, and its forwarding never depends on TTL, so a probe with TTL k follows the first
+ * k forwarding steps of the one simulated path and expires at the k-th forwarding device. That device's answer (ICMP
+ * Time Exceeded, or Net Unreachable when it has no route) counts only if a real deliver() from it back to the source
+ * succeeds; its address is the interface it uses towards the source. Nothing else (latency, rate limiting) is modelled.
+ */
+export function trace(lab: Lab, srcId: string, dstIp: string, maxTtl = TRACE_DEFAULT_MAX_TTL): TraceResult {
+  const result: TraceResult = { srcId, dstIp, maxTtl, srcIp: null, local: null, hops: [], end: 'max-ttl', loop: false };
+  const none = (ttl: number): TraceHop => ({ ttl, reply: 'none', ip: null, deviceId: null });
+  const stars = () => {
+    for (let t = result.hops.length + 1; t <= maxTtl; t++) result.hops.push(none(t));
+  };
+  const src = getDevice(lab, srcId);
+  if (!src) {
+    result.local = 'general-failure';
+    result.end = 'local-failure';
+    return result;
+  }
+
+  // one walk, bounded: maxTtl forwarding devices + the source's own step
+  const fwd = deliver(lab, src, dstIp, maxTtl + 1);
+  result.srcIp = fwd.srcIp;
+  result.loop = new Set(fwd.hops).size !== fwd.hops.length;
+
+  if (!fwd.ok && fwd.hops.length === 0 && fwd.atDeviceId === src.id && (fwd.kind === 'general' || fwd.kind === 'unresolved')) {
+    result.local = fwd.kind === 'general' ? 'general-failure' : 'host-unreachable';
+    result.end = 'local-failure';
+    stars();
+    return result;
+  }
+
+  /** an ICMP message from `dev` reaches the probe source → the address `dev` sends it from, else null */
+  const answerFrom = (dev: Device): string | null => {
+    if (!result.srcIp) return null;
+    const back = deliver(lab, dev, result.srcIp);
+    return back.ok ? back.srcIp : null;
+  };
+
+  for (let ttl = 1; ttl <= maxTtl; ttl++) {
+    if (ttl <= fwd.hops.length) {
+      const dev = getDevice(lab, fwd.hops[ttl - 1])!;
+      // the last device of a failed walk that had no route answers Net Unreachable (lookup fails before TTL matters)
+      const noRouteHere = !fwd.ok && fwd.kind === 'noroute' && ttl === fwd.hops.length && fwd.atDeviceId === dev.id;
+      const ip = answerFrom(dev);
+      if (noRouteHere) {
+        if (ip) {
+          result.hops.push({ ttl, reply: 'net-unreachable', ip, deviceId: dev.id });
+          result.end = 'net-unreachable';
+          return result;
+        }
+        result.hops.push(none(ttl));
+        continue;
+      }
+      result.hops.push(ip ? { ttl, reply: 'time-exceeded', ip, deviceId: dev.id } : none(ttl));
+      continue;
+    }
+    if (fwd.ok) {
+      // the probe gets through every forwarding device: the destination answers with the probed address
+      const dst = getDevice(lab, fwd.dstDeviceId)!;
+      if (answerFrom(dst) !== null) {
+        result.hops.push({ ttl, reply: 'dest', ip: dstIp, deviceId: dst.id });
+        result.end = 'reached';
+        return result;
+      }
+    }
+    // dropped after the last forwarding device (ARP failure, non-forwarding next hop, reply cannot come back …)
+    result.hops.push(none(ttl));
+  }
+  return result;
 }
 
 export interface PingResult {

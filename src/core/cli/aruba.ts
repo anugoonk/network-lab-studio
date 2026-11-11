@@ -8,7 +8,7 @@
 import { arpTable, fmtMacColon, macTable } from '../l2tables';
 import { ipToString, isHostAddress, maskToPrefix, networkOf, parseCidr, parseIp, subnetsOverlap } from '../ip';
 import { NAME_RE, formatVlanList, getIface, parseVlanList } from '../lab';
-import { allowsVlan, ping, portLine, sviLineUp, l3Interfaces } from '../network';
+import { TRACE_DEFAULT_MAX_TTL, allowsVlan, ping, portLine, sviLineUp, l3Interfaces, trace } from '../network';
 import type { Device, Iface, Lab } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
@@ -208,6 +208,28 @@ function arubaPing(c: Ctx): RunResult {
   return { lines };
 }
 
+/**
+ * AOS-CX `traceroute <ip> [maxttl <n>]` (Linux-style output). No latency model → no ms values;
+ * `!N` = ICMP Network Unreachable, `* * *` = no answer. Header layout is an approximation (not verified against a device).
+ */
+function arubaTraceroute(c: Ctx): RunResult {
+  const ip = c.args[0];
+  let max = TRACE_DEFAULT_MAX_TTL;
+  if (c.args[1] !== undefined) {
+    if (!/^\d{1,3}$/.test(c.args[1]) || Number(c.args[1]) < 1 || Number(c.args[1]) > 255) return { error: ['Invalid maxttl value. Valid range is 1-255.'] };
+    max = Number(c.args[1]);
+  }
+  const r = trace(c.lab, c.dev.id, ip, max);
+  const lines = [`traceroute to ${ip} (${ip}), 1 hops min, ${max} hops max, 3 sec. timeout, 3 probes`];
+  for (const h of r.hops) {
+    const n = String(h.ttl).padStart(3);
+    if (h.reply === 'none') lines.push(`${n}   * * *`);
+    else if (h.reply === 'net-unreachable') lines.push(`${n}   ${h.ip}  !N !N !N`);
+    else lines.push(`${n}   ${h.ip}`);
+  }
+  return { lines };
+}
+
 function exitCmd(c: Ctx): RunResult {
   switch (c.dev.cli.mode) {
     case 'config-if':
@@ -350,6 +372,18 @@ const specs: CommandSpec[] = [
     run: arubaPing,
   }),
 
+  cmd({
+    id: 'aruba.traceroute', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'traceroute <ip-address>',
+    helpEn: 'Trace the route to a destination', descTh: tx('ไล่ดูเส้นทาง L3 ทีละ hop (สูงสุด 30) — !N = router ไม่มี route, * * * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency'), topic: 'Troubleshooting',
+    example: 'traceroute 192.168.1.1', verify: 'traceroute 192.168.1.1', verifyTh: tx('ต้องเห็น router/L3 switch ที่ route ตามลำดับ จนถึงปลายทาง'),
+    run: arubaTraceroute,
+  }),
+  cmd({
+    id: 'aruba.traceroute.maxttl', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'traceroute <ip-address> maxttl <max-hops>',
+    helpEn: 'Trace the route with a maximum TTL', descTh: tx('เหมือน traceroute แต่กำหนดจำนวน hop สูงสุด (1-255)'), topic: 'Troubleshooting',
+    example: 'traceroute 192.168.1.1 maxttl 5', verify: 'traceroute 192.168.1.1 maxttl 5', verifyTh: tx('ต้องหยุดไม่เกินจำนวน hop ที่กำหนด'),
+    run: arubaTraceroute,
+  }),
   cmd({
     id: 'aruba.write', vendor: 'aruba', deviceTypes: DT, modes: ['priv'], syntax: 'write memory',
     helpEn: 'Save running configuration to startup configuration', descTh: tx('บันทึก running-config เป็น startup-config'), topic: 'Config',

@@ -169,7 +169,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
 - IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
 - `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `show interfaces` / `show interfaces <name>` บน Cisco, `reload`
-- `traceroute` (Cisco / Aruba) และ `tracert` (PC) — ยังไม่มี
+- `traceroute` (Cisco / Aruba) และ `tracert` (PC) **มีแล้ว แต่เป็นแบบจำลองอย่างง่าย**: hop คืออุปกรณ์ที่ทำ L3 forwarding จริงบนเส้นทางเดียวกับที่ ping ใช้ (switch ที่แค่ bridge ไม่นับเป็น hop) ส่วน IP ของ hop คือ interface ที่ router ใช้ตอบกลับหาต้นทาง; `!N` = router ไม่มี route, `*` = คำตอบกลับไม่ถึงต้นทาง — engine ไม่ได้ลด TTL หรือส่ง probe จริงทีละตัว แต่คำนวณผลของ probe ที่ TTL = 1, 2, … จากเส้นทางเดียว; **ไม่แสดงเวลา** (ไม่มีโมเดล latency), ไม่จำลอง UDP/ICMP probe ที่ต่างกัน, rate-limit ของ ICMP หรือ `!H`; Cisco ยังไม่มี extended traceroute (กำหนด hop สูงสุดได้เฉพาะ PC `tracert -h N` และ Aruba `traceroute <ip> maxttl N`); รูปแบบบรรทัดหัวของ Aruba และข้อความ error ตอนส่งออกไม่ได้ของ PC ยังไม่ได้เทียบกับของจริง
 - ping ใช้ ICMP echo แบบสรุปผล: TTL ของ reply คำนวณจากระบบของปลายทาง (Windows 128 / Cisco IOS 255 / AOS-CX 64) ลบจำนวน router ขากลับ, router กลางทางที่ไม่มี route ตอบ ICMP Destination net unreachable (`U.U.U`), PC ที่ไม่มีลิงก์ได้ `General failure` — แต่ไม่จำลอง fragmentation, packet loss บางส่วน และ latency เป็นค่าคงที่
 - VLAN 1002–1005 บน Cisco (VLAN สงวนของ FDDI/Token Ring): `show vlan brief` แสดง `fddi-default` / `token-ring-default` / `fddinet-default` / `trnet-default` สถานะ `act/unsup` เหมือน IOS (แสดงอย่างเดียว ไม่บันทึกลง Lab), `no vlan 1002`–`1005` ได้ `%Default VLAN n may not be deleted.`; การสั่ง `vlan 1002` หรือ `switchport access vlan 1002` ถูกปฏิเสธ — ข้อความ error ของสองคำสั่งหลังนี้เป็นของ simulator ยังไม่ได้เทียบกับ IOS จริง
 
@@ -222,6 +222,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC, Privileged EXEC | `show ip arp` | `show ip arp` | ดูตาราง ARP (IP → MAC) ของอุปกรณ์ — แสดงเครื่องใน L2 domain เดียวกันที่ลิงก์ up (ไม่จำลองการเรียนรู้/หมดอายุ) Age "-" คือ IP ของตัวเอง |
 | User EXEC, Privileged EXEC | `show ip route` | `show ip route` | ดูตาราง routing: C/L (connected), S (static), S* (default route) |
 | User EXEC, Privileged EXEC | `ping <ip-address>` | `ping 192.168.1.101` | ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง |
+| User EXEC, Privileged EXEC | `traceroute <ip-address>` | `traceroute 192.168.1.101` | ไล่ดูเส้นทาง L3 ทีละ hop (router ที่ส่งต่อจริงตาม routing table ปัจจุบัน) — !N = router ไม่มี route, * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency |
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
@@ -257,6 +258,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC, Privileged EXEC | `show interfaces trunk` | `show interfaces trunk` | ดูพอร์ตที่เป็น trunk, native VLAN และ VLAN ที่อนุญาต/ใช้งานอยู่ |
 | User EXEC, Privileged EXEC | `show vlan brief` | `show vlan brief` | ดู VLAN ทั้งหมดและพอร์ต access ที่อยู่ในแต่ละ VLAN (trunk ไม่แสดงในตารางนี้) |
 | User EXEC, Privileged EXEC | `ping <ip-address>` | `ping 192.168.1.101` | ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง |
+| User EXEC, Privileged EXEC | `traceroute <ip-address>` | `traceroute 192.168.1.101` | ไล่ดูเส้นทาง L3 ทีละ hop (router ที่ส่งต่อจริงตาม routing table ปัจจุบัน) — !N = router ไม่มี route, * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency |
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
@@ -304,6 +306,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Manager | `show mac-address-table` | `show mac-address-table` | ดูตาราง MAC ของ switch: MAC อยู่ VLAN ไหน เรียนรู้จากพอร์ตไหน (ไม่จำลอง aging) |
 | Manager | `show ip route` | `show ip route` | ดูตาราง routing: C/L (connected), S (static) |
 | Manager | `ping <ip-address>` | `ping 192.168.1.1` | ทดสอบ ping จาก switch (ที่มี SVI/routed port) ไปยัง IPv4 ปลายทาง |
+| Manager | `traceroute <ip-address>` | `traceroute 192.168.1.1` | ไล่ดูเส้นทาง L3 ทีละ hop (สูงสุด 30) — !N = router ไม่มี route, * * * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency |
+| Manager | `traceroute <ip-address> maxttl <max-hops>` | `traceroute 192.168.1.1 maxttl 5` | เหมือน traceroute แต่กำหนดจำนวน hop สูงสุด (1-255) |
 | Manager | `write memory` | `write memory` | บันทึก running-config เป็น startup-config |
 | Manager | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config เป็น startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname ACCESS2` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
@@ -335,6 +339,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 |---|---|---|---|
 | Terminal | `ipconfig` | `ipconfig` | แสดง IPv4, subnet mask และ default gateway ของ PC |
 | Terminal | `ping <ipv4>` | `ping 192.168.1.110` | ทดสอบ reachability ไปยัง IPv4 ปลายทาง (ผลเปลี่ยนตามสาย พอร์ต VLAN และ gateway ปัจจุบัน) |
+| Terminal | `tracert <ipv4>` | `tracert 192.168.1.110` | ไล่ดูเส้นทาง L3 ทีละ hop จาก PC ถึงปลายทาง (gateway และ router ที่ route จริง) — ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency |
+| Terminal | `tracert -h <max-hops> <ipv4>` | `tracert -h 5 192.168.1.110` | เหมือน tracert แต่กำหนดจำนวน hop สูงสุด (1-255) |
 | Terminal | `arp -a` | `arp -a` | ดูตาราง ARP ของ PC (IP → MAC ของเครื่องใน L2 เดียวกัน ไม่จำลองการเรียนรู้/หมดอายุ) |
 | Terminal | `cls` | `cls` | ล้างหน้าจอ Terminal |
 | Terminal | `help` | `help` | แสดงคำสั่งที่ PC รองรับ |
@@ -367,7 +373,7 @@ tests/               # Vitest        e2e/  # Playwright
 
 | ชุดทดสอบ | ผล |
 |---|---|
-| `npm test` (Vitest, 21 ไฟล์) | **520/520 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน + แถว `act/unsup` ใน `show vlan brief`, `show ip route` บน 2960) |
+| `npm test` (Vitest, 22 ไฟล์) | **558/558 ผ่าน** — parser ทั้ง 3 CLI, ผิด mode/ข้าม vendor/ข้ามชนิดอุปกรณ์, ping/L2/L3/trunk/SVI/route, undo/redo, challenge (7 ชนิด Check), ตาราง ARP/MAC และ IP ซ้ำ, อุปกรณ์ 10 ชนิด, บันทึก/นำเข้า, README ตรงกับทะเบียนคำสั่ง, regression ของ audit (TTL, ping ตอนไม่มีลิงก์, ICMP net unreachable, VLAN สงวน + แถว `act/unsup` ใน `show vlan brief`, `show ip route` บน 2960), traceroute/tracert (hop ที่ route จริง, `!N`, loop, hop limit) |
 | `npm run build` | ผ่าน (tsc strict + vite) |
 | `npm run e2e` (Playwright + Chromium, 75 flow) | **75/75 ผ่าน** — flow เครือข่าย/CLI/บันทึก/นำเข้า-ส่งออก, Lab Guide/เมนู/Lab Manager, อุปกรณ์ 10 ชนิด, Challenge ทั้ง 7 ข้อ + รีเซ็ต + คำใบ้, Sample Campus 3 Tier, สองภาษา TH/EN, Tab completion, interface range, แอนิเมชันแพ็กเก็ต, แชร์ลิงก์, เครื่องมือผู้สอน, undo/redo, autosave/คัดลอก config/ชื่อ tab, Lab พอร์ตน้อย/สำเนา Lab ที่เปิดไม่ได้/zoom ของ canvas ว่าง, ตาราง ARP/MAC และป้าย IP ซ้ำ |
 

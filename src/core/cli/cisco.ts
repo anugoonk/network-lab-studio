@@ -8,7 +8,7 @@ import { arpTable, duplicateIps, fmtMacCisco, macTable } from '../l2tables';
 import { ipToString, isHostAddress, maskToPrefix, networkOf, parseIp, subnetsOverlap } from '../ip';
 import { NAME_RE, formatVlanList, getIface, parseVlanList, subName } from '../lab';
 import { PROFILES, shortPort } from '../profiles';
-import { l3Interfaces, ping, portLine } from '../network';
+import { l3Interfaces, ping, portLine, trace } from '../network';
 import type { Device, DeviceKind, Lab } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
@@ -320,6 +320,23 @@ function ciscoPing(c: Ctx): RunResult {
   return { lines };
 }
 
+/**
+ * IOS `traceroute <ip>`: one line per probe TTL. The simulator has no latency model, so no msec values are printed;
+ * `!N` = ICMP Network Unreachable from that router, `*` = nothing came back. Stops at the destination, at !N or at 30.
+ */
+function ciscoTraceroute(c: Ctx): RunResult {
+  const ip = c.args[0];
+  const r = trace(c.lab, c.dev.id, ip);
+  const lines = ['Type escape sequence to abort.', `Tracing the route to ${ip}`, 'VRF info: (vrf in name/id, vrf out name/id)'];
+  for (const h of r.hops) {
+    const n = String(h.ttl).padStart(3);
+    if (h.reply === 'none') lines.push(`${n}  *  *  *`);
+    else if (h.reply === 'net-unreachable') lines.push(`${n} ${h.ip} !N  !N  !N`);
+    else lines.push(`${n} ${h.ip}`);
+  }
+  return { lines };
+}
+
 // ───────── handlers ─────────
 
 const setMode = (mode: RunResult['mode']) => (): RunResult => ({ mode });
@@ -491,6 +508,13 @@ const specs: CommandSpec[] = [
     helpEn: 'Send echo messages', descTh: tx('ทดสอบ ping จาก router/switch (ที่มี IP หรือ SVI) ไปยัง IPv4 ปลายทาง'), topic: 'Troubleshooting',
     example: 'ping 192.168.1.101', verify: 'ping 192.168.1.101', verifyTh: tx('!!!!! = สำเร็จ, ..... = ไม่สำเร็จ'),
     run: ciscoPing,
+  }),
+
+  cmd({
+    id: 'cisco.traceroute', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv'], syntax: 'traceroute <ip-address>',
+    helpEn: 'Trace route to destination', descTh: tx('ไล่ดูเส้นทาง L3 ทีละ hop (router ที่ส่งต่อจริงตาม routing table ปัจจุบัน) — !N = router ไม่มี route, * = ไม่มีคำตอบ; ไม่แสดงเวลา เพราะ simulator ไม่จำลอง latency'), topic: 'Troubleshooting',
+    example: 'traceroute 192.168.1.101', verify: 'traceroute 192.168.1.101', verifyTh: tx('ต้องเห็น router ทุกตัวที่ route ตามลำดับ จนถึงปลายทาง (switch L2 ไม่ปรากฏเป็น hop)'),
+    run: ciscoTraceroute,
   }),
 
   // ── save ──
