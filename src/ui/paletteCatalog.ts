@@ -24,7 +24,7 @@ export function simLevelHint(l: SimLevel): string {
     ? tx('ping, traceroute และ CLI/terminal ของอุปกรณ์นี้จำลองในโปรแกรม (ไม่ใช่การจำลอง OS ของ vendor ทั้งหมด)')
     : l === 'partial'
       ? tx('จำลองได้บางส่วน — ดูรายละเอียดในแผงรายละเอียดของอุปกรณ์')
-      : tx('ใช้วาดและต่อสายเท่านั้น — engine ไม่ส่งข้อมูลผ่านและไม่มี CLI');
+      : tx('ใช้สำหรับแผนผังเท่านั้น — engine ไม่ส่งข้อมูลผ่านและไม่มี CLI');
 }
 /** full and partial devices take part in the simulation; diagram-only ones do not */
 export const isSimulationCapable = (l: SimLevel): boolean => l !== 'diagram';

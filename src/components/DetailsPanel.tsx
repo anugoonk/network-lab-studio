@@ -173,7 +173,11 @@ function DeviceDetails({ id }: { id: string }) {
       </section>
 
       {!p.hasCli && (
-        <p className="muted small" data-testid="no-cli-note">{tx('อุปกรณ์ชนิดนี้ใช้วาดและต่อสายเท่านั้น — ยังไม่มี CLI, ping, routing หรือ policy ในโปรแกรมนี้')}</p>
+        <p className="muted small" data-testid="no-cli-note">
+          {p.portNames.length > 0
+            ? tx('อุปกรณ์ชนิดนี้ใช้วาดและต่อสายเท่านั้น — ยังไม่มี CLI, ping, routing หรือ policy ในโปรแกรมนี้')
+            : tx('วัตถุนี้ใช้สำหรับแผนผังเท่านั้น — ไม่มีพอร์ตเครือข่ายจึงต่อสายไม่ได้ และไม่มี CLI หรือ ping ในโปรแกรมนี้')}
+        </p>
       )}
 
       {p.isHost && <PcConfig device={device} />}
@@ -253,6 +257,8 @@ function LinkDetails({ id }: { id: string }) {
   const st = linkStatus(lab, link);
   const da = getDevice(lab, link.a.deviceId)!;
   const db = getDevice(lab, link.b.deviceId)!;
+  // UI note only: link status (up/down) is unchanged; it just does not imply forwarding through diagram-only ends
+  const diagramEnds = [da, db].filter((d) => PROFILES[d.kind].simLevel === 'diagram').map((d) => d.name);
   return (
     <section className="card" data-testid="link-details">
       <h4>{tx('สาย Ethernet')}</h4>
@@ -268,11 +274,18 @@ function LinkDetails({ id }: { id: string }) {
           </tr>
           <tr>
             <td>{tx('ลิงก์ใช้งานได้')}</td>
-            <td><span className={`pill ${st.up ? 'up' : 'down'}`}>{st.up ? tx('ใช่ (up)') : tx('ไม่ (down)')}</span></td>
+            <td>
+              <span className={`pill ${st.up ? 'up' : 'down'}`} title={tx('สถานะ up หมายถึงสายต่อครบและพอร์ตทั้งสองฝั่งเปิดอยู่เท่านั้น — ไม่ได้รับประกันว่าข้อมูลส่งต่อผ่านได้')} data-testid="link-up-pill">
+                {st.up ? tx('ใช่ (up)') : tx('ไม่ (down)')}
+              </span>
+            </td>
           </tr>
         </tbody>
       </table>
       <p className="small">{st.reasonTh}</p>
+      {diagramEnds.length > 0 && (
+        <p className="sim-note" data-testid="link-diagram-note">{tx('สาย up ไม่ได้แปลว่าส่งข้อมูลได้: {0} เป็นอุปกรณ์แผนผังเท่านั้น จึงไม่ส่งต่อข้อมูลผ่านสายนี้', diagramEnds.join(', '))}</p>
+      )}
       <button className="danger" onClick={() => remove(id)} data-testid="delete-link">{tx('ลบสายนี้')}</button>
     </section>
   );

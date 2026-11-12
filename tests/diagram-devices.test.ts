@@ -7,7 +7,7 @@ import { PROFILES } from '../src/core/profiles';
 import { SAMPLES } from '../src/core/sample';
 import type { DeviceKind, Lab } from '../src/core/types';
 import { setLangForTest, tx } from '../src/i18n';
-import { filterPalette, paletteEntries } from '../src/ui/paletteCatalog';
+import { filterPalette, paletteEntries, simLevelHint } from '../src/ui/paletteCatalog';
 
 afterEach(() => setLangForTest('th'));
 
@@ -165,5 +165,38 @@ describe('palette', () => {
     expect(NEW.map((k) => PROFILES[k].label)).toEqual(['อินเทอร์เน็ต (Cloud)', 'แผงพักสาย (Patch Panel)', 'ตู้ Rack', 'เครื่องสำรองไฟ (UPS)']);
     setLangForTest('en');
     expect(['อินเทอร์เน็ต (Cloud)', 'แผงพักสาย (Patch Panel)', 'ตู้ Rack', 'เครื่องสำรองไฟ (UPS)'].map((t) => tx(t))).toEqual(['Internet Cloud', 'Patch Panel', 'Rack', 'UPS']);
+  });
+});
+
+describe('descriptions (final wording)', () => {
+  const note = (k: DeviceKind) => PROFILES[k].simNote!;
+
+  it('rack and UPS: no network ports and no cable connections (TH / EN); never claim cabling', () => {
+    for (const k of ['rack', 'ups'] as DeviceKind[]) {
+      expect(note(k), k).toContain('ไม่มีพอร์ตเครือข่ายและต่อสายไม่ได้');
+      expect(note(k), k).not.toMatch(/ต่อสายได้|วาดสาย/);
+      expect(PROFILES[k].osRef, k).toContain('ไม่มีพอร์ตเครือข่าย');
+    }
+    setLangForTest('en');
+    for (const k of ['rack', 'ups'] as DeviceKind[]) {
+      expect(tx(note(k)), k).toContain('no network ports and no cable connections');
+      expect(tx(note(k)), k).not.toMatch(/can be (drawn|cabled)/);
+    }
+  });
+
+  it('cloud and patch panel: cables can be drawn, but no routing / no forwarding (TH / EN)', () => {
+    expect(note('internet-cloud')).toContain('ไม่มีการ route ไปอินเทอร์เน็ตจริงและไม่ส่งต่อข้อมูล');
+    expect(note('patch-panel')).toContain('ไม่ส่งต่อข้อมูลระหว่างพอร์ต');
+    for (const k of ['internet-cloud', 'patch-panel'] as DeviceKind[]) expect(note(k), k).toContain('วาดสาย');
+    setLangForTest('en');
+    expect(tx(note('internet-cloud'))).toContain('no real Internet routing and does not forward packets');
+    expect(tx(note('patch-panel'))).toContain('does not forward packets between its ports');
+  });
+
+  it('the generic Diagram Only tooltip does not claim that every diagram object can be cabled', () => {
+    expect(simLevelHint('diagram')).not.toMatch(/ต่อสาย/);
+    setLangForTest('en');
+    expect(simLevelHint('diagram')).not.toMatch(/cabl/i);
+    expect(simLevelHint('diagram')).toContain('For diagrams only');
   });
 });

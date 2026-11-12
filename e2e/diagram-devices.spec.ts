@@ -85,7 +85,7 @@ test('add by click (no overlap), keyboard and drag; ▭ on the canvas; rack and 
 test('details panel: Diagram Only + explanation, no console; the connect dialog offers cloud / patch panel ports but never rack / UPS', async ({ page }) => {
   await blank(page);
   for (const k of ['pc', 'internet-cloud', 'patch-panel', 'rack', 'ups']) await page.getByTestId(`palette-${k}`).click();
-  for (const [n, note] of [['CLOUD1', 'อินเทอร์เน็ตจริง'], ['PP1', 'ไม่ส่งข้อมูลระหว่างพอร์ต'], ['RACK1', 'ไม่มีพอร์ต'], ['UPS1', 'ไม่จำลองไฟฟ้า']]) {
+  for (const [n, note] of [['CLOUD1', 'ไม่มีการ route ไปอินเทอร์เน็ตจริง'], ['PP1', 'ไม่ส่งต่อข้อมูลระหว่างพอร์ต'], ['RACK1', 'ต่อสายไม่ได้'], ['UPS1', 'ต่อสายไม่ได้']]) {
     await page.getByTestId(`node-${n}`).click();
     await expect(page.getByTestId('device-sim-badge')).toContainText('แผนผังเท่านั้น');
     await expect(page.getByTestId('device-sim-note')).toContainText(note);
@@ -147,6 +147,47 @@ test('export → import → reload keeps the objects, ids and ports; English lab
   await expect(page.getByTestId('sim-node-UPS1')).toHaveAttribute('aria-label', 'Diagram Only');
   await page.getByTestId('node-CLOUD1').click();
   await expect(page.locator('.dev-title')).toHaveText('Internet Cloud');
-  await expect(page.getByTestId('device-sim-note')).toContainText('no real Internet access');
+  await expect(page.getByTestId('device-sim-note')).toContainText('no real Internet routing');
   await expect(page.getByTestId('palette-patch-panel')).toHaveAttribute('aria-label', /Patch Panel · Infrastructure · Diagram Only/);
+});
+
+test('wording: rack / UPS never claim cabling; link details explain that "up" does not mean forwarding', async ({ page }) => {
+  await blank(page);
+  for (const k of ['pc', 'pc', 'cisco-switch', 'patch-panel', 'rack', 'ups']) await page.getByTestId(`palette-${k}`).click();
+  for (const n of ['RACK1', 'UPS1']) {
+    await page.getByTestId(`node-${n}`).click();
+    await expect(page.getByTestId('no-cli-note')).toContainText('ไม่มีพอร์ตเครือข่ายจึงต่อสายไม่ได้');
+    await expect(page.getByTestId('no-cli-note')).not.toContainText('ต่อสายเท่านั้น');
+    await expect(page.getByTestId('device-sim-note')).not.toContainText('ต่อสายได้');
+  }
+  await page.getByTestId('node-PP1').click();
+  await expect(page.getByTestId('no-cli-note')).toContainText('ใช้วาดและต่อสายเท่านั้น'); // cabled diagram objects keep the existing note
+  // PC-01 -> switch (real) and PC-02 -> patch panel (diagram)
+  for (const [pc, dev, port] of [['PC-01', 'SW1', 'FastEthernet0/1'], ['PC-02', 'PP1', 'P1']]) {
+    await page.getByTestId('btn-connect').click();
+    await page.getByTestId('connect-a-device').selectOption({ label: pc });
+    await page.getByTestId('connect-b-device').selectOption({ label: dev });
+    await page.getByTestId('connect-b-port').selectOption(port);
+    await page.getByTestId('connect-submit').click();
+  }
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2);
+  // the patch-panel cable: status unchanged (up), plus the note
+  await expect(page.getByTestId('link-status-l2')).toContainText('UP');
+  await page.locator('.react-flow__edge').nth(1).dispatchEvent('click');
+  await expect(page.getByTestId('link-details')).toContainText('PP1');
+  await expect(page.getByTestId('link-up-pill')).toContainText('up');
+  await expect(page.getByTestId('link-up-pill')).toHaveAttribute('title', /ไม่ได้รับประกันว่าข้อมูลส่งต่อผ่านได้/);
+  await expect(page.getByTestId('link-diagram-note')).toContainText('PP1');
+  // the real switch cable: no diagram note
+  await page.locator('.react-flow__edge').nth(0).dispatchEvent('click');
+  await expect(page.getByTestId('link-details')).toContainText('SW1');
+  await expect(page.getByTestId('link-diagram-note')).toHaveCount(0);
+  // English
+  await page.getByTestId('lang-en').click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await page.getByTestId('node-RACK1').click();
+  await expect(page.getByTestId('no-cli-note')).toContainText('it has no network ports, so it cannot be cabled');
+  await expect(page.getByTestId('device-sim-note')).toContainText('no cable connections');
+  await page.locator('.react-flow__edge').nth(1).dispatchEvent('click');
+  await expect(page.getByTestId('link-diagram-note')).toContainText('Link up does not mean packets are forwarded');
 });
