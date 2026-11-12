@@ -6,6 +6,7 @@ import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import type { Device } from '../core/types';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
+import { SimBadge } from './SimBadge';
 import { tx } from '../i18n';
 
 function PcConfig({ device }: { device: Device }) {
@@ -144,6 +145,7 @@ function DeviceDetails({ id }: { id: string }) {
           <DeviceIcon kind={device.kind} size={48} />
           <div>
             <div className="dev-title">{p.label}</div>
+            <SimBadge level={p.simLevel} testId="device-sim-badge" />
             <div className="muted small">{tx('รุ่นจำลอง: {0}', p.model)}</div>
             <div className="muted small">{tx('CLI อ้างอิง: {0}', p.osRef)}</div>
           </div>
@@ -157,6 +159,7 @@ function DeviceDetails({ id }: { id: string }) {
           onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur(), undefined)}
           data-testid="device-name"
         />
+        {p.simNote && <p className="sim-note" data-testid="device-sim-note">{p.simNote}</p>}
         {err && <div className="error-box" role="alert">{err}</div>}
         <div className="row">
           {p.hasCli && !p.isHost && (

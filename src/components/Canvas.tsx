@@ -30,6 +30,7 @@ import { DeviceIcon } from './DeviceIcon';
 import { DRAG_MIME } from './Palette';
 import type { DeviceKind } from '../core/types';
 import { tx } from '../i18n';
+import { SimBadge } from './SimBadge';
 
 function DeviceNode({ id, selected }: NodeProps) {
   const d = useStore((s) => s.lab.devices.find((x) => x.id === id));
@@ -43,10 +44,12 @@ function DeviceNode({ id, selected }: NodeProps) {
     <div
       className={`node${selected ? ' selected' : ''}`}
       data-testid={`node-${d.name}`}
+      data-sim={p.simLevel}
       onDoubleClick={() => openConsole(id)}
       title={tx('ดับเบิลคลิกเพื่อเปิด Console')}
     >
       <DeviceIcon kind={d.kind} size={52} />
+      <SimBadge level={p.simLevel} compact onNode testId={`sim-node-${d.name}`} />
       <div className="node-name">{d.name}</div>
       <div className="node-sub">{sub}</div>
       {dup && (

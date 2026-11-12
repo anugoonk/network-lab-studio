@@ -97,6 +97,8 @@ interface State {
   menuSection: MenuSection;
   paletteQuery: string;
   paletteCategory: PaletteCategory | 'all';
+  /** UI only (not saved): Device Palette shows simulation-capable devices only (full + partial) */
+  paletteSimOnly: boolean;
   rightOpen: boolean;
   hideLabels: boolean;
   transcripts: Record<string, TermLine[]>;
@@ -136,6 +138,7 @@ interface State {
   setMenuSection: (s: MenuSection) => void;
   setPaletteQuery: (q: string) => void;
   setPaletteCategory: (c: PaletteCategory | 'all') => void;
+  setPaletteSimOnly: (on: boolean) => void;
   toggleGuide: () => void;
   toggleChallenge: () => void;
   challengeRun: ChallengeRun | null;
@@ -323,6 +326,7 @@ export const useStore = create<State>((set, get) => {
     menuSection: 'add',
     paletteQuery: '',
     paletteCategory: 'all',
+    paletteSimOnly: false,
     rightOpen: true,
     hideLabels: false,
     transcripts: {},
@@ -417,6 +421,7 @@ export const useStore = create<State>((set, get) => {
     setMenuSection: (menuSection) => set({ menuSection }),
     setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
     setPaletteCategory: (paletteCategory) => set({ paletteCategory }),
+    setPaletteSimOnly: (paletteSimOnly) => set({ paletteSimOnly }),
     toggleGuide: () => set({ leftPanel: get().leftPanel === 'guide' ? null : 'guide', view: 'lab' }),
     toggleChallenge: () => set({ leftPanel: get().leftPanel === 'challenge' ? null : 'challenge', view: 'lab' }),
     runChallenge: () => {

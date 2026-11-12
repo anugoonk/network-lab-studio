@@ -386,3 +386,35 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .topbar .lang-switch button { border: none; border-radius: 0; background: transparent; color: var(--nav-text); height: 26px; padding: 0 10px; font-size: var(--fs-sm); font-weight: 700; }
 .topbar .lang-switch button:hover { background: var(--nav-hover); }
 .topbar .lang-switch button.active { background: var(--accent); color: #fff; }
+
+/* ── simulation-level badges + "simulation-capable only" filter (DEV-01B-1a) ── */
+:root {
+  --sim-full-fg: #176a3b; --sim-full-bg: #e6f4ea; --sim-full-bd: #a8d5b8; /* 6.4:1 */
+  --sim-partial-fg: #7a4a00; --sim-partial-bg: #fff1d6; --sim-partial-bd: #e3c27f; /* 6.6:1 */
+  --sim-diagram-fg: #44515b; --sim-diagram-bg: #eef1f4; --sim-diagram-bd: #aab6bf; /* 7.4:1 */
+}
+.sim-badge { display: inline-flex; align-items: center; gap: 4px; width: max-content; padding: 0 7px; border: 1px solid; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; line-height: 16px; white-space: nowrap; }
+.sim-badge.sim-full { color: var(--sim-full-fg); background: var(--sim-full-bg); border-color: var(--sim-full-bd); }
+.sim-badge.sim-partial { color: var(--sim-partial-fg); background: var(--sim-partial-bg); border-color: var(--sim-partial-bd); }
+.sim-badge.sim-diagram { color: var(--sim-diagram-fg); background: var(--sim-diagram-bg); border-color: var(--sim-diagram-bd); border-style: dashed; }
+.sim-badge.compact { width: 15px; height: 15px; padding: 0; justify-content: center; font-size: 9px; line-height: 1; }
+/* on nodes and palette tiles the mark is positioned over a corner, so sizes and handles do not move */
+.sim-badge.on-node { position: absolute; top: 3px; right: 3px; pointer-events: auto; }
+.palette-item .tile { position: relative; }
+.palette-item .tile .sim-badge.compact { position: absolute; right: -5px; bottom: -4px; }
+.dev-head .sim-badge { margin: 2px 0; }
+.palette-is-list .palette-text .sim-badge { margin-top: 3px; }
+.sim-note { margin: 6px 0 0; padding: 6px 8px; border-left: 3px solid var(--sim-partial-bd); background: #fffaf0; border-radius: 4px; font-size: var(--fs-sm); color: var(--text); }
+.palette-simonly { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: var(--fs-xs); background: var(--surface); color: var(--text); }
+.palette-simonly svg { opacity: 0.35; }
+.palette-simonly[aria-pressed='true'] { background: var(--teal); border-color: var(--teal); color: #fff; }
+.palette-simonly[aria-pressed='true'] svg { opacity: 1; }
+/* bar: search + (icon-only) filter on the first row, categories under them — the bar keeps its 96px height */
+.palette-is-bar .palette-tools { display: grid; grid-template-columns: 1fr auto; align-content: start; gap: 5px; }
+.palette-is-bar .palette-cats { grid-column: 1 / -1; }
+.palette-is-bar .palette-simonly { width: 28px; height: 28px; padding: 0; justify-content: center; border-radius: var(--r-md); }
+.palette-is-bar .palette-simonly span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* list (dark menu) */
+.palette-is-list .palette-simonly { background: transparent; color: var(--nav-text); border-color: var(--nav-line); }
+.palette-is-list .palette-simonly[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.palette-is-list .palette-simonly:focus-visible { outline-color: var(--focus-on-dark); }

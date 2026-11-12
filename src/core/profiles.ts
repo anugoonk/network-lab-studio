@@ -1,6 +1,17 @@
 import type { DeviceKind, Iface, Vendor } from './types';
 import { tx } from '../i18n';
 
+/**
+ * How much of a device the simulator implements (UI metadata only — the engine keeps using the flags below):
+ * - full: everything the app advertises for it (ports, CLI/terminal, ping/traceroute, its L2/L3 role) is simulated and tested;
+ *   this is not a complete emulation of the vendor OS
+ * - partial: simulated as a network node, but part of what the name suggests is not (e.g. server services)
+ * - diagram: drawn and cabled only; the engine does not forward through it and it has no CLI
+ */
+export type SimLevel = 'full' | 'partial' | 'diagram';
+/** Device Palette category */
+export type DeviceCategory = 'routers' | 'switches' | 'end' | 'other';
+
 export interface DeviceProfile {
   kind: DeviceKind;
   vendor: Vendor;
@@ -23,11 +34,15 @@ export interface DeviceProfile {
   /** short text under the node name on the canvas when it has no IP to show */
   roleNote: string;
   defaultAdminUp: boolean;
+  simLevel: SimLevel;
+  category: DeviceCategory;
+  /** for partial / diagram devices: what is (not) simulated, shown in the details panel */
+  simNote?: string;
 }
 
 const range = (n: number, f: (i: number) => string) => Array.from({ length: n }, (_, i) => f(i + 1));
 
-const hostProfile = (kind: DeviceKind, label: string, model: string, prefix: string): DeviceProfile => ({
+const hostProfile = (kind: DeviceKind, label: string, model: string, prefix: string, extra: Partial<DeviceProfile> = {}): DeviceProfile => ({
   kind,
   vendor: 'pc',
   label,
@@ -43,6 +58,9 @@ const hostProfile = (kind: DeviceKind, label: string, model: string, prefix: str
   hasCli: true,
   roleNote: tx('ยังไม่ตั้ง IP'),
   defaultAdminUp: true,
+  simLevel: 'full',
+  category: 'end',
+  ...extra,
 });
 
 export const PROFILES: Record<DeviceKind, DeviceProfile> = {
@@ -62,6 +80,8 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: true,
     roleNote: tx('ไม่มี IP'),
     defaultAdminUp: false,
+    simLevel: 'full',
+    category: 'routers',
   },
   'cisco-switch': {
     kind: 'cisco-switch',
@@ -79,6 +99,8 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: true,
     roleNote: 'IOS L2',
     defaultAdminUp: true,
+    simLevel: 'full',
+    category: 'switches',
   },
   'aruba-switch': {
     kind: 'aruba-switch',
@@ -98,6 +120,8 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: true,
     roleNote: 'AOS-CX Access',
     defaultAdminUp: false,
+    simLevel: 'full',
+    category: 'switches',
   },
   // Distribution switch. The only L3-capable switch profile in the simulator is AOS-CX
   // (SVIs, routed ports, static routes); the Cisco switch profile is L2-only here.
@@ -117,10 +141,15 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: true,
     roleNote: 'AOS-CX L3',
     defaultAdminUp: false,
+    simLevel: 'full',
+    category: 'switches',
   },
   pc: hostProfile('pc', 'PC', 'Generic PC (simulated)', 'PC-'),
   laptop: hostProfile('laptop', 'Laptop', 'Generic laptop, Ethernet only (simulated)', 'LAP-'),
-  server: hostProfile('server', 'Server', 'Generic server (simulated)', 'SRV-'),
+  server: hostProfile('server', 'Server', 'Generic server (simulated)', 'SRV-', {
+    simLevel: 'partial',
+    simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ยังไม่มี service เช่น DHCP, DNS หรือ Web'),
+  }),
   'wireless-ap': {
     kind: 'wireless-ap',
     vendor: 'generic',
@@ -137,6 +166,9 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: false,
     roleNote: tx('Wi-Fi (ไม่จำลอง)'),
     defaultAdminUp: true,
+    simLevel: 'diagram',
+    category: 'other',
+    simNote: tx('วาดและต่อสายได้ แต่ไม่ส่งต่อข้อมูล (ไม่จำลอง Wi-Fi) — เครื่องที่ต่ออยู่หลัง AP จะติดต่อเครือข่ายไม่ได้'),
   },
   firewall: {
     kind: 'firewall',
@@ -154,6 +186,9 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: false,
     roleNote: 'LAN · WAN · DMZ',
     defaultAdminUp: true,
+    simLevel: 'diagram',
+    category: 'other',
+    simNote: tx('วาดและต่อสายได้ แต่ไม่ส่งต่อข้อมูลและไม่มี policy — เครื่องที่ต่ออยู่หลัง firewall จะติดต่อเครือข่ายไม่ได้'),
   },
   'isp-router': {
     kind: 'isp-router',
@@ -171,6 +206,8 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     hasCli: true,
     roleNote: tx('WAN จำลองใน Lab'),
     defaultAdminUp: false,
+    simLevel: 'full',
+    category: 'routers',
   },
 };
 

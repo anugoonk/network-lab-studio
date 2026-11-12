@@ -6,7 +6,8 @@ import { DeviceIcon } from './DeviceIcon';
 import { Icon } from './Icons';
 import { tx } from '../i18n';
 import { DEFAULT_NODE_SIZE, findFreeSpot, rectCenter, visibleFlowRect } from '../ui/placement';
-import { CATEGORY_ORDER, categoryLabel, filterPalette, paletteEntries, type PaletteCategory, type PaletteEntry } from '../ui/paletteCatalog';
+import { CATEGORY_ORDER, categoryLabel, filterPalette, paletteEntries, simLevelHint, simLevelLabel, type PaletteCategory, type PaletteEntry } from '../ui/paletteCatalog';
+import { SimBadge } from './SimBadge';
 
 export const DRAG_MIME = 'application/x-nls-device';
 
@@ -24,9 +25,11 @@ export function Palette({ layout = 'list' }: { layout?: 'bar' | 'list' }) {
   const setQuery = useStore((s) => s.setPaletteQuery);
   const category = useStore((s) => s.paletteCategory);
   const setCategory = useStore((s) => s.setPaletteCategory);
+  const simOnly = useStore((s) => s.paletteSimOnly);
+  const setSimOnly = useStore((s) => s.setPaletteSimOnly);
   const flow = useReactFlow();
   const entries = useMemo(paletteEntries, []);
-  const shown = filterPalette(entries, query, category);
+  const shown = filterPalette(entries, query, category, simOnly);
 
   // Click / Enter / Space: put the device at the free spot nearest the centre of the visible canvas (deterministic, never on
   // top of another device; existing devices are not moved). Drag-and-drop is handled by the canvas and is unchanged.
@@ -52,14 +55,16 @@ export function Palette({ layout = 'list' }: { layout?: 'bar' | 'list' }) {
   const clear = () => {
     setQuery('');
     setCategory('all');
+    setSimOnly(false);
   };
 
   const item = (e: PaletteEntry) => (
     <div
       key={e.kind}
       className="palette-item"
-      title={`${e.label}\n${e.model}\n${e.note}`}
-      aria-label={`${e.label} · ${categoryLabel(e.category)}`}
+      title={`${e.label}\n${e.model}\n${e.note}\n${simLevelLabel(e.simLevel)} — ${simLevelHint(e.simLevel)}`}
+      aria-label={`${e.label} · ${categoryLabel(e.category)} · ${simLevelLabel(e.simLevel)}`}
+      data-sim={e.simLevel}
       draggable
       role="button"
       tabIndex={0}
@@ -77,10 +82,12 @@ export function Palette({ layout = 'list' }: { layout?: 'bar' | 'list' }) {
     >
       <span className="tile">
         <DeviceIcon kind={e.kind} size={layout === 'bar' ? 28 : 34} />
+        {layout === 'bar' && <SimBadge level={e.simLevel} compact testId={`sim-palette-${e.kind}`} />}
       </span>
       <div className="palette-text">
         <div className="palette-name">{e.label}</div>
         {layout === 'list' && <div className="menu-hint">{e.note}</div>}
+        {layout === 'list' && <SimBadge level={e.simLevel} testId={`sim-palette-${e.kind}`} />}
       </div>
     </div>
   );
@@ -108,6 +115,16 @@ export function Palette({ layout = 'list' }: { layout?: 'bar' | 'list' }) {
             </button>
           )}
         </div>
+        <button
+          className="palette-simonly"
+          aria-pressed={simOnly}
+          onClick={() => setSimOnly(!simOnly)}
+          title={tx('ซ่อนอุปกรณ์ที่ใช้วาดเท่านั้น (แสดงอุปกรณ์ที่จำลองได้และจำลองได้บางส่วน)')}
+          data-testid="device-sim-only"
+        >
+          <Icon name="check" size={13} />
+          <span>{tx('เฉพาะอุปกรณ์ที่จำลองได้')}</span>
+        </button>
         <div className="palette-cats" role="group" aria-label={tx('หมวดอุปกรณ์')}>
           {(['all', ...CATEGORY_ORDER] as const).map((c) => (
             <button key={c} className="palette-cat" aria-pressed={category === c} onClick={() => setCategory(c)} data-testid={`device-cat-${c}`}>
@@ -119,7 +136,7 @@ export function Palette({ layout = 'list' }: { layout?: 'bar' | 'list' }) {
       {layout === 'list' && <p className="menu-hint">{tx('ลากลงพื้นที่วาด หรือกดเพื่อเพิ่มกลางจอ')}</p>}
       {shown.length === 0 ? (
         <div className="palette-empty" role="status" data-testid="device-empty">
-          <span>{query.trim() ? tx('ไม่พบอุปกรณ์ที่ตรงกับ “{0}”', query.trim()) : tx('ไม่มีอุปกรณ์ในหมวดนี้')}</span>
+          <span>{query.trim() ? tx('ไม่พบอุปกรณ์ที่ตรงกับ “{0}”', query.trim()) : simOnly ? tx('ไม่มีอุปกรณ์ที่จำลองได้ในหมวดนี้') : tx('ไม่มีอุปกรณ์ในหมวดนี้')}</span>
           <button onClick={clear} data-testid="device-empty-clear">{tx('ล้างการค้นหา')}</button>
         </div>
       ) : (
