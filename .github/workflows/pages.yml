@@ -72,20 +72,6 @@ jobs:
             e2e-results.json
           retention-days: 7
 
-  # TEMPORARY gate probes (ci/r12 only, reverted before review)
-  gate-probe:
-    needs: [build, e2e]
-    if: github.ref == 'refs/heads/ci/r12'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "gate-probe ran - this must NOT happen when e2e fails"
-  gate-probe-control:
-    needs: [build]
-    if: github.ref == 'refs/heads/ci/r12'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "control ran - same condition, needs build only"
-
   deploy:
     needs: [build, e2e]
     # no status function here, so GitHub also requires build and e2e to have succeeded
