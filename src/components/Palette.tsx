@@ -4,6 +4,7 @@ import type { DeviceKind } from '../core/types';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
 import { tx } from '../i18n';
+import { DEFAULT_NODE_SIZE, findFreeSpot, rectCenter, visibleFlowRect } from '../ui/placement';
 
 export const DRAG_MIME = 'application/x-nls-device';
 
@@ -12,15 +13,25 @@ export function Palette() {
   const addDeviceAt = useStore((s) => s.addDeviceAt);
   const flow = useReactFlow();
 
+  // Click / Enter / Space: put the device at the free spot nearest the centre of the visible canvas (deterministic, never on
+  // top of another device; existing devices are not moved). Drag-and-drop is handled by the canvas and is unchanged.
   const addAtCenter = (kind: DeviceKind) => {
-    const el = document.querySelector('.react-flow');
-    const r = el?.getBoundingClientRect();
-    const jitter = (Math.random() - 0.5) * 80;
-    const pos = flow.screenToFlowPosition({
-      x: (r ? r.left + r.width / 2 : 600) + jitter,
-      y: (r ? r.top + r.height / 2 : 400) + jitter,
-    });
-    addDeviceAt(kind, Math.round(pos.x - 45), Math.round(pos.y - 40));
+    const r = document.querySelector('.react-flow')?.getBoundingClientRect();
+    const vp = flow.getViewport();
+    const view = r && r.width > 0 && r.height > 0 ? visibleFlowRect(r.width, r.height, vp) : null;
+    const anchor = view ? rectCenter(view) : flow.screenToFlowPosition({ x: 600, y: 400 });
+    const devices = useStore.getState().lab.devices;
+    const measured = (id: string) => flow.getNode(id)?.measured;
+    const existing = devices.map((d) => ({ x: d.x, y: d.y, ...measured(d.id) }));
+    const sameKind = devices.map((d) => (d.kind === kind ? measured(d.id) : undefined)).find((m) => m?.width && m?.height);
+    const size = sameKind?.width && sameKind?.height ? { width: sameKind.width, height: sameKind.height } : DEFAULT_NODE_SIZE;
+    const pos = findFreeSpot(existing, anchor, view, { size });
+    addDeviceAt(kind, pos.x, pos.y);
+    // only when the visible area is full: bring the new device into view (same zoom); the Lab itself is not changed
+    const box = { ...pos, ...size };
+    if (view && !(box.x >= view.x && box.y >= view.y && box.x + box.width <= view.x + view.width && box.y + box.height <= view.y + view.height)) {
+      void flow.setCenter(box.x + box.width / 2, box.y + box.height / 2, { zoom: vp.zoom });
+    }
   };
 
   return (
