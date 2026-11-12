@@ -11,8 +11,16 @@ import { SimBadge } from './SimBadge';
 
 export const DRAG_MIME = 'application/x-nls-device';
 
-const chipLabel = (c: PaletteCategory | 'all'): string =>
-  c === 'all' ? tx('ทั้งหมด') : c === 'routers' ? tx('เราเตอร์') : c === 'switches' ? tx('สวิตช์') : c === 'end' ? tx('ปลายทาง') : tx('อื่นๆ');
+const CHIP: Record<PaletteCategory | 'all', () => string> = {
+  all: () => tx('ทั้งหมด'),
+  routers: () => tx('เราเตอร์'),
+  switches: () => tx('สวิตช์'),
+  end: () => tx('ปลายทาง'),
+  wan: () => 'WAN',
+  infrastructure: () => tx('โครงสร้าง'),
+  other: () => tx('อื่นๆ'),
+};
+const chipLabel = (c: PaletteCategory | 'all'): string => CHIP[c]();
 
 /**
  * Device Palette: search box, category filter and the device list. One instance is on screen at a time, either as the

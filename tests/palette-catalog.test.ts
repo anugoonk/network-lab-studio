@@ -32,10 +32,14 @@ describe('paletteEntries: built from the existing catalog, nothing invented or l
       'end:pc',
       'end:laptop',
       'end:server',
+      'wan:internet-cloud',
+      'infrastructure:patch-panel',
+      'infrastructure:rack',
+      'infrastructure:ups',
       'other:wireless-ap',
       'other:firewall',
     ]);
-    expect(CATEGORY_ORDER).toEqual(['routers', 'switches', 'end', 'other']);
+    expect(CATEGORY_ORDER).toEqual(['routers', 'switches', 'end', 'wan', 'infrastructure', 'other']);
   });
 
   it('does not change the catalog objects', () => {
@@ -47,8 +51,8 @@ describe('paletteEntries: built from the existing catalog, nothing invented or l
 
 describe('filterPalette', () => {
   it('empty / blank query shows everything', () => {
-    expect(kinds('')).toHaveLength(10);
-    expect(kinds('   ')).toHaveLength(10);
+    expect(kinds('')).toHaveLength(14);
+    expect(kinds('   ')).toHaveLength(14);
   });
 
   it('searches the device name, case-insensitive, trimmed', () => {
@@ -91,8 +95,8 @@ describe('filterPalette', () => {
   });
 
   it('category labels exist in both languages', () => {
-    expect(CATEGORY_ORDER.map(categoryLabel)).toEqual(['เราเตอร์', 'สวิตช์', 'อุปกรณ์ผู้ใช้ปลายทาง', 'อุปกรณ์อื่น (Wireless / Security)']);
+    expect(CATEGORY_ORDER.map(categoryLabel)).toEqual(['เราเตอร์', 'สวิตช์', 'อุปกรณ์ผู้ใช้ปลายทาง', 'WAN / อินเทอร์เน็ต', 'โครงสร้างพื้นฐาน (Infrastructure)', 'อุปกรณ์อื่น (Wireless / Security)']);
     setLangForTest('en');
-    expect(CATEGORY_ORDER.map(categoryLabel)).toEqual(['Routers', 'Switches', 'End devices', 'Other (Wireless / Security)']);
+    expect(CATEGORY_ORDER.map(categoryLabel)).toEqual(['Routers', 'Switches', 'End devices', 'WAN / Internet', 'Infrastructure', 'Other (Wireless / Security)']);
   });
 });

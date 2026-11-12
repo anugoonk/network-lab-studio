@@ -18,10 +18,10 @@ async function newBlankLab(page: Page) {
   await expect(page.getByTestId('palette-pc')).toBeVisible();
 }
 
-test('palette shows all 10 devices once; each can be dragged, selected, renamed and deleted', async ({ page }) => {
+test('palette shows all 14 devices once; each of the 10 network devices can be dragged, selected, renamed and deleted', async ({ page }) => {
   await newBlankLab(page);
   for (const k of KINDS) await expect(page.getByTestId(`palette-${k}`)).toHaveCount(1);
-  await expect(page.locator('[data-testid^="palette-"]:not([data-testid^="palette-group"])')).toHaveCount(10);
+  await expect(page.locator('[data-testid^="palette-"]:not([data-testid^="palette-group"])')).toHaveCount(14); // 10 + 4 diagram objects (DEV-01B-1b)
   const before = 0;
   let n = 0;
   for (const k of KINDS) {

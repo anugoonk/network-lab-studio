@@ -3,7 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 // UI-02: Device Palette visible by default (bar under the canvas), search, categories, add by click / keyboard / drag.
 
 type Box = { x: number; y: number; width: number; height: number };
-const ALL = ['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'server', 'wireless-ap', 'firewall'];
+// palette order: routers, switches, end devices, WAN, infrastructure, other (DEV-01B-1b added the 4 diagram objects)
+const ALL = ['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'server', 'internet-cloud', 'patch-panel', 'rack', 'ups', 'wireless-ap', 'firewall'];
 
 async function open(page: Page) {
   await page.goto('/');
@@ -29,7 +30,7 @@ test('palette is visible right away (no "Add a device" click), under the canvas,
   await page.getByTestId('menu-add').click();
   await expect(page.getByTestId('device-list')).toBeVisible();
   await expect(bar(page)).toHaveCount(0);
-  await expect(items(page)).toHaveCount(10);
+  await expect(items(page)).toHaveCount(ALL.length);
   await page.getByTestId('menu-add').click();
   await expect(bar(page)).toBeVisible();
 });
@@ -48,10 +49,10 @@ test('search by name, model and category; no-result state; clear', async ({ page
   await expect(items(page)).toHaveCount(0);
   await page.getByTestId('device-empty-clear').click();
   await expect(search).toHaveValue('');
-  await expect(items(page)).toHaveCount(10);
+  await expect(items(page)).toHaveCount(ALL.length);
   await search.fill('pc');
   await page.getByTestId('device-search-clear').click();
-  await expect(items(page)).toHaveCount(10);
+  await expect(items(page)).toHaveCount(ALL.length);
   await search.fill('server');
   await search.press('Escape');
   await expect(search).toHaveValue('');

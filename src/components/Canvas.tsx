@@ -55,7 +55,9 @@ function DeviceNode({ id, selected }: NodeProps) {
       {dup && (
         <div className="node-dup" title={tx('IP {0} ซ้ำกับอุปกรณ์อื่นใน L2 เดียวกัน', dup.ip)} data-testid={`dup-${d.name}`}>{tx('⚠ IP ซ้ำ')}</div>
       )}
-      <Handle type="source" position={Position.Right} id="c" className="node-handle" title={tx('ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย')} />
+      {p.portNames.length > 0 && (
+        <Handle type="source" position={Position.Right} id="c" className="node-handle" title={tx('ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย')} />
+      )}
     </div>
   );
 }

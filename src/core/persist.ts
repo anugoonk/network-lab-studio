@@ -139,7 +139,8 @@ function crossCheck(lab: Lab): string[] {
     // Ports must belong to this model (today's list, or one an older release had). A Lab saved from a smaller/older
     // model may have FEWER ports than today's default: those are kept exactly as saved (device ID, port IDs, config, cables).
     const allowed = new Set([...p.portNames, ...(p.legacyPortNames ?? [])]);
-    if (names.length === 0 || names.some((n) => !allowed.has(n))) {
+    // only diagram objects without network ports (rack, UPS) may have an empty port list; every other model needs its ports
+    if ((names.length === 0 && p.portNames.length > 0) || names.some((n) => !allowed.has(n))) {
       errs.push(tx('{0}: รายการพอร์ตไม่ตรงกับรุ่น {1}', d.name, p.label));
     }
     if (new Set(names).size !== names.length) errs.push(tx('{0}: มีพอร์ตชื่อซ้ำ', d.name));

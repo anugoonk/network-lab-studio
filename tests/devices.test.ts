@@ -10,10 +10,10 @@ import { dev, sample } from './helpers';
 const PALETTE_KINDS = PALETTE_GROUPS.flatMap((g) => g.items.map((i) => i.kind));
 
 describe('Device Palette', () => {
-  it('lists exactly the 10 required devices, once each, in 4 groups', () => {
-    expect(PALETTE_KINDS).toHaveLength(10);
-    expect(new Set(PALETTE_KINDS).size).toBe(10);
-    expect(PALETTE_GROUPS.map((g) => g.title)).toEqual(['Routers & Switches', 'End Devices', 'Servers & Wireless', 'Security & WAN']);
+  it('lists exactly the 14 required devices (10 + 4 diagram objects of DEV-01B-1b), once each, in 5 groups', () => {
+    expect(PALETTE_KINDS).toHaveLength(14);
+    expect(new Set(PALETTE_KINDS).size).toBe(14);
+    expect(PALETTE_GROUPS.map((g) => g.title)).toEqual(['Routers & Switches', 'End Devices', 'Servers & Wireless', 'Security & WAN', 'Infrastructure']);
     expect([...PALETTE_KINDS].sort()).toEqual(Object.keys(PROFILES).sort());
   });
 
@@ -38,9 +38,9 @@ describe('adding devices', () => {
       lab = addDevice(lab, kind, 0, 0).lab;
       lab = addDevice(lab, kind, 10, 10).lab;
     }
-    expect(lab.devices).toHaveLength(20);
-    expect(new Set(lab.devices.map((d) => d.id)).size).toBe(20);
-    expect(new Set(lab.devices.map((d) => d.name.toLowerCase())).size).toBe(20);
+    expect(lab.devices).toHaveLength(PALETTE_KINDS.length * 2);
+    expect(new Set(lab.devices.map((d) => d.id)).size).toBe(PALETTE_KINDS.length * 2);
+    expect(new Set(lab.devices.map((d) => d.name.toLowerCase())).size).toBe(PALETTE_KINDS.length * 2);
   });
 });
 

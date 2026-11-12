@@ -8,7 +8,12 @@ export type DeviceKind =
   | 'server'
   | 'wireless-ap'
   | 'firewall'
-  | 'isp-router';
+  | 'isp-router'
+  /** diagram-only objects (DEV-01B-1b): drawn (and, with ports, cabled) but never simulated */
+  | 'internet-cloud'
+  | 'patch-panel'
+  | 'rack'
+  | 'ups';
 export type Vendor = 'cisco' | 'aruba' | 'pc' | 'generic';
 export type CliMode = 'user' | 'priv' | 'config' | 'config-if' | 'config-subif' | 'config-svi' | 'config-vlan' | 'pc';
 

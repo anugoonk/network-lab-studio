@@ -10,7 +10,7 @@ import { tx } from '../i18n';
  */
 export type SimLevel = 'full' | 'partial' | 'diagram';
 /** Device Palette category */
-export type DeviceCategory = 'routers' | 'switches' | 'end' | 'other';
+export type DeviceCategory = 'routers' | 'switches' | 'end' | 'wan' | 'infrastructure' | 'other';
 
 export interface DeviceProfile {
   kind: DeviceKind;
@@ -61,6 +61,37 @@ const hostProfile = (kind: DeviceKind, label: string, model: string, prefix: str
   simLevel: 'full',
   category: 'end',
   ...extra,
+});
+
+/** a diagram-only object: no CLI, no engine role (never forwards, never an L3 endpoint) */
+const diagramProfile = (
+  kind: DeviceKind,
+  label: string,
+  model: string,
+  prefix: string,
+  portNames: string[],
+  category: DeviceCategory,
+  roleNote: string,
+  simNote: string,
+): DeviceProfile => ({
+  kind,
+  vendor: 'generic',
+  label,
+  model,
+  osRef: portNames.length ? tx('ไม่มี CLI — วาดและต่อสายเท่านั้น') : tx('ไม่มี CLI — ใช้วาดเท่านั้น (ไม่มีพอร์ตเครือข่าย)'),
+  prefix,
+  nameKey: prefix,
+  portNames,
+  isSwitch: false,
+  isRouter: false,
+  isHost: false,
+  canForward: false,
+  hasCli: false,
+  roleNote,
+  defaultAdminUp: true,
+  simLevel: 'diagram',
+  category,
+  simNote,
 });
 
 export const PROFILES: Record<DeviceKind, DeviceProfile> = {
@@ -209,6 +240,46 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     simLevel: 'full',
     category: 'routers',
   },
+  'internet-cloud': diagramProfile(
+    'internet-cloud',
+    tx('อินเทอร์เน็ต (Cloud)'),
+    'Internet cloud symbol (diagram only, no Internet access)',
+    'CLOUD',
+    range(4, (i) => `Port${i}`),
+    'wan',
+    tx('อินเทอร์เน็ต (ไม่จำลอง)'),
+    tx('สัญลักษณ์อินเทอร์เน็ตสำหรับวาดแผนผัง — ต่อสายได้ แต่ไม่มีการเชื่อมต่ออินเทอร์เน็ตจริง ไม่ route และไม่ตอบ ping'),
+  ),
+  'patch-panel': diagramProfile(
+    'patch-panel',
+    tx('แผงพักสาย (Patch Panel)'),
+    '24-port patch panel (diagram only, no pass-through)',
+    'PP',
+    range(24, (i) => `P${i}`),
+    'infrastructure',
+    tx('24 พอร์ต (ไม่ส่งต่อ)'),
+    tx('แผงพักสายสำหรับวาดแผนผัง — ต่อสายได้ แต่ไม่ส่งข้อมูลระหว่างพอร์ต เครื่องที่ต่อผ่านแผงนี้จะติดต่อกันไม่ได้'),
+  ),
+  rack: diagramProfile(
+    'rack',
+    tx('ตู้ Rack'),
+    'Equipment rack (diagram only)',
+    'RACK',
+    [],
+    'infrastructure',
+    tx('ตู้อุปกรณ์'),
+    tx('ตู้ Rack สำหรับวาดแผนผังเท่านั้น — ไม่มีพอร์ต ไม่จำลองไฟฟ้าหรือการเชื่อมต่อ'),
+  ),
+  ups: diagramProfile(
+    'ups',
+    tx('เครื่องสำรองไฟ (UPS)'),
+    'UPS (diagram only, no power simulation)',
+    'UPS',
+    [],
+    'infrastructure',
+    tx('สำรองไฟ (ไม่จำลอง)'),
+    tx('UPS สำหรับวาดแผนผังเท่านั้น — ไม่มีพอร์ตเครือข่ายและไม่จำลองไฟฟ้า'),
+  ),
 };
 
 /** Order shown in the Device Palette. */
@@ -241,6 +312,15 @@ export const PALETTE_GROUPS: { title: string; items: { kind: DeviceKind; note: s
     items: [
       { kind: 'firewall', note: tx('LAN · WAN · DMZ (วาด/ต่อสายเท่านั้น)') },
       { kind: 'isp-router', note: tx('WAN จำลอง · Gi0/0–0/1') },
+      { kind: 'internet-cloud', note: tx('แผนผัง · Port1–4 (ไม่มีอินเทอร์เน็ตจริง)') },
+    ],
+  },
+  {
+    title: 'Infrastructure',
+    items: [
+      { kind: 'patch-panel', note: tx('แผนผัง · P1–P24 (ไม่ส่งต่อข้อมูล)') },
+      { kind: 'rack', note: tx('แผนผัง · ไม่มีพอร์ต') },
+      { kind: 'ups', note: tx('แผนผัง · ไม่มีพอร์ต · ไม่จำลองไฟฟ้า') },
     ],
   },
 ];

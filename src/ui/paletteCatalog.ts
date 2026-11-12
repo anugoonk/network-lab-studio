@@ -9,7 +9,7 @@ import type { DeviceKind } from '../core/types';
 import { tx } from '../i18n';
 
 export type PaletteCategory = DeviceCategory;
-export const CATEGORY_ORDER: readonly PaletteCategory[] = ['routers', 'switches', 'end', 'other'];
+export const CATEGORY_ORDER: readonly PaletteCategory[] = ['routers', 'switches', 'end', 'wan', 'infrastructure', 'other'];
 
 /** category of every device kind, read from PROFILES (kept as an export for existing callers) */
 export const CATEGORY_OF = Object.fromEntries(Object.values(PROFILES).map((p) => [p.kind, p.category])) as Record<DeviceKind, PaletteCategory>;
@@ -38,6 +38,10 @@ export function categoryLabel(c: PaletteCategory): string {
       return tx('สวิตช์');
     case 'end':
       return tx('อุปกรณ์ผู้ใช้ปลายทาง');
+    case 'wan':
+      return tx('WAN / อินเทอร์เน็ต');
+    case 'infrastructure':
+      return tx('โครงสร้างพื้นฐาน (Infrastructure)');
     case 'other':
       return tx('อุปกรณ์อื่น (Wireless / Security)');
   }
@@ -46,6 +50,8 @@ const CATEGORY_EN: Record<PaletteCategory, string> = {
   routers: 'routers router',
   switches: 'switches switch',
   end: 'end devices end device host',
+  wan: 'wan internet cloud',
+  infrastructure: 'infrastructure',
   other: 'other wireless security',
 };
 

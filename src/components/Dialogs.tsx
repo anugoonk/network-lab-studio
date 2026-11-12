@@ -21,10 +21,13 @@ export function ConnectDialog() {
     return d?.ifaces.find((i) => !portInUse(lab, deviceId, i.name))?.name ?? '';
   };
 
+  // devices without network ports (rack, UPS) cannot be a cable end, so they are not offered
+  const cabled = lab.devices.filter((d) => d.ifaces.length > 0);
+
   useEffect(() => {
     if (!dlg) return;
-    const a = dlg.a ?? lab.devices[0]?.id ?? '';
-    const b = dlg.b ?? lab.devices.find((d) => d.id !== a)?.id ?? '';
+    const a = dlg.a ?? cabled[0]?.id ?? '';
+    const b = dlg.b ?? cabled.find((d) => d.id !== a)?.id ?? '';
     setA(a);
     setB(b);
     setAPort(firstFree(a));
@@ -52,7 +55,7 @@ export function ConnectDialog() {
   };
   const deviceSelect = (value: string, onChange: (v: string) => void, testId: string) => (
     <select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}>
-      {lab.devices.map((d) => (
+      {cabled.map((d) => (
         <option key={d.id} value={d.id}>
           {d.name}
         </option>

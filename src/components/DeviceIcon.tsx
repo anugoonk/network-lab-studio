@@ -3,6 +3,53 @@ import type { DeviceKind } from '../core/types';
 /** Original SVG icons (drawn for this project). */
 export function DeviceIcon({ kind, size = 56 }: { kind: DeviceKind; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 64 64', 'aria-hidden': true } as const;
+  // diagram-only objects (DEV-01B-1b) — drawn in muted colours
+  if (kind === 'internet-cloud') {
+    return (
+      <svg {...common}>
+        <path d="M18 46a10 10 0 0 1-1-20 14 14 0 0 1 27-4 11 11 0 0 1 3 24z" fill="#9fc5e8" stroke="#3d6f99" strokeWidth="2.5" />
+        <path d="M24 36h16M32 28v16" stroke="#3d6f99" strokeWidth="2" strokeLinecap="round" opacity=".55" />
+      </svg>
+    );
+  }
+  if (kind === 'patch-panel') {
+    return (
+      <svg {...common}>
+        <rect x="4" y="22" width="56" height="20" rx="3" fill="#64748b" />
+        <g fill="#e2e8f0">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <rect key={i} x={9 + i * 6} y="27" width="4" height="4" rx="1" />
+          ))}
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <rect key={`b${i}`} x={9 + i * 6} y="34" width="4" height="4" rx="1" />
+          ))}
+        </g>
+      </svg>
+    );
+  }
+  if (kind === 'rack') {
+    return (
+      <svg {...common}>
+        <rect x="16" y="6" width="32" height="52" rx="3" fill="#334155" />
+        <g fill="#94a3b8">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <rect key={i} x="20" y={11 + i * 9} width="24" height="6" rx="1" />
+          ))}
+        </g>
+        <rect x="18" y="56" width="6" height="4" fill="#334155" />
+        <rect x="40" y="56" width="6" height="4" fill="#334155" />
+      </svg>
+    );
+  }
+  if (kind === 'ups') {
+    return (
+      <svg {...common}>
+        <rect x="14" y="10" width="36" height="46" rx="4" fill="#475569" />
+        <rect x="20" y="16" width="24" height="10" rx="2" fill="#a7f3d0" />
+        <path d="M34 31l-6 10h6l-2 9 8-12h-6l3-7z" fill="#fde68a" />
+      </svg>
+    );
+  }
   if (kind === 'cisco-router') {
     return (
       <svg {...common}>

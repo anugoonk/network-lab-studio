@@ -25,6 +25,10 @@ describe('capability metadata (DEV-01B-1a)', () => {
       'wireless-ap': 'diagram',
       firewall: 'diagram',
       'isp-router': 'full',
+      'internet-cloud': 'diagram',
+      'patch-panel': 'diagram',
+      rack: 'diagram',
+      ups: 'diagram',
     });
   });
 
@@ -52,6 +56,10 @@ describe('capability metadata (DEV-01B-1a)', () => {
       'wireless-ap': 'false,false,false,false,false,generic,1',
       firewall: 'false,false,false,false,false,generic,3',
       'isp-router': 'false,true,false,true,true,cisco,2',
+      'internet-cloud': 'false,false,false,false,false,generic,4',
+      'patch-panel': 'false,false,false,false,false,generic,24',
+      rack: 'false,false,false,false,false,generic,0',
+      ups: 'false,false,false,false,false,generic,0',
     });
   });
 
@@ -154,7 +162,7 @@ describe('"simulation-capable only" filter', () => {
 
   it('keeps full + partial, drops diagram-only', () => {
     expect(kinds('', 'all', true)).toEqual(['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'server']);
-    expect(kinds('', 'all', false)).toHaveLength(10);
+    expect(kinds('', 'all', false)).toHaveLength(14);
     expect(isSimulationCapable('partial')).toBe(true);
     expect(isSimulationCapable('diagram')).toBe(false);
   });
