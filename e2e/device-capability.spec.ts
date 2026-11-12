@@ -145,3 +145,42 @@ test('export / import: no capability data in the file, same ids and devices', as
   await expect(page.getByTestId('sim-node-AP1')).toHaveAttribute('data-sim', 'diagram');
   fs.rmSync(file, { force: true });
 });
+
+test('canvas marks only partial (◐) and diagram (▭) devices; full ones carry no visible mark but keep the label', async ({ page }) => {
+  await mixedLab(page);
+  const size = async (id: string) => (await page.getByTestId(id).boundingBox())!;
+  // full: present for screen readers / data-sim, but not drawn
+  const full = await size('sim-node-PC-01');
+  expect(full.width).toBeLessThanOrEqual(2); // 1px (visually hidden) × canvas zoom
+  expect(full.height).toBeLessThanOrEqual(2);
+  await expect(page.getByTestId('sim-node-PC-01')).toHaveAttribute('aria-label', 'จำลองได้');
+  await expect(page.getByTestId('sim-node-PC-01')).toHaveAttribute('data-sim', 'full');
+  // partial and diagram: visible marks with their symbol
+  for (const [name, mark, label] of [['SRV-01', '◐', 'จำลองได้บางส่วน'], ['AP1', '▭', 'แผนผังเท่านั้น'], ['FW1', '▭', 'แผนผังเท่านั้น']] as const) {
+    const b = await size(`sim-node-${name}`);
+    expect(b.width, name).toBeGreaterThanOrEqual(12);
+    await expect(page.getByTestId(`sim-node-${name}`)).toBeVisible();
+    await expect(page.getByTestId(`sim-node-${name}`)).toHaveText(mark);
+    await expect(page.getByTestId(`sim-node-${name}`)).toHaveAttribute('aria-label', label);
+  }
+  // the palette and the details panel still show the full level
+  await expect(page.getByTestId('sim-palette-pc')).toBeVisible();
+  await expect(page.getByTestId('sim-palette-pc')).toHaveAttribute('data-sim', 'full');
+  await page.getByTestId('node-PC-01').click();
+  await expect(page.getByTestId('device-sim-badge')).toBeVisible();
+  await expect(page.getByTestId('device-sim-badge')).toContainText('จำลองได้');
+  // selection and drag of a full node are unaffected
+  const before = (await page.getByTestId('node-PC-01').boundingBox())!;
+  await page.getByTestId('node-PC-01').hover();
+  await page.mouse.down();
+  await page.mouse.move(before.x + before.width / 2 + 60, before.y + before.height / 2 + 30, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await page.getByTestId('node-PC-01').boundingBox())!.x).toBeGreaterThan(before.x + 40);
+  // English
+  await page.getByTestId('lang-en').click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByTestId('sim-node-PC-01')).toHaveAttribute('aria-label', 'Simulation Ready');
+  expect((await size('sim-node-PC-01')).width).toBeLessThanOrEqual(2); // 1px element × the canvas zoom after the reload
+  await expect(page.getByTestId('sim-node-SRV-01')).toHaveAttribute('aria-label', 'Partial Simulation');
+  await expect(page.getByTestId('sim-node-AP1')).toBeVisible();
+});

@@ -418,3 +418,5 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .palette-is-list .palette-simonly { background: transparent; color: var(--nav-text); border-color: var(--nav-line); }
 .palette-is-list .palette-simonly[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .palette-is-list .palette-simonly:focus-visible { outline-color: var(--focus-on-dark); }
+/* canvas: full-simulation nodes carry no visible mark (kept for screen readers, test ids and data-sim) */
+.sim-badge.on-node.sim-quiet { width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
