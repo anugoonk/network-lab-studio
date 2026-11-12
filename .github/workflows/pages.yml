@@ -2,17 +2,18 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # main deploys; ci/** branches run build + E2E only (the deploy job is limited to main)
+    branches: [main, 'ci/**']
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# One run at a time per branch. Never cancel a run that may be mid-deploy (GitHub's recommendation for Pages);
+# a ci/** run therefore cannot hold up or cancel a production deploy from main.
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -24,7 +25,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # unit tests gate the deploy (the Playwright suite needs a browser and runs locally)
       - run: npm test
       - run: npm run build
         env:
@@ -34,9 +34,37 @@ jobs:
         with:
           path: dist
 
-  deploy:
-    needs: build
+  # Every committed Playwright test must pass before the site is deployed. This job runs on its own runner:
+  # Playwright's webServer builds its own dist (base "/") there, so it never touches the Pages artifact above.
+  e2e:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # playwright.config.ts already sets workers: 1 and no retries; --forbid-only fails the run if a test.only slipped in
+      - run: npx playwright test --forbid-only --reporter=list,html
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  deploy:
+    needs: [build, e2e]
+    # no status function here, so GitHub also requires build and e2e to have succeeded
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
