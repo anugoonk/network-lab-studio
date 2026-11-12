@@ -224,7 +224,10 @@ for (const [w, h] of [[1500, 900], [1366, 768], [1280, 800]] as const) {
     }
     const canvas = (await page.getByTestId('canvas').boundingBox())!;
     expect(canvas.y).toBeLessThan(110); // the workspace starts right under the two bars
-    expect(canvas.height).toBeGreaterThan(h - 130);
+    // UI-02: the Device Palette bar sits under the canvas, so the workspace = canvas + gap + palette bar
+    const paletteBar = (await page.getByTestId('device-bar').boundingBox())!;
+    expect(paletteBar.y).toBeGreaterThanOrEqual(canvas.y + canvas.height);
+    expect(paletteBar.y + paletteBar.height - canvas.y).toBeGreaterThan(h - 130);
     // icon-only buttons on narrower screens still have their names
     const tb = page.getByRole('toolbar', { name: 'แถบเครื่องมือ Lab' });
     for (const name of ['ย้อนกลับ', 'ทำซ้ำ', 'พอดีจอ', 'แผงซ้าย', 'แผงขวา']) await expect(tb.getByRole('button', { name, exact: true })).toBeVisible();

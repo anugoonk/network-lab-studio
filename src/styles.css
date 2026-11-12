@@ -147,16 +147,71 @@ h4 { font-size: var(--fs-base); }
 .menu-item.hamburger { margin-bottom: 4px; border-bottom: 1px solid #555d64; border-radius: 6px 6px 0 0; }
 .submenu { padding: 2px 4px 8px 8px; }
 .menu-hint { font-size: 11.5px; color: var(--nav-muted); margin: 0 0 6px; }
-.palette-list .palette-item { display: flex; gap: 10px; align-items: center; padding: 5px; border-radius: 6px; margin-bottom: 3px; cursor: grab; }
-.palette-item:hover, .palette-item:focus-visible { background: var(--nav-hover); }
-.palette-item .tile { background: #fff; border-radius: 8px; padding: 3px; display: grid; place-items: center; flex-shrink: 0; }
-.palette-name { font-size: 13px; font-weight: 600; line-height: 1.25; color: var(--nav-text); }
-.palette-item .menu-hint { margin: 0; }
 .node-row { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; border: none; color: var(--nav-text); padding: 5px 8px; border-radius: 6px; text-align: left; font-size: 13px; }
 .node-row:hover { background: var(--nav-hover); }
 .node-row.active { background: rgb(255 255 255 / 14%); }
 .node-row .sq { width: 8px; height: 8px; background: #fff; flex-shrink: 0; }
 .node-row .menu-hint { margin: 0 0 0 auto; }
+
+/* ── Device Palette (UI-02): shared parts ── */
+.palette-item { display: flex; gap: 10px; align-items: center; padding: 5px; border-radius: var(--r-md); cursor: grab; }
+.palette-item .tile { background: #fff; border-radius: var(--r-lg); padding: 3px; display: grid; place-items: center; flex-shrink: 0; }
+.palette-item .menu-hint { margin: 0; }
+.palette-text { min-width: 0; }
+.palette-name { font-size: var(--fs-md); font-weight: 600; line-height: 1.25; }
+.palette-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.palette-search { display: flex; align-items: center; gap: 6px; height: var(--btn-h); padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--muted); flex: 1 1 180px; min-width: 140px; }
+.palette-search:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
+.palette-search input { border: none; padding: 0; height: 100%; background: transparent; outline: none; font-size: var(--fs-md); min-width: 0; }
+.palette-search input:focus-visible { outline: none; }
+.palette-clear { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--muted); flex-shrink: 0; }
+.palette-clear:hover { background: var(--surface-3); color: var(--text); }
+.palette-cats { display: flex; flex-wrap: wrap; gap: 4px; }
+.palette-cat { height: var(--btn-h-sm); padding: 0 10px; border-radius: 999px; font-size: var(--fs-sm); background: var(--surface); }
+.palette-cat[aria-pressed='true'] { background: var(--teal); border-color: var(--teal); color: #fff; }
+.palette-group-title { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+.palette-empty { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-2); font-size: var(--fs-md); }
+
+/* bar under the canvas (light) — the palette's default place: tools on the left, devices scroll sideways */
+.center { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.palette.palette-is-bar { flex-shrink: 0; display: flex; align-items: stretch; gap: var(--sp-3); height: 96px; padding: 6px var(--sp-2); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-1); }
+.palette-is-bar .palette-tools { flex: 0 0 208px; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 5px; }
+.palette-is-bar .palette-title { display: none; }
+.palette-is-bar .palette-search { flex: 0 0 auto; height: 28px; }
+.palette-is-bar .palette-cats { gap: 3px; }
+.palette-is-bar .palette-cat { height: 22px; padding: 0 7px; font-size: var(--fs-xs); }
+.palette-is-bar .palette-items { flex: 1; min-width: 0; display: flex; gap: var(--sp-2); overflow-x: auto; overflow-y: hidden; }
+.palette-is-bar .palette-group { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+.palette-is-bar .palette-group + .palette-group { padding-left: var(--sp-2); border-left: 1px solid var(--line); }
+.palette-is-bar .palette-group-title { color: var(--muted); font-size: 10px; line-height: 12px; white-space: nowrap; }
+.palette-is-bar .palette-group-items { display: flex; gap: 2px; }
+.palette-is-bar .palette-item { flex-direction: column; gap: 2px; width: 78px; padding: 3px 2px; text-align: center; border: 1px solid transparent; }
+.palette-is-bar .palette-item .tile { background: var(--surface-2); padding: 2px; }
+.palette-is-bar .palette-text { width: 100%; }
+.palette-is-bar .palette-name { font-size: var(--fs-xs); font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.palette-is-bar .palette-item:hover { background: var(--surface-2); border-color: var(--line); }
+.palette-is-bar .palette-empty { color: var(--muted); align-self: center; }
+
+/* list inside the left menu (dark) — opened with "Add a device" */
+.palette.palette-is-list { display: flex; flex-direction: column; gap: 6px; }
+.palette-is-list .palette-search { background: rgb(255 255 255 / 8%); border-color: var(--nav-line); color: var(--nav-muted); flex-basis: 100%; }
+.palette-is-list .palette-search input { color: var(--nav-text); }
+.palette-is-list .palette-search input::placeholder { color: var(--nav-muted); }
+.palette-is-list .palette-search:focus-within { outline-color: var(--focus-on-dark); }
+.palette-is-list .palette-clear { color: var(--nav-muted); }
+.palette-is-list .palette-clear:hover { background: var(--nav-hover); color: var(--nav-text); }
+.palette-is-list .palette-cat { background: transparent; border-color: var(--nav-line); color: var(--nav-text); }
+.palette-is-list .palette-cat:hover { background: var(--nav-hover); }
+.palette-is-list .palette-cat[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.palette-is-list .palette-cat:focus-visible { outline-color: var(--focus-on-dark); }
+.palette-is-list .palette-group { margin-bottom: 4px; }
+.palette-is-list .palette-group-title { color: var(--nav-muted); margin: 6px 0 2px; }
+.palette-is-list .palette-item { margin-bottom: 3px; }
+.palette-is-list .palette-item:hover { background: var(--nav-hover); }
+.palette-is-list .palette-item:focus-visible { outline: 2px solid var(--focus-on-dark); outline-offset: 0; background: var(--nav-hover); }
+.palette-is-list .palette-name { color: var(--nav-text); }
+.palette-is-list .palette-empty { color: var(--nav-text); }
+.palette-is-list .palette-empty button { background: transparent; color: var(--nav-text); border-color: var(--nav-line); }
 
 /* ── Lab Guide drawer ── */
 .guide { width: var(--guide-w); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-1); display: flex; flex-direction: column; min-height: 0; flex-shrink: 0; }
@@ -203,7 +258,7 @@ table.files input[type='checkbox'] { width: auto; }
 .pill.guide-pill { background: #ffe9d2; color: #a24c00; margin-left: 6px; }
 
 /* ── canvas: white, dotted grid, orange frame ── */
-.canvas { flex: 1; min-width: 0; position: relative; border: 3px solid var(--accent); border-radius: 4px; background: #fff; }
+.canvas { flex: 1; min-width: 0; min-height: 0; position: relative; border: 3px solid var(--accent); border-radius: 4px; background: #fff; }
 .react-flow { background: #fff; }
 .node { background: #fff; border: 2px solid transparent; border-radius: 8px; padding: 4px 8px 3px; text-align: center; width: 92px; position: relative; }
 .node:hover { background: #f4f8fb; }

@@ -1,5 +1,4 @@
 import { useReactFlow } from '@xyflow/react';
-import { useState } from 'react';
 import { PROFILES } from '../core/profiles';
 import { useStore } from '../store';
 import { ChallengePanel } from './ChallengePanel';
@@ -22,7 +21,8 @@ interface Entry {
 
 /**
  * Left side of the lab view: an icon rail that can expand into a labelled menu
- * (Add an object, Nodes, Lab Guide, Lab details, ...), or be joined by the Lab Guide drawer.
+ * (Add a device, Nodes, Lab Guide, Lab details, ...), or be joined by the Lab Guide drawer.
+ * When the "Add a device" section is not open, the Device Palette is shown as a bar under the canvas instead (App).
  */
 export function LeftDock() {
   const panel = useStore((s) => s.leftPanel);
@@ -42,7 +42,8 @@ export function LeftDock() {
   const selection = useStore((s) => s.selection);
   const openConsole = useStore((s) => s.openConsole);
   const flow = useReactFlow();
-  const [section, setSection] = useState<'add' | 'nodes' | null>('add');
+  const section = useStore((s) => s.menuSection);
+  const setSection = useStore((s) => s.setMenuSection);
 
   const expanded = panel === 'menu';
 
@@ -61,14 +62,14 @@ export function LeftDock() {
   };
 
   const entries: Entry[] = [
-    { id: 'add', icon: 'plus', label: 'Add an object', onClick: () => openSection('add'), testId: 'menu-add', chevron: true, open: expanded && section === 'add' },
+    { id: 'add', icon: 'plus', label: tx('เพิ่มอุปกรณ์'), onClick: () => openSection('add'), testId: 'menu-add', chevron: true, open: expanded && section === 'add' },
     { id: 'nodes', icon: 'nodes', label: `Nodes (${devices.length})`, onClick: () => openSection('nodes'), testId: 'menu-nodes', chevron: true, open: expanded && section === 'nodes' },
-    { id: 'guide', icon: 'guide', label: 'Lab Guide', onClick: toggleGuide, active: panel === 'guide', testId: 'menu-guide' },
-    { id: 'challenge', icon: 'check', label: 'Challenge', onClick: toggleChallenge, active: panel === 'challenge', testId: 'menu-challenge' },
+    { id: 'guide', icon: 'guide', label: tx('คู่มือ Lab'), onClick: toggleGuide, active: panel === 'guide', testId: 'menu-guide' },
+    { id: 'challenge', icon: 'check', label: tx('โจทย์ Challenge'), onClick: toggleChallenge, active: panel === 'challenge', testId: 'menu-challenge' },
     {
       id: 'details',
       icon: 'details',
-      label: 'Lab details',
+      label: tx('รายละเอียด Lab'),
       onClick: () => {
         select(null);
         setRightTab('details');
@@ -76,14 +77,14 @@ export function LeftDock() {
       },
       testId: 'menu-details',
     },
-    { id: 'manager', icon: 'manager', label: 'Lab Manager', onClick: () => setView('manager'), testId: 'menu-manager' },
-    { id: 'library', icon: 'library', label: 'Command Library', onClick: () => setView('library'), testId: 'menu-library' },
+    { id: 'manager', icon: 'manager', label: tx('จัดการ Lab'), onClick: () => setView('manager'), testId: 'menu-manager' },
+    { id: 'library', icon: 'library', label: tx('คลังคำสั่ง'), onClick: () => setView('library'), testId: 'menu-library' },
     { id: 'share', icon: 'share', label: tx('แชร์ลิงก์ Lab'), onClick: () => void shareLab(), testId: 'menu-share' },
     { id: 'cable', icon: 'cable', label: tx('เชื่อมสาย'), onClick: () => openConnect(), testId: 'menu-connect' },
-    { id: 'fit', icon: 'fit', label: 'Fit view', onClick: () => fitLab(flow), testId: 'menu-fit' },
+    { id: 'fit', icon: 'fit', label: tx('พอดีจอ'), onClick: () => fitLab(flow), testId: 'menu-fit' },
     { id: 'hide', icon: 'tag', label: hideLabels ? tx('แสดงป้ายพอร์ต/สถานะ') : tx('ซ่อนป้ายพอร์ต/สถานะ'), onClick: toggleHide, active: hideLabels, testId: 'menu-hide-labels' },
-    { id: 'full', icon: 'full', label: 'Fullscreen', onClick: toggleFullscreen, testId: 'menu-fullscreen' },
-    { id: 'close', icon: 'close', label: 'Close lab', onClick: () => setView('manager'), testId: 'menu-close' },
+    { id: 'full', icon: 'full', label: tx('เต็มจอ'), onClick: toggleFullscreen, testId: 'menu-fullscreen' },
+    { id: 'close', icon: 'close', label: tx('ปิด Lab'), onClick: () => setView('manager'), testId: 'menu-close' },
   ];
 
   const focusNode = (id: string) => {
@@ -124,7 +125,7 @@ export function LeftDock() {
             </button>
             {expanded && e.id === 'add' && e.open && (
               <div className="submenu" data-testid="submenu-add">
-                <Palette />
+                <Palette layout="list" />
               </div>
             )}
             {expanded && e.id === 'nodes' && e.open && (

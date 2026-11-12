@@ -161,7 +161,7 @@ test('messages appear at the bottom and never cover the toolbar; a click dismiss
   const vp = page.viewportSize()!;
   expect(n.y + n.height).toBeLessThanOrEqual(vp.height);
   // and the toolbar button it used to hide can be clicked while the message is showing
-  await page.getByRole('button', { name: 'Sample: Inter-VLAN' }).click({ trial: true });
+  await page.getByTestId('btn-sample2').click({ trial: true }); // UI-02: label is translated now (TH: ตัวอย่าง: Inter-VLAN)
   await notice.click();
   await expect(notice).toHaveCount(0);
 });

@@ -9,6 +9,7 @@ import { FileManager } from './components/FileManager';
 import { Inspector } from './components/Inspector';
 import { Icon, LogoMark } from './components/Icons';
 import { LeftDock } from './components/LeftDock';
+import { Palette } from './components/Palette';
 import { SAMPLES, type SampleKind } from './core/sample';
 import { flushWorkspace, useStore, type RightTab } from './store';
 import { getLang, switchLang, tx, type Lang } from './i18n';
@@ -118,7 +119,7 @@ function Toolbar() {
           <span>{tx('เปิด Lab ตัวอย่าง')}</span>
         </button>
         <button className="tb-btn" onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">
-          <span>Sample: Inter-VLAN</span>
+          <span>{tx('ตัวอย่าง: Inter-VLAN')}</span>
         </button>
         <select
           className="tb-select"
@@ -177,6 +178,17 @@ function Toolbar() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** canvas + the Device Palette bar under it (the bar steps aside while the left menu's "Add a device" list is open) */
+function CenterColumn() {
+  const paletteInMenu = useStore((s) => s.leftPanel === 'menu' && s.menuSection === 'add');
+  return (
+    <div className="center">
+      <Canvas />
+      {!paletteInMenu && <Palette layout="bar" />}
     </div>
   );
 }
@@ -304,7 +316,7 @@ export default function App() {
         {/* the lab view stays mounted (hidden) so the canvas keeps its viewport when switching tabs */}
         <div className="main" style={{ display: view === 'lab' ? 'flex' : 'none' }}>
           <LeftDock />
-          <Canvas />
+          <CenterColumn />
           {rightOpen && <RightPanel />}
         </div>
         {view === 'library' && <CommandLibrary />}

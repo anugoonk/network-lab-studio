@@ -99,8 +99,10 @@ test('instructor: the start state is captured on creation, can be re-captured, a
   // add a second device, re-capture
   await showPalette(page);
   await page.getByTestId('palette-laptop').dragTo(page.getByTestId('canvas'), { targetPosition: { x: 400, y: 200 } });
-  await page.getByTestId('menu-challenge').click();
-  await page.getByTestId('challenge-edit-toggle').click();
+  // UI-02: the palette bar is visible while the Challenge panel stays open, so only open the panel if it is closed
+  if (!(await page.getByTestId('challenge-panel').isVisible())) await page.getByTestId('menu-challenge').click();
+  // the panel was not unmounted, so the editor opened by "create" may still be open
+  if (!(await page.getByTestId('challenge-set-start').isVisible())) await page.getByTestId('challenge-edit-toggle').click();
   await expect(page.getByTestId('challenge-start-status')).toContainText('1 อุปกรณ์');
   await page.getByTestId('challenge-set-start').click();
   await expect(page.getByTestId('challenge-start-status')).toContainText('2 อุปกรณ์');

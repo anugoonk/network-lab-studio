@@ -35,12 +35,15 @@ import { emptyHistory, reconcileCli, recordChange, redoStep, undoStep, type Hist
 import { applyStart, captureStart, emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
 import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
 import { tx } from './i18n';
+import type { PaletteCategory } from './ui/paletteCatalog';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
 export type RightTab = 'details' | 'console' | 'inspector';
 export type View = 'lab' | 'library' | 'manager';
 /** what is expanded on the left of the canvas: the labelled menu, the Lab Guide, or just the icon rail */
 export type LeftPanel = 'menu' | 'guide' | 'challenge' | null;
+/** which section of the labelled left menu is open (UI only, not saved) */
+export type MenuSection = 'add' | 'nodes' | null;
 export type { SampleKind };
 
 /** last Check run; `sig` is the Lab config it was run against (so stale results can be flagged) */
@@ -90,6 +93,10 @@ interface State {
   view: View;
   rightTab: RightTab;
   leftPanel: LeftPanel;
+  /** UI only (not saved): open section of the left menu, and the Device Palette's search text + category filter */
+  menuSection: MenuSection;
+  paletteQuery: string;
+  paletteCategory: PaletteCategory | 'all';
   rightOpen: boolean;
   hideLabels: boolean;
   transcripts: Record<string, TermLine[]>;
@@ -126,6 +133,9 @@ interface State {
   setView: (v: View) => void;
   setRightTab: (t: RightTab) => void;
   setLeftPanel: (p: LeftPanel) => void;
+  setMenuSection: (s: MenuSection) => void;
+  setPaletteQuery: (q: string) => void;
+  setPaletteCategory: (c: PaletteCategory | 'all') => void;
   toggleGuide: () => void;
   toggleChallenge: () => void;
   challengeRun: ChallengeRun | null;
@@ -310,6 +320,9 @@ export const useStore = create<State>((set, get) => {
     view: 'lab',
     rightTab: 'details',
     leftPanel: init.lab.guide ? 'guide' : 'menu',
+    menuSection: 'add',
+    paletteQuery: '',
+    paletteCategory: 'all',
     rightOpen: true,
     hideLabels: false,
     transcripts: {},
@@ -401,6 +414,9 @@ export const useStore = create<State>((set, get) => {
     setView: (view) => set({ view }),
     setRightTab: (rightTab) => set({ rightTab, rightOpen: true }),
     setLeftPanel: (leftPanel) => set({ leftPanel }),
+    setMenuSection: (menuSection) => set({ menuSection }),
+    setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
+    setPaletteCategory: (paletteCategory) => set({ paletteCategory }),
     toggleGuide: () => set({ leftPanel: get().leftPanel === 'guide' ? null : 'guide', view: 'lab' }),
     toggleChallenge: () => set({ leftPanel: get().leftPanel === 'challenge' ? null : 'challenge', view: 'lab' }),
     runChallenge: () => {
