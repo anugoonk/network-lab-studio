@@ -10,9 +10,9 @@ import { dev, sample } from './helpers';
 const PALETTE_KINDS = PALETTE_GROUPS.flatMap((g) => g.items.map((i) => i.kind));
 
 describe('Device Palette', () => {
-  it('lists exactly the 14 required devices (10 + 4 diagram objects of DEV-01B-1b), once each, in 5 groups', () => {
-    expect(PALETTE_KINDS).toHaveLength(14);
-    expect(new Set(PALETTE_KINDS).size).toBe(14);
+  it('lists exactly the 19 required devices (10 + 4 diagram objects of DEV-01B-1b + 5 IP end devices of DEV-01C-1), once each, in 5 groups', () => {
+    expect(PALETTE_KINDS).toHaveLength(19);
+    expect(new Set(PALETTE_KINDS).size).toBe(19);
     expect(PALETTE_GROUPS.map((g) => g.title)).toEqual(['Routers & Switches', 'End Devices', 'Servers & Wireless', 'Security & WAN', 'Infrastructure']);
     expect([...PALETTE_KINDS].sort()).toEqual(Object.keys(PROFILES).sort());
   });

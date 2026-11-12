@@ -5,7 +5,7 @@ import { parseIp } from '../ip';
 import { cmd, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
 
-const PC = ['pc', 'laptop', 'server'] as const;
+const PC = ['pc', 'laptop', 'server', 'printer', 'ip-camera', 'ip-phone', 'nvr', 'nas'] as const;
 
 function ipconfig(c: Ctx): RunResult {
   const nic = c.dev.ifaces[0];

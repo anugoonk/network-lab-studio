@@ -4,7 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 type Box = { x: number; y: number; width: number; height: number };
 // palette order: routers, switches, end devices, WAN, infrastructure, other (DEV-01B-1b added the 4 diagram objects)
-const ALL = ['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'server', 'internet-cloud', 'patch-panel', 'rack', 'ups', 'wireless-ap', 'firewall'];
+// DEV-01C-1 added 5 IP end devices to the end-device category
+const ALL = ['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas', 'internet-cloud', 'patch-panel', 'rack', 'ups', 'wireless-ap', 'firewall'];
 
 async function open(page: Page) {
   await page.goto('/');
@@ -66,7 +67,7 @@ test('category filter (and the search text follows the palette into the left men
   await expect(page.getByTestId('device-cat-switches')).toHaveAttribute('aria-pressed', 'true');
   expect(await visibleKinds(page)).toEqual(['cisco-switch', 'aruba-switch', 'l3-switch']);
   await page.getByTestId('device-cat-end').click();
-  expect(await visibleKinds(page)).toEqual(['pc', 'laptop', 'server']);
+  expect(await visibleKinds(page)).toEqual(['pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas']);
   await page.getByTestId('device-cat-other').click();
   expect(await visibleKinds(page)).toEqual(['wireless-ap', 'firewall']);
   await page.getByTestId('device-cat-routers').click();

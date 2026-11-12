@@ -31,7 +31,12 @@ describe('paletteEntries: built from the existing catalog, nothing invented or l
       'switches:l3-switch',
       'end:pc',
       'end:laptop',
+      'end:printer',
+      'end:ip-camera',
+      'end:ip-phone',
       'end:server',
+      'end:nvr',
+      'end:nas',
       'wan:internet-cloud',
       'infrastructure:patch-panel',
       'infrastructure:rack',
@@ -51,8 +56,8 @@ describe('paletteEntries: built from the existing catalog, nothing invented or l
 
 describe('filterPalette', () => {
   it('empty / blank query shows everything', () => {
-    expect(kinds('')).toHaveLength(14);
-    expect(kinds('   ')).toHaveLength(14);
+    expect(kinds('')).toHaveLength(19);
+    expect(kinds('   ')).toHaveLength(19);
   });
 
   it('searches the device name, case-insensitive, trimmed', () => {
@@ -69,7 +74,7 @@ describe('filterPalette', () => {
   it('searches the category, in Thai and English', () => {
     expect(kinds('router')).toEqual(['cisco-router', 'isp-router']);
     expect(kinds('เราเตอร์')).toEqual(['cisco-router', 'isp-router']);
-    expect(kinds('end device')).toEqual(['pc', 'laptop', 'server']);
+    expect(kinds('end device')).toEqual(['pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas']);
     setLangForTest('en');
     expect(kinds('switches')).toEqual(['cisco-switch', 'aruba-switch', 'l3-switch']);
   });

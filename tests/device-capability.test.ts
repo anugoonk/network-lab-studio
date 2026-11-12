@@ -29,6 +29,11 @@ describe('capability metadata (DEV-01B-1a)', () => {
       'patch-panel': 'diagram',
       rack: 'diagram',
       ups: 'diagram',
+      printer: 'partial',
+      'ip-camera': 'partial',
+      'ip-phone': 'partial',
+      nvr: 'partial',
+      nas: 'partial',
     });
   });
 
@@ -60,6 +65,11 @@ describe('capability metadata (DEV-01B-1a)', () => {
       'patch-panel': 'false,false,false,false,false,generic,24',
       rack: 'false,false,false,false,false,generic,0',
       ups: 'false,false,false,false,false,generic,0',
+      printer: 'false,false,true,false,true,pc,1',
+      'ip-camera': 'false,false,true,false,true,pc,1',
+      'ip-phone': 'false,false,true,false,true,pc,1',
+      nvr: 'false,false,true,false,true,pc,1',
+      nas: 'false,false,true,false,true,pc,1',
     });
   });
 
@@ -161,8 +171,8 @@ describe('"simulation-capable only" filter', () => {
   const kinds = (q: string, c: Parameters<typeof filterPalette>[2], simOnly: boolean) => filterPalette(paletteEntries(), q, c, simOnly).map((e) => e.kind);
 
   it('keeps full + partial, drops diagram-only', () => {
-    expect(kinds('', 'all', true)).toEqual(['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'server']);
-    expect(kinds('', 'all', false)).toHaveLength(14);
+    expect(kinds('', 'all', true)).toEqual(['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas']);
+    expect(kinds('', 'all', false)).toHaveLength(19);
     expect(isSimulationCapable('partial')).toBe(true);
     expect(isSimulationCapable('diagram')).toBe(false);
   });
@@ -171,7 +181,7 @@ describe('"simulation-capable only" filter', () => {
     expect(kinds('aruba', 'all', true)).toEqual(['aruba-switch', 'l3-switch']);
     expect(kinds('firewall', 'all', true)).toEqual([]);
     expect(kinds('', 'other', true)).toEqual([]);
-    expect(kinds('', 'end', true)).toEqual(['pc', 'laptop', 'server']);
+    expect(kinds('', 'end', true)).toEqual(['pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas']);
     expect(kinds('server', 'end', true)).toEqual(['server']);
   });
 

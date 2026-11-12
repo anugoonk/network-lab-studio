@@ -3,6 +3,56 @@ import type { DeviceKind } from '../core/types';
 /** Original SVG icons (drawn for this project). */
 export function DeviceIcon({ kind, size = 56 }: { kind: DeviceKind; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 64 64', 'aria-hidden': true } as const;
+  // IP end devices (DEV-01C-1)
+  if (kind === 'printer') {
+    return (
+      <svg {...common}>
+        <rect x="18" y="8" width="28" height="14" rx="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
+        <rect x="8" y="20" width="48" height="24" rx="5" fill="#475569" />
+        <rect x="18" y="38" width="28" height="18" rx="2" fill="#f8fafc" stroke="#64748b" strokeWidth="2" />
+        <path d="M23 45h18M23 50h12" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="48" cy="28" r="2.5" fill="#86efac" />
+      </svg>
+    );
+  }
+  if (kind === 'ip-camera') {
+    return (
+      <svg {...common}>
+        <rect x="6" y="18" width="40" height="22" rx="6" fill="#475569" />
+        <circle cx="38" cy="29" r="7" fill="#1e293b" stroke="#cbd5e1" strokeWidth="2" />
+        <path d="M46 24l12-6v22l-12-6z" fill="#64748b" />
+        <path d="M22 40v10M12 52h20" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (kind === 'ip-phone') {
+    return (
+      <svg {...common}>
+        <rect x="10" y="14" width="44" height="40" rx="6" fill="#475569" />
+        <rect x="26" y="20" width="22" height="12" rx="2" fill="#bfe3ff" />
+        <path d="M14 20c0-4 8-4 8 0v26c0 4-8 4-8 0z" fill="#1e293b" />
+        <g fill="#e2e8f0">
+          {[0, 1, 2].map((r) => [0, 1, 2].map((c) => <rect key={`${r}${c}`} x={27 + c * 7} y={36 + r * 6} width="5" height="4" rx="1" />))}
+        </g>
+      </svg>
+    );
+  }
+  if (kind === 'nvr' || kind === 'nas') {
+    const accent = kind === 'nvr' ? '#fca5a5' : '#a7f3d0';
+    return (
+      <svg {...common}>
+        <rect x="6" y="18" width="52" height="28" rx="4" fill="#334155" />
+        <g fill="#64748b">
+          {[0, 1, 2, 3].map((i) => (
+            <rect key={i} x={11 + i * 9} y="24" width="7" height="16" rx="1.5" />
+          ))}
+        </g>
+        <circle cx="50" cy="26" r="2.5" fill={accent} />
+        <circle cx="50" cy="34" r="2.5" fill="#86efac" />
+        {kind === 'nvr' && <circle cx="50" cy="40" r="2" fill="#fca5a5" />}
+      </svg>
+    );
+  }
   // diagram-only objects (DEV-01B-1b) — drawn in muted colours
   if (kind === 'internet-cloud') {
     return (

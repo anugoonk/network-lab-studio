@@ -9,6 +9,7 @@ const LEVEL: Record<string, string> = {
   'cisco-router': 'full', 'isp-router': 'full', 'cisco-switch': 'full', 'aruba-switch': 'full', 'l3-switch': 'full',
   pc: 'full', laptop: 'full', server: 'partial', 'wireless-ap': 'diagram', firewall: 'diagram',
   'internet-cloud': 'diagram', 'patch-panel': 'diagram', rack: 'diagram', ups: 'diagram',
+  printer: 'partial', 'ip-camera': 'partial', 'ip-phone': 'partial', nvr: 'partial', nas: 'partial',
 };
 const items = (page: Page) => page.locator('[data-testid^="palette-"]:not([data-testid^="palette-group"])');
 const kinds = (page: Page) => items(page).evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')!.slice('palette-'.length)));
@@ -80,7 +81,7 @@ test('"simulation-capable only" filter: alone, with search, with categories, cle
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  expect(await kinds(page)).toEqual(['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'server']);
+  expect(await kinds(page)).toEqual(['cisco-router', 'isp-router', 'cisco-switch', 'aruba-switch', 'l3-switch', 'pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas']);
   await page.getByTestId('device-search').fill('aruba');
   expect(await kinds(page)).toEqual(['aruba-switch', 'l3-switch']);
   await page.getByTestId('device-search').fill('firewall');
@@ -89,16 +90,16 @@ test('"simulation-capable only" filter: alone, with search, with categories, cle
   await page.getByTestId('device-cat-other').click();
   await expect(page.getByTestId('device-empty')).toContainText('ไม่มีอุปกรณ์ที่จำลองได้ในหมวดนี้');
   await page.getByTestId('device-cat-end').click();
-  expect(await kinds(page)).toEqual(['pc', 'laptop', 'server']);
+  expect(await kinds(page)).toEqual(['pc', 'laptop', 'printer', 'ip-camera', 'ip-phone', 'server', 'nvr', 'nas']);
   // the empty-state "clear" resets search, category and this filter
   await page.getByTestId('device-cat-other').click();
   await page.getByTestId('device-empty-clear').click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  expect(await kinds(page)).toHaveLength(14);
+  expect(await kinds(page)).toHaveLength(19);
   // toggling twice gives everything back
   await toggle.click();
   await toggle.click();
-  expect(await kinds(page)).toHaveLength(14);
+  expect(await kinds(page)).toHaveLength(19);
   await expect(page.locator('.react-flow__node')).toHaveCount(13); // nothing on the canvas changed
 });
 

@@ -9,6 +9,12 @@ export type DeviceKind =
   | 'wireless-ap'
   | 'firewall'
   | 'isp-router'
+  /** IP end devices (DEV-01C-1): simulated as plain IP hosts (PC terminal), device functions not simulated */
+  | 'printer'
+  | 'ip-camera'
+  | 'ip-phone'
+  | 'nvr'
+  | 'nas'
   /** diagram-only objects (DEV-01B-1b): drawn (and, with ports, cabled) but never simulated */
   | 'internet-cloud'
   | 'patch-panel'

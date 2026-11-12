@@ -181,6 +181,26 @@ export const PROFILES: Record<DeviceKind, DeviceProfile> = {
     simLevel: 'partial',
     simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ยังไม่มี service เช่น DHCP, DNS หรือ Web'),
   }),
+  printer: hostProfile('printer', tx('เครื่องพิมพ์เครือข่าย (Printer)'), 'Generic network printer (simulated as an IP host)', 'PRN-', {
+    simLevel: 'partial',
+    simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ไม่จำลองการพิมพ์หรือโปรโตคอลงานพิมพ์ (IPP / LPD / RAW 9100)'),
+  }),
+  'ip-camera': hostProfile('ip-camera', tx('กล้อง IP (IP Camera)'), 'Generic IP camera (simulated as an IP host)', 'CAM-', {
+    simLevel: 'partial',
+    simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ไม่จำลองการส่งภาพวิดีโอ (RTSP / ONVIF) และไม่จำลอง PoE'),
+  }),
+  'ip-phone': hostProfile('ip-phone', tx('โทรศัพท์ IP (IP Phone)'), 'Generic IP phone (simulated as an IP host)', 'PHN-', {
+    simLevel: 'partial',
+    simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ไม่จำลองการโทร (SIP / RTP), voice VLAN, PoE หรือพอร์ตต่อ PC'),
+  }),
+  nvr: hostProfile('nvr', tx('เครื่องบันทึกภาพ (NVR)'), 'Network video recorder (simulated as an IP host)', 'NVR-', {
+    simLevel: 'partial',
+    simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ไม่จำลองการบันทึกหรือดึงภาพจากกล้อง'),
+  }),
+  nas: hostProfile('nas', tx('ที่เก็บข้อมูลเครือข่าย (NAS)'), 'Network attached storage (simulated as an IP host)', 'NAS-', {
+    simLevel: 'partial',
+    simNote: tx('ทำงานเป็นเครื่อง host (IP, ping, tracert) ได้ แต่ไม่จำลองการแชร์ไฟล์ (SMB / NFS)'),
+  }),
   'wireless-ap': {
     kind: 'wireless-ap',
     vendor: 'generic',
@@ -298,12 +318,17 @@ export const PALETTE_GROUPS: { title: string; items: { kind: DeviceKind; note: s
     items: [
       { kind: 'pc', note: tx('เครื่องผู้ใช้ · Ethernet0') },
       { kind: 'laptop', note: tx('โน้ตบุ๊ก · Ethernet0') },
+      { kind: 'printer', note: tx('เครื่องพิมพ์ · Ethernet0 (IP host)') },
+      { kind: 'ip-camera', note: tx('กล้อง · Ethernet0 (IP host)') },
+      { kind: 'ip-phone', note: tx('โทรศัพท์ · Ethernet0 (IP host)') },
     ],
   },
   {
     title: 'Servers & Wireless',
     items: [
       { kind: 'server', note: tx('เซิร์ฟเวอร์ · Ethernet0') },
+      { kind: 'nvr', note: tx('บันทึกภาพ · Ethernet0 (IP host)') },
+      { kind: 'nas', note: tx('ที่เก็บไฟล์ · Ethernet0 (IP host)') },
       { kind: 'wireless-ap', note: tx('AP · uplink Ethernet0 (วาด/ต่อสายเท่านั้น)') },
     ],
   },

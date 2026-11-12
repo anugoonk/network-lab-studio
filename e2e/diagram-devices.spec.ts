@@ -44,7 +44,7 @@ test('palette: the four objects are listed as Diagram Only, searchable, in WAN /
   await page.getByTestId('device-sim-only').click();
   await expect(page.getByTestId('device-empty')).toBeVisible();
   await page.getByTestId('device-empty-clear').click();
-  expect(await kinds(page)).toHaveLength(14);
+  expect(await kinds(page)).toHaveLength(19);
   await page.getByTestId('device-sim-only').click();
   expect((await kinds(page)).some((k) => NEW.includes(k))).toBe(false);
 });
