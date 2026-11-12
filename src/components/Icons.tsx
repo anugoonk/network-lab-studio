@@ -79,7 +79,48 @@ const PATHS: Record<string, ReactNode> = {
       <path d="M20 20l-4-4" />
     </>
   ),
+  undo: <path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" />,
+  redo: <path d="M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3" />,
+  filePlus: (
+    <>
+      <path d="M14 3H6v18h12V7z" />
+      <path d="M14 3v4h4M12 11v6M9 14h6" />
+    </>
+  ),
+  panelLeft: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+    </>
+  ),
+  panelRight: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M15 4v16" />
+    </>
+  ),
+  workspace: (
+    <>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="6" r="2.5" />
+      <circle cx="12" cy="18" r="2.5" />
+      <path d="M8.5 6h7M7.2 8.2l3.6 7.6M16.8 8.2l-3.6 7.6" />
+    </>
+  ),
 };
+
+/** Network Lab Studio mark: three linked nodes in a rounded square (original artwork). */
+export function LogoMark({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="var(--accent)" />
+      <path d="M7.5 8h9M8.3 9.6l2.9 5.6M15.7 9.6l-2.9 5.6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+      <circle cx="7" cy="8" r="2.2" fill="#fff" />
+      <circle cx="17" cy="8" r="2.2" fill="#fff" />
+      <circle cx="12" cy="16.5" r="2.2" fill="#fff" />
+    </svg>
+  );
+}
 
 export function Icon({ name, size = 20 }: { name: keyof typeof PATHS | string; size?: number }) {
   return (

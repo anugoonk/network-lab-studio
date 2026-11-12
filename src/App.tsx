@@ -7,6 +7,7 @@ import { DetailsPanel } from './components/DetailsPanel';
 import { ConfirmDeleteDialog, ConfirmDialog, ConnectDialog } from './components/Dialogs';
 import { FileManager } from './components/FileManager';
 import { Inspector } from './components/Inspector';
+import { Icon, LogoMark } from './components/Icons';
 import { LeftDock } from './components/LeftDock';
 import { SAMPLES, type SampleKind } from './core/sample';
 import { flushWorkspace, useStore, type RightTab } from './store';
@@ -31,9 +32,58 @@ function LangSwitch() {
   );
 }
 
-function Header() {
+type View = 'lab' | 'library' | 'manager';
+
+/** Top navigation (dark): brand, the three views, the open Lab with its export status, language. */
+function TopNav() {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
+  const dirty = useStore((s) => s.isDirty());
+  const name = useStore((s) => s.lab.name);
+  const autosaveOk = useStore((s) => s.autosaveOk);
+  const views: [View, string, string, string][] = [
+    ['lab', tx('พื้นที่ทำงาน Lab'), 'workspace', 'tab-lab'],
+    ['library', tx('คลังคำสั่ง'), 'library', 'tab-library'],
+    ['manager', tx('จัดการ Lab'), 'manager', 'tab-manager'],
+  ];
+  return (
+    <header className="topbar">
+      <div className="brand">
+        <LogoMark />
+        <span className="brand-name">Network Lab Studio</span>
+      </div>
+      <nav className="tabs" aria-label={tx('เมนูหลัก')}>
+        {views.map(([v, label, icon, testId]) => (
+          <button
+            key={v}
+            className={view === v ? 'active' : ''}
+            aria-current={view === v ? 'page' : undefined}
+            onClick={() => setView(v)}
+            data-testid={testId}
+          >
+            <Icon name={icon} size={16} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="lab-status" role="group" aria-label={tx('Lab ที่เปิดอยู่')}>
+        <span className="lab-title" title={name} data-testid="lab-name">
+          {name}
+        </span>
+        {dirty ? (
+          <span className="status-chip dirty" title={tx('มีการแก้ไขที่ยังไม่ได้ Export')}>{tx('● ยังไม่ได้ Export')}</span>
+        ) : (
+          autosaveOk && <span className="status-chip saved" title={tx('บันทึกอัตโนมัติในเบราว์เซอร์นี้แล้ว')}>{tx('✓ บันทึกอัตโนมัติ')}</span>
+        )}
+      </div>
+      <LangSwitch />
+    </header>
+  );
+}
+
+/** Toolbar (light) under the navigation: actions grouped as Lab file · Edit · Network · View. */
+function Toolbar() {
+  const view = useStore((s) => s.view);
   const request = useStore((s) => s.requestReplace);
   const exportLab = useStore((s) => s.exportLab);
   const importText = useStore((s) => s.importText);
@@ -57,74 +107,77 @@ function Header() {
   };
 
   return (
-    <header className="topbar">
-      <div className="brand">
-        <span className="logo">⛓</span> Network Lab Studio
-      </div>
-      <nav className="tabs" aria-label={tx('มุมมอง')}>
-        <button className={view === 'lab' ? 'active' : ''} onClick={() => setView('lab')} data-testid="tab-lab">
-          Lab
+    <div className="toolbar" role="toolbar" aria-label={tx('แถบเครื่องมือ Lab')}>
+      <div className="tb-group" role="group" aria-label={tx('ไฟล์ Lab')}>
+        <button className="tb-btn" onClick={() => request({ kind: 'new' })} data-testid="btn-new">
+          <Icon name="filePlus" size={16} />
+          <span>{tx('Lab ใหม่')}</span>
         </button>
-        <button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')} data-testid="tab-library">
-          Command Library
+        <button className="tb-btn" onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">
+          <Icon name="flask" size={16} />
+          <span>{tx('เปิด Lab ตัวอย่าง')}</span>
         </button>
-        <button className={view === 'manager' ? 'active' : ''} onClick={() => setView('manager')} data-testid="tab-manager">
-          Lab Manager
+        <button className="tb-btn" onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">
+          <span>Sample: Inter-VLAN</span>
         </button>
-      </nav>
-      <div className="actions">
-        <LangSwitch />
-        <button onClick={undo} disabled={!canUndo} title={tx('ย้อนกลับ (Ctrl+Z)')} aria-label="Undo" data-testid="btn-undo">↶ Undo</button>
-        <button onClick={redo} disabled={!canRedo} title={tx('ทำซ้ำ (Ctrl+Y)')} aria-label="Redo" data-testid="btn-redo">↷ Redo</button>
-        <button onClick={() => request({ kind: 'new' })} data-testid="btn-new">New Lab</button>
-        <button onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">Open Sample Lab</button>
-        <button onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">Sample: Inter-VLAN</button>
         <select
+          className="tb-select"
           value=""
           onChange={(e) => e.target.value && request({ kind: 'sample', which: e.target.value as SampleKind })}
           aria-label={tx('เปิดโจทย์ Challenge')}
           title={tx('โจทย์ซ่อมเครือข่ายพร้อมปุ่ม Check')}
           data-testid="select-challenge"
         >
-          <option value="">Challenge ▾</option>
+          <option value="">{tx('โจทย์ Challenge ▾')}</option>
           {(Object.keys(SAMPLES) as SampleKind[]).filter((k) => SAMPLES[k].challenge).map((k) => (
             <option key={k} value={k}>{SAMPLES[k].title}</option>
           ))}
         </select>
-        <button onClick={exportLab} data-testid="btn-export">Export</button>
-        <button onClick={() => fileRef.current?.click()} data-testid="btn-import">Import</button>
+        <button className="tb-btn" onClick={() => fileRef.current?.click()} data-testid="btn-import">
+          <Icon name="upload" size={16} />
+          <span>{tx('นำเข้า')}</span>
+        </button>
+        <button className="tb-btn" onClick={exportLab} data-testid="btn-export">
+          <Icon name="download" size={16} />
+          <span>{tx('ส่งออก')}</span>
+        </button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} data-testid="import-file" />
-        {view === 'lab' && (
-          <>
-            <span className="sep" />
-            <button onClick={() => openConnect()} data-testid="btn-connect">{tx('เชื่อมสาย')}</button>
-            <button onClick={() => fitLab(flow)} data-testid="btn-fit">Fit view</button>
-            <button onClick={toggleLeft} aria-pressed={leftOpen} data-testid="toggle-left">{leftOpen ? tx('◀ ย่อแผงซ้าย') : tx('▶ แผงซ้าย')}</button>
-            <button onClick={toggleRight} aria-pressed={rightOpen} data-testid="toggle-right">{rightOpen ? tx('ซ่อนแผงขวา ▶') : tx('◀ แผงขวา')}</button>
-          </>
-        )}
       </div>
-    </header>
-  );
-}
-
-function Crumb() {
-  const view = useStore((s) => s.view);
-  const dirty = useStore((s) => s.isDirty());
-  const name = useStore((s) => s.lab.name);
-  return (
-    <nav className="crumb" aria-label={tx('ตำแหน่งปัจจุบัน')}>
-      <span>{tx('ตำแหน่งปัจจุบัน')}</span>
-      <span className="slash">/</span>
-      <span className="link">{view === 'lab' ? 'Lab' : view === 'library' ? 'Command Library' : 'Lab Manager'}</span>
-      <span className="slash">/</span>
-      <span className="here" title={name} data-testid="lab-name">
-        {name}
-      </span>
-      {dirty && (
-        <span className="dirty" title={tx('มีการแก้ไขที่ยังไม่ได้ Export')}>{tx('● ยังไม่ได้ Export')}</span>
+      <div className="tb-group" role="group" aria-label={tx('แก้ไข')}>
+        <button className="tb-btn compactable" onClick={undo} disabled={!canUndo} title={tx('ย้อนกลับ (Ctrl+Z)')} data-testid="btn-undo">
+          <Icon name="undo" size={16} />
+          <span>{tx('ย้อนกลับ')}</span>
+        </button>
+        <button className="tb-btn compactable" onClick={redo} disabled={!canRedo} title={tx('ทำซ้ำ (Ctrl+Y)')} data-testid="btn-redo">
+          <Icon name="redo" size={16} />
+          <span>{tx('ทำซ้ำ')}</span>
+        </button>
+      </div>
+      {view === 'lab' && (
+        <>
+          <div className="tb-group" role="group" aria-label={tx('เครือข่าย')}>
+            <button className="tb-btn" onClick={() => openConnect()} data-testid="btn-connect">
+              <Icon name="cable" size={16} />
+              <span>{tx('เชื่อมสาย')}</span>
+            </button>
+          </div>
+          <div className="tb-group" role="group" aria-label={tx('มุมมอง')}>
+            <button className="tb-btn compactable" onClick={() => fitLab(flow)} title={tx('พอดีจอ')} data-testid="btn-fit">
+              <Icon name="fit" size={16} />
+              <span>{tx('พอดีจอ')}</span>
+            </button>
+            <button className="tb-btn compactable" onClick={toggleLeft} aria-pressed={leftOpen} title={tx('ย่อหรือขยายแผงซ้าย')} data-testid="toggle-left">
+              <Icon name="panelLeft" size={16} />
+              <span>{tx('แผงซ้าย')}</span>
+            </button>
+            <button className="tb-btn compactable" onClick={toggleRight} aria-pressed={rightOpen} title={tx('ซ่อนหรือแสดงแผงขวา')} data-testid="toggle-right">
+              <Icon name="panelRight" size={16} />
+              <span>{tx('แผงขวา')}</span>
+            </button>
+          </div>
+        </>
       )}
-    </nav>
+    </div>
   );
 }
 
@@ -239,8 +292,8 @@ export default function App() {
   return (
     <ReactFlowProvider>
       <div className="app">
-        <Header />
-        <Crumb />
+        <TopNav />
+        <Toolbar />
         {/* messages stack at the bottom so they never cover the toolbar buttons */}
         <div className="notice-stack">
           <RejectedLabsWarning />
