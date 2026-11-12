@@ -47,7 +47,21 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       # playwright.config.ts already sets workers: 1 and no retries; --forbid-only fails the run if a test.only slipped in
-      - run: npx playwright test --forbid-only --reporter=list,html
+      - run: npx playwright test --forbid-only --reporter=list,html,json
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/e2e-results.json
+      # test counts in the run summary + a notice annotation (readable without opening the raw log)
+      - name: E2E summary
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs');
+            if (!fs.existsSync('e2e-results.json')) { console.log('::warning::no e2e-results.json (Playwright did not finish)'); process.exit(0); }
+            const s = JSON.parse(fs.readFileSync('e2e-results.json', 'utf8')).stats;
+            const line = 'E2E: ' + s.expected + ' passed, ' + s.unexpected + ' failed, ' + s.flaky + ' flaky, ' + s.skipped + ' skipped (' + Math.round(s.duration / 1000) + 's)';
+            console.log('::notice title=E2E results::' + line);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### ' + line + '\n');
+          "
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -55,6 +69,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            e2e-results.json
           retention-days: 7
 
   deploy:
