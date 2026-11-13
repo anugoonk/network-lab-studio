@@ -244,6 +244,10 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
+| Global config | `enable secret <secret>` | `enable secret class` | ตั้งรหัสผ่านเข้า Privileged EXEC — เก็บเป็น hash type 5 เท่านั้น ไม่มีรหัสจริงใน config |
+| Global config | `enable secret 0 <secret>` | `enable secret 0 class` | เหมือน enable secret: 0 บอกว่าค่าที่พิมพ์เป็นข้อความธรรมดา แล้วเก็บเป็น hash type 5 |
+| Global config | `enable secret 5 <type5-hash>` | `enable secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0` | ใส่ secret ที่เป็น hash type 5 อยู่แล้ว (เช่น คัดลอกจาก config อื่น) — ไม่ต้องรู้รหัสจริง |
+| Global config | `no enable secret` | `no enable secret` | ลบ enable secret — คำสั่ง enable จะเข้า Privileged EXEC ได้ทันทีเหมือนเดิม |
 | Global config, Interface config, Sub-interface config | `interface <interface>` | `interface GigabitEthernet0/1` | เข้า Interface Configuration ของพอร์ต router หรือ sub-interface (เช่น gi0/0.10 — สร้างให้อัตโนมัติ) |
 | Global config | `no interface <interface>` | `no interface GigabitEthernet0/0.10` | ลบ sub-interface (ลบพอร์ตจริงไม่ได้) |
 | Global config | `ip route <network> <route-mask> <next-hop>` | `ip route 172.16.0.0 255.255.255.0 10.0.0.2` | เพิ่ม static route ไปยังเครือข่ายปลายทางผ่าน next hop (default route = 0.0.0.0 0.0.0.0 <next-hop>) |
@@ -286,6 +290,10 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Privileged EXEC | `write memory` | `write memory` | บันทึก running-config ลง startup-config |
 | Privileged EXEC | `copy running-config startup-config` | `copy running-config startup-config` | บันทึก running-config ลง startup-config (เทียบเท่า write memory) |
 | Global config | `hostname <hostname>` | `hostname CORE1` | เปลี่ยนชื่ออุปกรณ์ (prompt และชื่อบน canvas เปลี่ยนตาม) |
+| Global config | `enable secret <secret>` | `enable secret class` | ตั้งรหัสผ่านเข้า Privileged EXEC — เก็บเป็น hash type 5 เท่านั้น ไม่มีรหัสจริงใน config |
+| Global config | `enable secret 0 <secret>` | `enable secret 0 class` | เหมือน enable secret: 0 บอกว่าค่าที่พิมพ์เป็นข้อความธรรมดา แล้วเก็บเป็น hash type 5 |
+| Global config | `enable secret 5 <type5-hash>` | `enable secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0` | ใส่ secret ที่เป็น hash type 5 อยู่แล้ว (เช่น คัดลอกจาก config อื่น) — ไม่ต้องรู้รหัสจริง |
+| Global config | `no enable secret` | `no enable secret` | ลบ enable secret — คำสั่ง enable จะเข้า Privileged EXEC ได้ทันทีเหมือนเดิม |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface <interface>` | `interface FastEthernet0/1` | เข้า Interface Configuration mode ของพอร์ต switch (ย่อได้ เช่น fa0/1, gi0/2) |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface range <port-range>` | `interface range FastEthernet0/1 - 4` | เลือกหลายพอร์ตพร้อมกัน เช่น interface range fa0/1 - 10 หรือ fa0/1 - 4 , gi0/1 — คำสั่งที่พิมพ์ต่อไปใช้กับทุกพอร์ตในช่วง |
 | Global config, Interface config, VLAN interface config, VLAN config | `interface vlan <vlan-id>` | `interface vlan 10` | สร้าง/เข้า SVI (Vlan interface) เพื่อตั้ง IP จัดการของ switch (L2 switch ไม่ route ระหว่าง VLAN) |

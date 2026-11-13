@@ -549,7 +549,8 @@ export const useStore = create<State>((set, get) => {
       const prev = get().transcripts[deviceId] ?? [];
       const next: TermLine[] = [...prev];
       if (res.clear) next.length = 0;
-      next.push({ kind: 'cmd', prompt: res.prompt, text: line });
+      // a credential answer is never shown; a line with a secret argument is shown masked
+      next.push({ kind: 'cmd', prompt: res.prompt, text: res.secretInput ? '' : res.echo ?? line });
       for (const o of res.output) next.push({ kind: 'out', text: o });
       if (res.hintTh) next.push({ kind: 'hint', text: res.hintTh });
       const transcripts = { ...get().transcripts, [deviceId]: next.slice(-500) };

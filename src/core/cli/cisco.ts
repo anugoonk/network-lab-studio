@@ -13,6 +13,21 @@ import type { Device, DeviceKind, Iface, Lab, SubIf, Svi } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
 import { showCdpNeighbors } from './cdp';
+import { TYPE5_RE, hashType5 } from '../secret';
+
+/** Simulator bound for a typed secret (Cisco's documentation consulted gives no length limit for `enable secret`). */
+const SECRET_MAX = 64;
+/** what history shows instead of a secret — refused as a secret so a recalled history line cannot set it */
+const HISTORY_MASK = '********';
+
+function setEnableSecret(c: Ctx, secret: string): RunResult {
+  if (secret === HISTORY_MASK) {
+    return { error: [tx('% ค่า ******** มาจากประวัติคำสั่งที่ถูกซ่อนไว้ ใช้เป็น secret ไม่ได้ — พิมพ์ secret ใหม่')] };
+  }
+  if (secret.length > SECRET_MAX) return { error: [tx('% secret ยาวเกิน {0} ตัวอักษร (ขีดจำกัดของ simulator)', String(SECRET_MAX))] };
+  c.dev.security = { ...c.dev.security, enableSecret: hashType5(secret) };
+  return {};
+}
 
 const RT: DeviceKind[] = ['cisco-router', 'isp-router'];
 const SW: DeviceKind[] = ['cisco-switch'];
@@ -61,6 +76,7 @@ function ifaceBlock(d: Device, name: string): string[] {
 export function ciscoRunningConfig(dev: Device): string[] {
   const p = PROFILES[dev.kind];
   const body: string[] = ['!', `version ${p.isRouter ? '15.4' : '15.0'}`, '!', `hostname ${dev.name}`, '!'];
+  if (dev.security?.enableSecret) body.push(`enable secret 5 ${dev.security.enableSecret}`, '!');
   if (p.isSwitch) {
     for (const v of dev.vlans.filter((x) => x.id !== 1)) body.push(`vlan ${v.id}`, ` name ${v.name}`, '!');
   }
@@ -474,7 +490,12 @@ const specs: CommandSpec[] = [
     id: 'cisco.enable', vendor: 'cisco', deviceTypes: BOTH, modes: ['user'], syntax: 'enable',
     helpEn: 'Turn on privileged commands', descTh: tx('เข้า Privileged EXEC mode (prompt เปลี่ยนจาก > เป็น #)'), topic: 'Mode',
     example: 'enable', verify: 'configure terminal', verifyTh: tx('prompt ต้องลงท้ายด้วย # และใช้ configure terminal ได้'),
-    run: setMode('priv'),
+    // with an enable secret the console asks `Password:` first (the answer is handled by the engine, never as a command)
+    run: (c) => {
+      if (!c.dev.security?.enableSecret) return { mode: 'priv' };
+      c.dev.cli.pending = { kind: 'enable', attempts: 0 };
+      return {};
+    },
   }),
   cmd({
     id: 'cisco.disable', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'disable',
@@ -648,6 +669,47 @@ const specs: CommandSpec[] = [
     run: (c) => {
       if (!NAME_RE.test(c.args[0])) return { error: [tx('% Invalid hostname (ใช้ A-Z, 0-9, -, _ ได้ไม่เกิน 24 ตัวอักษร)')] };
       c.dev.name = c.args[0];
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.enable.secret', vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: 'enable secret <secret>',
+    helpEn: 'Assign the privileged level secret (stored as a type 5 hash)', topic: 'Config',
+    descTh: tx('ตั้งรหัสผ่านเข้า Privileged EXEC — เก็บเป็น hash type 5 เท่านั้น ไม่มีรหัสจริงใน config'),
+    example: 'enable secret class', verify: 'show running-config',
+    verifyTh: tx('running-config ต้องมี enable secret 5 $1$… และคำสั่ง enable ต้องถาม Password:'),
+    run: (c) => setEnableSecret(c, c.args[0]),
+  }),
+  cmd({
+    id: 'cisco.enable.secret.0', vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: 'enable secret 0 <secret>',
+    helpEn: 'Assign the privileged level secret given as clear text (0)', topic: 'Config',
+    descTh: tx('เหมือน enable secret: 0 บอกว่าค่าที่พิมพ์เป็นข้อความธรรมดา แล้วเก็บเป็น hash type 5'),
+    example: 'enable secret 0 class', verify: 'show running-config',
+    verifyTh: tx('running-config ต้องแสดงเป็น enable secret 5 $1$… ไม่ใช่ข้อความที่พิมพ์'),
+    run: (c) => setEnableSecret(c, c.args[0]),
+  }),
+  cmd({
+    id: 'cisco.enable.secret.5', vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: 'enable secret 5 <type5-hash>',
+    helpEn: 'Assign the privileged level secret as an existing type 5 hash', topic: 'Config',
+    descTh: tx('ใส่ secret ที่เป็น hash type 5 อยู่แล้ว (เช่น คัดลอกจาก config อื่น) — ไม่ต้องรู้รหัสจริง'),
+    example: 'enable secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0', verify: 'show running-config',
+    verifyTh: tx('running-config ต้องแสดง hash เดิมทุกตัวอักษร'),
+    run: (c) => {
+      if (!TYPE5_RE.test(c.args[0])) return { error: [tx('% hash type 5 ไม่ถูกต้อง (ต้องเป็น $1$<salt>$<22 ตัวอักษร>)')] };
+      c.dev.security = { ...c.dev.security, enableSecret: c.args[0] };
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.no.enable.secret', vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: 'no enable secret',
+    helpEn: 'Remove the privileged level secret', topic: 'Config',
+    descTh: tx('ลบ enable secret — คำสั่ง enable จะเข้า Privileged EXEC ได้ทันทีเหมือนเดิม'),
+    example: 'no enable secret', verify: 'show running-config', verifyTh: tx('บรรทัด enable secret ต้องหายไป'),
+    run: (c) => {
+      if (c.dev.security) {
+        delete c.dev.security.enableSecret;
+        if (!Object.keys(c.dev.security).length) delete c.dev.security; // back to the original device shape
+      }
       return {};
     },
   }),

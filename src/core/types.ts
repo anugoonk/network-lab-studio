@@ -82,6 +82,17 @@ export interface Cli {
   /** `interface range …`: every port the interface-level commands apply to (ctxIface is the first one) */
   ctxRange?: string[];
   history: string[];
+  /**
+   * The console is waiting for a credential, not a command (CERT-P0-1a: the enable secret after `enable`).
+   * Transient: never saved to storage or export files and dropped when a Lab is loaded. Holds no secret.
+   */
+  pending?: { kind: 'enable'; attempts: number };
+}
+
+/** Device access security (CERT-P0-1a). Absent = no secrets configured = original behaviour. */
+export interface DeviceSecurity {
+  /** `enable secret`: Cisco type-5 string "$1$<salt>$<hash>" (MD5-crypt). The clear-text secret is never stored. */
+  enableSecret?: string;
 }
 
 export interface Device {
@@ -98,6 +109,7 @@ export interface Device {
   gateway: string | null;
   cli: Cli;
   startupConfig: string | null;
+  security?: DeviceSecurity;
 }
 
 export interface Endpoint {

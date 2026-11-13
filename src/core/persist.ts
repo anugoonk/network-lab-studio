@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { isValidMask, parseIp } from './ip';
 import { NAME_RE } from './lab';
 import { PROFILES } from './profiles';
+import { TYPE5_RE } from './secret';
 import type { CliMode, DeviceKind, Lab } from './types';
 import { tx } from '../i18n';
 
@@ -68,8 +69,11 @@ const deviceSchema = z.object({
     ctxVlan: z.number().int().nullable(),
     ctxRange: z.array(z.string()).max(64).optional(),
     history: z.array(z.string()).max(200),
+    // `pending` (a credential prompt) is deliberately not in the schema: zod drops it, so a prompt never survives a load
   }),
   startupConfig: z.string().nullable(),
+  // optional (CERT-P0-1a): Labs without it load exactly as before; only a type-5 hash is accepted, never clear text
+  security: z.object({ enableSecret: z.string().regex(TYPE5_RE, tx('enable secret ต้องเป็นรูปแบบ type 5 ($1$...)')).optional() }).optional(),
 });
 
 const endpointSchema = z.object({ deviceId: z.string(), port: z.string() });
@@ -155,6 +159,7 @@ function crossCheck(lab: Lab): string[] {
       errs.push(tx('{0}: CLI อ้างอิงพอร์ตที่ไม่มีอยู่', d.name));
     if (!p.isRouter && d.subifs.length) errs.push(tx('{0}: sub-interface ใช้ได้เฉพาะ router', d.name));
     if (!p.isSwitch && d.svis.length) errs.push(tx('{0}: SVI ใช้ได้เฉพาะ switch', d.name));
+    if (d.security?.enableSecret && p.vendor !== 'cisco') errs.push(tx('{0}: enable secret ใช้ได้เฉพาะอุปกรณ์ Cisco IOS', d.name));
     if (!p.canForward && d.routes.length) errs.push(tx('{0}: อุปกรณ์ชนิดนี้ไม่รองรับ static route', d.name));
     const seen = new Set<string>();
     for (const s of d.subifs) {
@@ -220,8 +225,22 @@ export function validateLab(data: unknown): ParseResult {
   return { ok: true, lab };
 }
 
+/** The Lab without transient console state (a pending credential prompt), for storage and export files. */
+export function withoutTransient(lab: Lab): Lab {
+  if (!lab.devices.some((d) => d.cli.pending)) return lab;
+  return {
+    ...lab,
+    devices: lab.devices.map((d) => {
+      if (!d.cli.pending) return d;
+      const cli = { ...d.cli };
+      delete cli.pending;
+      return { ...d, cli };
+    }),
+  };
+}
+
 export function serializeExport(lab: Lab): string {
-  return JSON.stringify({ app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), lab }, null, 2);
+  return JSON.stringify({ app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), lab: withoutTransient(lab) }, null, 2);
 }
 
 export function parseImport(text: string): ParseResult {
@@ -263,7 +282,7 @@ export function loadStored(storage: Pick<Storage, 'getItem'> | undefined = safeS
 
 export function saveStored(stored: Stored, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): void {
   try {
-    storage?.setItem(STORAGE_KEY, JSON.stringify(stored));
+    storage?.setItem(STORAGE_KEY, JSON.stringify({ ...stored, lab: withoutTransient(stored.lab) }));
   } catch {
     /* storage full / blocked — ignore */
   }
@@ -432,7 +451,7 @@ export function rejectedBundle(items: RejectedEntry[]): string {
 export function saveWorkspace(ws: Workspace, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): boolean {
   if (!storage) return false;
   try {
-    storage.setItem(WORKSPACE_KEY, JSON.stringify(ws));
+    storage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, entries: ws.entries.map((e) => ({ ...e, lab: withoutTransient(e.lab) })) }));
     return true;
   } catch {
     return false;

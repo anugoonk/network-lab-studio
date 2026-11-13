@@ -8,6 +8,7 @@ import { PROFILES, shortPort } from '../profiles';
 import { allAddresses } from '../network';
 import { getDevice } from '../lab';
 import { cdpMismatchLog } from '../trunkcheck';
+import { verifyType5 } from '../secret';
 import type { Device, Lab, Vendor } from '../types';
 import { SPECS } from './registry';
 import {
@@ -29,10 +30,39 @@ export interface ExecResult {
   clear?: boolean;
   /** learner-facing hint (Thai), shown separately from device output */
   hintTh?: string;
+  /** the line as it may be shown and kept (secrets masked); absent = the line as typed */
+  echo?: string;
+  /** the line answered a credential prompt: show nothing of it, keep nothing of it */
+  secretInput?: boolean;
+}
+
+/** prompt shown while the console waits for a credential instead of a command */
+export const PASSWORD_PROMPT = 'Password:';
+/** Simulator setting: wrong answers allowed at the enable prompt. Cisco's documentation consulted does not state the count. */
+export const ENABLE_ATTEMPTS = 3;
+/** Simulator wording (the exact IOS message could not be confirmed in Cisco's documentation); contains no input */
+export const ENABLE_DENIED = '% Access denied (simulator): wrong enable secret entered 3 times';
+const MASK = '********';
+
+/**
+ * The line with every secret-bearing argument masked, for history, the transcript and error text.
+ * Rule (Cisco): after optional `do` / `no`, a first word that abbreviates `enable` with two or more further words has
+ * everything from its second argument on masked — so typos (`enable secrte x`) and rejected forms are masked too.
+ * Masking more than needed is harmless; masking less would leak.
+ */
+export function redactLine(vendor: Vendor, line: string): string {
+  if (vendor !== 'cisco') return line;
+  const toks = tokenize(line, vendor);
+  let i = 0;
+  while (i < toks.length && ['do', 'no'].includes(toks[i].text.toLowerCase())) i++;
+  const first = toks[i]?.text.toLowerCase();
+  if (!first || !'enable'.startsWith(first) || toks.length - i < 3) return line;
+  return `${line.slice(0, toks[i + 2].start)}${MASK}`;
 }
 
 export function promptFor(dev: Device): string {
   const v = PROFILES[dev.kind].vendor;
+  if (dev.cli.pending) return PASSWORD_PROMPT;
   const n = dev.name;
   const m = dev.cli.mode;
   const range = m === 'config-if' && dev.cli.ctxRange && dev.cli.ctxRange.length > 1 ? dev.cli.ctxRange : undefined;
@@ -209,6 +239,7 @@ function hintFor(dev: Device, line: string, vendor: Vendor): string | undefined 
 // ───────── help (?) ─────────
 
 export function helpFor(dev: Device, input: string): string[] {
+  if (dev.cli.pending) return [];
   const vendor = PROFILES[dev.kind].vendor;
   const body = input.replace(/\?\s*$/, '');
   const endsWithSpace = body === '' || /\s$/.test(body);
@@ -256,7 +287,7 @@ export interface Completion {
  */
 export function completeLine(dev: Device, input: string, lab?: Lab): Completion {
   const none: Completion = { value: input, options: [] };
-  if (!PROFILES[dev.kind].hasCli) return none;
+  if (!PROFILES[dev.kind].hasCli || dev.cli.pending) return none;
   const vendor = PROFILES[dev.kind].vendor;
   const endsWithSpace = input === '' || /\s$/.test(input);
   const toks = tokenize(input, vendor);
@@ -370,6 +401,32 @@ function pushHistory(dev: Device, line: string) {
   if (dev.cli.history.length > 100) dev.cli.history.shift();
 }
 
+/**
+ * The console asked for a credential: the line is the answer, never a command. Nothing of it is kept or shown —
+ * not in history, output, hints or the returned Lab — and `?`, Tab and abbreviations have no meaning here.
+ */
+function answerPrompt(lab: Lab, deviceId: string, rawLine: string): ExecResult {
+  const work = structuredClone(lab);
+  const dev = getDevice(work, deviceId)!;
+  const attempts = (dev.cli.pending?.attempts ?? 0) + 1;
+  const stored = dev.security?.enableSecret;
+  const base = { prompt: PASSWORD_PROMPT, echo: '', secretInput: true } as const;
+  if (stored && verifyType5(rawLine.trim(), stored)) {
+    delete dev.cli.pending;
+    dev.cli.mode = 'priv';
+    return { ...base, lab: work, output: [], ok: true };
+  }
+  if (stored && attempts < ENABLE_ATTEMPTS) {
+    dev.cli.pending = { kind: 'enable', attempts };
+    return { ...base, lab: work, output: [], ok: false };
+  }
+  delete dev.cli.pending; // stays in User EXEC
+  return {
+    ...base, lab: work, output: [ENABLE_DENIED], ok: false,
+    hintTh: tx('ใส่ enable secret ผิด {0} ครั้ง — ยังอยู่ใน User EXEC (พิมพ์ enable เพื่อลองใหม่)', String(ENABLE_ATTEMPTS)),
+  };
+}
+
 export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecResult {
   const dev0 = getDevice(lab, deviceId);
   if (!dev0) return { lab, output: ['Device not found'], ok: false, prompt: '' };
@@ -377,11 +434,19 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
   if (!PROFILES[dev0.kind].hasCli) {
     return { lab, output: [tx('{0} ไม่มี Console ในโปรแกรมนี้ (วาดและต่อสายเท่านั้น)', PROFILES[dev0.kind].label)], ok: false, prompt };
   }
+  if (dev0.cli.pending) return answerPrompt(lab, deviceId, rawLine);
+  const vendor = PROFILES[dev0.kind].vendor;
   const line = rawLine.trim();
   if (line === '') return { lab, output: [], ok: true, prompt };
+  const shown = redactLine(vendor, line);
+  const masked = shown !== line;
+  // a masked line's secret part must not come back through any error text either
+  const secretPart = masked ? line.slice(shown.length - MASK.length) : '';
+  const scrub = (out: string[]) => (masked ? out.map((o) => o.split(line).join(shown).split(secretPart).join(MASK)) : out);
+  const echo = masked ? { echo: shown } : {};
 
   if (line.endsWith('?')) {
-    return { lab, output: helpFor(dev0, line), ok: true, prompt };
+    return { lab, output: helpFor(dev0, line), ok: true, prompt, ...echo };
   }
 
   const work = structuredClone(lab);
@@ -390,11 +455,11 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
   if (!res.ok) {
     // keep the Lab unchanged except for command history
     const safe = structuredClone(lab);
-    pushHistory(getDevice(safe, deviceId)!, line);
-    return { lab: safe, output: res.output, ok: false, prompt, hintTh: res.hintTh };
+    pushHistory(getDevice(safe, deviceId)!, shown);
+    return { lab: safe, output: scrub(res.output), ok: false, prompt, hintTh: res.hintTh, ...echo };
   }
-  pushHistory(dev, line);
+  pushHistory(dev, shown);
   // a Cisco switch logs (via CDP) a native VLAN mismatch the command has just created on one of its trunks
   const syslog = cdpMismatchLog(lab, work, deviceId);
-  return { lab: work, output: syslog.length ? [...res.output, ...syslog] : res.output, ok: true, prompt, clear: res.clear };
+  return { lab: work, output: scrub(syslog.length ? [...res.output, ...syslog] : res.output), ok: true, prompt, clear: res.clear, ...echo };
 }

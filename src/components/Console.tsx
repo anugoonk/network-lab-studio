@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { promptFor, helpFor, completeLine } from '../core/cli/engine';
+import { promptFor, helpFor, completeLine, redactLine } from '../core/cli/engine';
 import { getDevice } from '../core/lab';
 import { PROFILES } from '../core/profiles';
 import { useStore } from '../store';
@@ -58,6 +58,9 @@ export function Console() {
   const history = device.cli.history;
   const prompt = promptFor(device);
   const isPc = PROFILES[device.kind].isHost;
+  const vendor = PROFILES[device.kind].vendor;
+  // waiting for a credential (enable secret): hidden input, no history, no help or completion
+  const secret = !!device.cli.pending;
 
   const submit = () => {
     exec(device.id, value);
@@ -69,6 +72,9 @@ export function Console() {
     if (e.key === 'Enter') {
       e.preventDefault();
       submit();
+    } else if (secret) {
+      // every other key (including ? and Tab) is just part of the hidden answer
+      if (e.key === 'Tab') e.preventDefault();
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (!history.length) return;
@@ -99,7 +105,7 @@ export function Console() {
             ...s.transcripts,
             [device.id]: [
               ...(s.transcripts[device.id] ?? []),
-              { kind: 'cmd', prompt, text: value },
+              { kind: 'cmd', prompt, text: redactLine(vendor, value) },
               { kind: 'out', text: c.options.join('  ') },
             ],
           },
@@ -113,7 +119,7 @@ export function Console() {
           ...s.transcripts,
           [device.id]: [
             ...(s.transcripts[device.id] ?? []),
-            { kind: 'cmd', prompt, text: `${value}?` },
+            { kind: 'cmd', prompt, text: redactLine(vendor, `${value}?`) },
             ...helpFor(device, `${value}?`).map((t) => ({ kind: 'out' as const, text: t })),
           ],
         },
@@ -155,6 +161,7 @@ export function Console() {
               setHistPos(null);
             }}
             onKeyDown={onKey}
+            type={secret ? 'password' : 'text'}
             spellCheck={false}
             autoCapitalize="off"
             autoComplete="off"
@@ -163,6 +170,11 @@ export function Console() {
           />
         </div>
       </div>
+      {secret && (
+        <p className="muted small" data-testid="console-secret-note">
+          {tx('กำลังรอรหัสผ่าน — ตัวอักษรที่พิมพ์จะไม่แสดง ไม่ถูกบันทึกในประวัติคำสั่ง และไม่อยู่ในไฟล์ export')}
+        </p>
+      )}
       {PROFILES[device.kind].vendor === 'aruba' && (
         <details className="approx-note" data-testid="aruba-note">
           <summary>{tx('ℹ ผลลัพธ์ AOS-CX บางส่วนเป็นค่าประมาณ — กดดูรายการ')}</summary>
