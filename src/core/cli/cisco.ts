@@ -12,6 +12,7 @@ import { l3Interfaces, ping, portLine, sviLineUp, trace, type PortLine } from '.
 import type { Device, DeviceKind, Iface, Lab, SubIf, Svi } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
+import { showCdpNeighbors } from './cdp';
 
 const RT: DeviceKind[] = ['cisco-router', 'isp-router'];
 const SW: DeviceKind[] = ['cisco-switch'];
@@ -507,6 +508,22 @@ const specs: CommandSpec[] = [
   }),
 
   // ── show ──
+  cmd({
+    id: 'cisco.show.cdp.neighbors', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'show cdp neighbors',
+    helpEn: 'Cisco neighbors from the current topology', topic: 'Layer 2',
+    descTh: tx('ดูเพื่อนบ้าน Cisco จากสายและพอร์ตที่ up ใน topology; ไม่จำลอง CDP advertisements หรือ holdtime'),
+    example: 'show cdp neighbors', verify: 'show cdp neighbors detail',
+    verifyTh: tx('ตรวจชื่ออุปกรณ์และพอร์ตทั้งสองฝั่งกับสายจริง; ลิงก์ down จะหายทันที'),
+    run: (c) => ({ lines: showCdpNeighbors(c.lab, c.dev) }),
+  }),
+  cmd({
+    id: 'cisco.show.cdp.neighbors.detail', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'show cdp neighbors detail',
+    helpEn: 'Detailed Cisco neighbors from the current topology', topic: 'Layer 2',
+    descTh: tx('ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer'),
+    example: 'show cdp neighbors detail', verify: 'show cdp neighbors',
+    verifyTh: tx('ไม่มี IP ที่ใช้งานได้จะไม่แสดง IP; แสดงเฉพาะ Router หรือ Switch ไม่อ้าง capability อื่น'),
+    run: (c) => ({ lines: showCdpNeighbors(c.lab, c.dev, (peer) => showVersion(peer)[0]) }),
+  }),
   cmd({
     id: 'cisco.show.run', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'show running-config',
     helpEn: 'Current operating configuration', descTh: tx('ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown)'), topic: 'Config',

@@ -1,5 +1,9 @@
 /** English texts, keyed by the Thai source text (see ../i18n.ts). */
 export const EN: Record<string, string> = {
+  "ดูเพื่อนบ้าน Cisco จากสายและพอร์ตที่ up ใน topology; ไม่จำลอง CDP advertisements หรือ holdtime": "Show Cisco neighbors on up topology links; CDP advertisements and holdtime are not simulated",
+  "ตรวจชื่ออุปกรณ์และพอร์ตทั้งสองฝั่งกับสายจริง; ลิงก์ down จะหายทันที": "Check device names and both ports against the actual links; down links disappear immediately",
+  "ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer": "Show Cisco topology neighbor details; IPs come from up ports or SVIs, models are simulated, and there are no timers",
+  "ไม่มี IP ที่ใช้งานได้จะไม่แสดง IP; แสดงเฉพาะ Router หรือ Switch ไม่อ้าง capability อื่น": "Omit IP when none is operational; show only Router or Switch, without claiming other capabilities",
   "มุมมอง": "View",
   "ย้อนกลับ (Ctrl+Z)": "Undo (Ctrl+Z)",
   "ทำซ้ำ (Ctrl+Y)": "Redo (Ctrl+Y)",

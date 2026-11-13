@@ -27,6 +27,17 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
                                  # ถ้ามี server ค้างที่พอร์ต 4173 จะหยุดพร้อมข้อความ error (กันทดสอบกับโค้ดเก่า); ตั้ง PW_REUSE_SERVER=1 ถ้าตั้งใจใช้ server ที่เปิดเอง
 ```
 
+## Cisco CDP topology view (CERT-Q4a)
+
+`show cdp neighbors` and `show cdp neighbors detail` are available in Cisco privileged EXEC (`enable`) and through the existing `do` command in configuration modes. They support the simulated Cisco router, ISP router and Catalyst 2960 only. The syntax and field structure follow the [Cisco IOS command reference](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/cdp/command/cdp-cr-book/cdp-cr-a1.html); this is a documented simulator subset, not complete IOS compatibility.
+
+- Entries come from directly connected physical links with both ports operationally up in the existing model. Aruba, generic hosts (including IP phones) and diagram devices are excluded. No discovery through another device; link down removes the entry immediately.
+- Output explicitly identifies a topology view. No CDP advertisements, cache, live protocol or timers are simulated. `Holdtme` is `-` and detail says `not simulated`, never a fabricated number.
+- Local/remote ports and hostnames come from the actual link endpoints. Ordering is by local port number. Only `R` (Router) and `S` (Switch) roles are shown; no IGMP or other unsupported capability flags.
+- Platform is the existing profile's simulated model; detail reuses the peer's existing `show version` software line. No new hardware identifiers, duplex or advertisement version are invented.
+- Detail selects an up IP on the remote physical port, otherwise an up sub-interface on that port ordered by VLAN/name. A switch uses its lowest-numbered up SVI. No operational address means no IP line. This selection is a simulator convention, not a claim about real advertised management-address selection.
+- Interface filters, CDP configuration, LLDP and logging are outside this phase. Lab schema and the network engine are unchanged.
+
 ## วิธีใช้งานโดยย่อ
 
 1. เปิดแอป — ระบบเปิดงานล่าสุด (ครั้งแรกคือ **Sample Lab “Small Office – Cisco & Aruba”**) พร้อมแผง **Lab Guide** ทางซ้าย
@@ -218,6 +229,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
 | Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
 | Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
+| Privileged EXEC | `show cdp neighbors` | `show cdp neighbors` | ดูเพื่อนบ้าน Cisco จากสายและพอร์ตที่ up ใน topology; ไม่จำลอง CDP advertisements หรือ holdtime |
+| Privileged EXEC | `show cdp neighbors detail` | `show cdp neighbors detail` | ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer |
 | Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown) |
 | Privileged EXEC | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ใน NVRAM (หลัง write memory) |
 | User EXEC, Privileged EXEC | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน IOS อ้างอิง |
@@ -253,6 +266,8 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
 | Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
 | Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
+| Privileged EXEC | `show cdp neighbors` | `show cdp neighbors` | ดูเพื่อนบ้าน Cisco จากสายและพอร์ตที่ up ใน topology; ไม่จำลอง CDP advertisements หรือ holdtime |
+| Privileged EXEC | `show cdp neighbors detail` | `show cdp neighbors detail` | ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer |
 | Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown) |
 | Privileged EXEC | `show startup-config` | `show startup-config` | ดู config ที่บันทึกไว้ใน NVRAM (หลัง write memory) |
 | User EXEC, Privileged EXEC | `show version` | `show version` | ดูรุ่นอุปกรณ์จำลองและเวอร์ชัน IOS อ้างอิง |
