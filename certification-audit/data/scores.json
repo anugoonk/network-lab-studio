@@ -1,0 +1,1490 @@
+{
+ "ccna11": {
+  "proposed": {
+   "overall": 0.20465995115995114,
+   "lab": 0.30840388007054675,
+   "labDomainWeight": 90,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Fundamentals",
+     "w": 20,
+     "score": 0.2131410256410256,
+     "lab": 0.3708333333333333,
+     "topics": 13,
+     "labTopics": 6
+    },
+    {
+     "id": "2.0",
+     "name": "Network Access",
+     "w": 20,
+     "score": 0.3055555555555555,
+     "lab": 0.43999999999999995,
+     "topics": 9,
+     "labTopics": 6
+    },
+    {
+     "id": "3.0",
+     "name": "IP Connectivity",
+     "w": 25,
+     "score": 0.36190476190476184,
+     "lab": 0.40158730158730155,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "IP Services",
+     "w": 10,
+     "score": 0.044444444444444446,
+     "lab": 0,
+     "topics": 9,
+     "labTopics": 4
+    },
+    {
+     "id": "5.0",
+     "name": "Security Fundamentals",
+     "w": 15,
+     "score": 0.04,
+     "lab": 0.1,
+     "topics": 10,
+     "labTopics": 4
+    },
+    {
+     "id": "6.0",
+     "name": "Automation and Programmability",
+     "w": 10,
+     "score": 0,
+     "lab": null,
+     "topics": 7,
+     "labTopics": 0
+    }
+   ]
+  },
+  "strict": {
+   "overall": 0.17670634920634926,
+   "lab": 0.27547398589065253,
+   "labDomainWeight": 90,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Fundamentals",
+     "w": 20,
+     "score": 0.17708333333333334,
+     "lab": 0.3145833333333333,
+     "topics": 13,
+     "labTopics": 6
+    },
+    {
+     "id": "2.0",
+     "name": "Network Access",
+     "w": 20,
+     "score": 0.25,
+     "lab": 0.4,
+     "topics": 9,
+     "labTopics": 6
+    },
+    {
+     "id": "3.0",
+     "name": "IP Connectivity",
+     "w": 25,
+     "score": 0.3390476190476191,
+     "lab": 0.3825396825396825,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "IP Services",
+     "w": 10,
+     "score": 0.027777777777777776,
+     "lab": 0,
+     "topics": 9,
+     "labTopics": 4
+    },
+    {
+     "id": "5.0",
+     "name": "Security Fundamentals",
+     "w": 15,
+     "score": 0.025,
+     "lab": 0.0625,
+     "topics": 10,
+     "labTopics": 4
+    },
+    {
+     "id": "6.0",
+     "name": "Automation and Programmability",
+     "w": 10,
+     "score": 0,
+     "lab": null,
+     "topics": 7,
+     "labTopics": 0
+    }
+   ]
+  },
+  "lenient": {
+   "overall": 0.2390681725681726,
+   "lab": 0.3519400352733686,
+   "labDomainWeight": 90,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Fundamentals",
+     "w": 20,
+     "score": 0.25801282051282054,
+     "lab": 0.44416666666666665,
+     "topics": 13,
+     "labTopics": 6
+    },
+    {
+     "id": "2.0",
+     "name": "Network Access",
+     "w": 20,
+     "score": 0.3685185185185185,
+     "lab": 0.49333333333333335,
+     "topics": 9,
+     "labTopics": 6
+    },
+    {
+     "id": "3.0",
+     "name": "IP Connectivity",
+     "w": 25,
+     "score": 0.3923809523809524,
+     "lab": 0.42698412698412697,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "IP Services",
+     "w": 10,
+     "score": 0.06666666666666667,
+     "lab": 0,
+     "topics": 9,
+     "labTopics": 4
+    },
+    {
+     "id": "5.0",
+     "name": "Security Fundamentals",
+     "w": 15,
+     "score": 0.06,
+     "lab": 0.15,
+     "topics": 10,
+     "labTopics": 4
+    },
+    {
+     "id": "6.0",
+     "name": "Automation and Programmability",
+     "w": 10,
+     "score": 0,
+     "lab": null,
+     "topics": 7,
+     "labTopics": 0
+    }
+   ]
+  },
+  "verifiedOnly": {
+   "overall": 0.13727513227513227,
+   "lab": 0.22151675485008815,
+   "labDomainWeight": 90,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Fundamentals",
+     "w": 20,
+     "score": 0.125,
+     "lab": 0.225,
+     "topics": 13,
+     "labTopics": 6
+    },
+    {
+     "id": "2.0",
+     "name": "Network Access",
+     "w": 20,
+     "score": 0.18518518518518517,
+     "lab": 0.3333333333333333,
+     "topics": 9,
+     "labTopics": 6
+    },
+    {
+     "id": "3.0",
+     "name": "IP Connectivity",
+     "w": 25,
+     "score": 0.30095238095238097,
+     "lab": 0.3507936507936507,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "IP Services",
+     "w": 10,
+     "score": 0,
+     "lab": 0,
+     "topics": 9,
+     "labTopics": 4
+    },
+    {
+     "id": "5.0",
+     "name": "Security Fundamentals",
+     "w": 15,
+     "score": 0,
+     "lab": 0,
+     "topics": 10,
+     "labTopics": 4
+    },
+    {
+     "id": "6.0",
+     "name": "Automation and Programmability",
+     "w": 10,
+     "score": 0,
+     "lab": null,
+     "topics": 7,
+     "labTopics": 0
+    }
+   ]
+  },
+  "counts": {
+   "c": {
+    "V": 18,
+    "IU": 0,
+    "P": 19,
+    "D": 4,
+    "T": 0,
+    "M": 57,
+    "U": 0
+   },
+   "n": 98,
+   "topics": 53
+  },
+  "uplift": [
+   {
+    "tier": "Q",
+    "overall": 0.2433058608058608,
+    "lab": 0.33507054673721337,
+    "changed": 22
+   },
+   {
+    "tier": "P0",
+    "overall": 0.4695219780219779,
+    "lab": 0.6661111111111111,
+    "changed": 49
+   },
+   {
+    "tier": "P1",
+    "overall": 0.5962313797313797,
+    "lab": 0.8962962962962964,
+    "changed": 62
+   },
+   {
+    "tier": "P2",
+    "overall": 0.7814194139194138,
+    "lab": 0.9868518518518518,
+    "changed": 73
+   },
+   {
+    "tier": "P3",
+    "overall": 0.8714029304029303,
+    "lab": 0.9968518518518519,
+    "changed": 79
+   }
+  ]
+ },
+ "ccna20": {
+  "proposed": {
+   "overall": 0.17373809523809525,
+   "lab": 0.19564285714285712,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Infrastructure and Connectivity",
+     "w": 25,
+     "score": 0.1142857142857143,
+     "lab": 0.16,
+     "topics": 7,
+     "labTopics": 5
+    },
+    {
+     "id": "2.0",
+     "name": "Switching and Network Access",
+     "w": 25,
+     "score": 0.354,
+     "lab": 0.354,
+     "topics": 5,
+     "labTopics": 5
+    },
+    {
+     "id": "3.0",
+     "name": "IP Routing",
+     "w": 20,
+     "score": 0.25,
+     "lab": 0.2857142857142857,
+     "topics": 4,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Services and Security",
+     "w": 20,
+     "score": 0,
+     "lab": 0,
+     "topics": 7,
+     "labTopics": 6
+    },
+    {
+     "id": "5.0",
+     "name": "AI, and Network Operations and Management",
+     "w": 10,
+     "score": 0.06666666666666667,
+     "lab": 0.1,
+     "topics": 6,
+     "labTopics": 3
+    }
+   ]
+  },
+  "strict": {
+   "overall": 0.13202380952380952,
+   "lab": 0.14732142857142858,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Infrastructure and Connectivity",
+     "w": 25,
+     "score": 0.07142857142857142,
+     "lab": 0.1,
+     "topics": 7,
+     "labTopics": 5
+    },
+    {
+     "id": "2.0",
+     "name": "Switching and Network Access",
+     "w": 25,
+     "score": 0.27,
+     "lab": 0.27,
+     "topics": 5,
+     "labTopics": 5
+    },
+    {
+     "id": "3.0",
+     "name": "IP Routing",
+     "w": 20,
+     "score": 0.2125,
+     "lab": 0.24285714285714285,
+     "topics": 4,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Services and Security",
+     "w": 20,
+     "score": 0,
+     "lab": 0,
+     "topics": 7,
+     "labTopics": 6
+    },
+    {
+     "id": "5.0",
+     "name": "AI, and Network Operations and Management",
+     "w": 10,
+     "score": 0.041666666666666664,
+     "lab": 0.0625,
+     "topics": 6,
+     "labTopics": 3
+    }
+   ]
+  },
+  "lenient": {
+   "overall": 0.22735714285714287,
+   "lab": 0.2580714285714286,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Infrastructure and Connectivity",
+     "w": 25,
+     "score": 0.17142857142857143,
+     "lab": 0.24,
+     "topics": 7,
+     "labTopics": 5
+    },
+    {
+     "id": "2.0",
+     "name": "Switching and Network Access",
+     "w": 25,
+     "score": 0.458,
+     "lab": 0.458,
+     "topics": 5,
+     "labTopics": 5
+    },
+    {
+     "id": "3.0",
+     "name": "IP Routing",
+     "w": 20,
+     "score": 0.3,
+     "lab": 0.34285714285714286,
+     "topics": 4,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Services and Security",
+     "w": 20,
+     "score": 0,
+     "lab": 0,
+     "topics": 7,
+     "labTopics": 6
+    },
+    {
+     "id": "5.0",
+     "name": "AI, and Network Operations and Management",
+     "w": 10,
+     "score": 0.09999999999999999,
+     "lab": 0.15,
+     "topics": 6,
+     "labTopics": 3
+    }
+   ]
+  },
+  "verifiedOnly": {
+   "overall": 0.0675,
+   "lab": 0.07178571428571429,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Network Infrastructure and Connectivity",
+     "w": 25,
+     "score": 0,
+     "lab": 0,
+     "topics": 7,
+     "labTopics": 5
+    },
+    {
+     "id": "2.0",
+     "name": "Switching and Network Access",
+     "w": 25,
+     "score": 0.15,
+     "lab": 0.15,
+     "topics": 5,
+     "labTopics": 5
+    },
+    {
+     "id": "3.0",
+     "name": "IP Routing",
+     "w": 20,
+     "score": 0.15,
+     "lab": 0.17142857142857143,
+     "topics": 4,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Services and Security",
+     "w": 20,
+     "score": 0,
+     "lab": 0,
+     "topics": 7,
+     "labTopics": 6
+    },
+    {
+     "id": "5.0",
+     "name": "AI, and Network Operations and Management",
+     "w": 10,
+     "score": 0,
+     "lab": 0,
+     "topics": 6,
+     "labTopics": 3
+    }
+   ]
+  },
+  "counts": {
+   "c": {
+    "V": 6,
+    "IU": 0,
+    "P": 8,
+    "D": 2,
+    "T": 0,
+    "M": 37,
+    "U": 0
+   },
+   "n": 53,
+   "topics": 29
+  },
+  "uplift": [
+   {
+    "tier": "Q",
+    "overall": 0.21707142857142855,
+    "lab": 0.22564285714285717,
+    "changed": 9
+   },
+   {
+    "tier": "P0",
+    "overall": 0.4784999999999999,
+    "lab": 0.5286298701298702,
+    "changed": 21
+   },
+   {
+    "tier": "P1",
+    "overall": 0.6265238095238095,
+    "lab": 0.6962857142857143,
+    "changed": 33
+   },
+   {
+    "tier": "P2",
+    "overall": 0.7530952380952382,
+    "lab": 0.7778571428571428,
+    "changed": 38
+   },
+   {
+    "tier": "P3",
+    "overall": 0.8421428571428571,
+    "lab": 0.8828571428571428,
+    "changed": 41
+   }
+  ]
+ },
+ "nplus": {
+  "proposed": {
+   "overall": 0.2065606905521379,
+   "lab": 0.28352691387559814,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Networking Concepts",
+     "w": 23,
+     "score": 0.24339285714285713,
+     "lab": 0.5107142857142857,
+     "topics": 8,
+     "labTopics": 3
+    },
+    {
+     "id": "2.0",
+     "name": "Network Implementation",
+     "w": 20,
+     "score": 0.21051587301587302,
+     "lab": 0.23555555555555557,
+     "topics": 4,
+     "labTopics": 3
+    },
+    {
+     "id": "3.0",
+     "name": "Network Operations",
+     "w": 19,
+     "score": 0.07015151515151516,
+     "lab": 0.06957070707070707,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Security",
+     "w": 14,
+     "score": 0.045238095238095244,
+     "lab": 0.07857142857142858,
+     "topics": 3,
+     "labTopics": 1
+    },
+    {
+     "id": "5.0",
+     "name": "Network Troubleshooting",
+     "w": 24,
+     "score": 0.370062656641604,
+     "lab": 0.39472117794486217,
+     "topics": 5,
+     "labTopics": 5
+    }
+   ]
+  },
+  "strict": {
+   "overall": 0.18561538374819622,
+   "lab": 0.2527619724025974,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Networking Concepts",
+     "w": 23,
+     "score": 0.21060267857142856,
+     "lab": 0.43191964285714285,
+     "topics": 8,
+     "labTopics": 3
+    },
+    {
+     "id": "2.0",
+     "name": "Network Implementation",
+     "w": 20,
+     "score": 0.19027777777777777,
+     "lab": 0.23222222222222225,
+     "topics": 4,
+     "labTopics": 3
+    },
+    {
+     "id": "3.0",
+     "name": "Network Operations",
+     "w": 19,
+     "score": 0.051515151515151514,
+     "lab": 0.049873737373737376,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Security",
+     "w": 14,
+     "score": 0.023809523809523808,
+     "lab": 0.03571428571428571,
+     "topics": 3,
+     "labTopics": 1
+    },
+    {
+     "id": "5.0",
+     "name": "Network Troubleshooting",
+     "w": 24,
+     "score": 0.3583333333333333,
+     "lab": 0.38541666666666663,
+     "topics": 5,
+     "labTopics": 5
+    }
+   ]
+  },
+  "lenient": {
+   "overall": 0.23092207365003417,
+   "lab": 0.3222589570517202,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Networking Concepts",
+     "w": 23,
+     "score": 0.28532738095238097,
+     "lab": 0.6157738095238096,
+     "topics": 8,
+     "labTopics": 3
+    },
+    {
+     "id": "2.0",
+     "name": "Network Implementation",
+     "w": 20,
+     "score": 0.22678571428571428,
+     "lab": 0.24000000000000005,
+     "topics": 4,
+     "labTopics": 3
+    },
+    {
+     "id": "3.0",
+     "name": "Network Operations",
+     "w": 19,
+     "score": 0.09318181818181817,
+     "lab": 0.09431818181818181,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Security",
+     "w": 14,
+     "score": 0.06904761904761904,
+     "lab": 0.12142857142857143,
+     "topics": 3,
+     "labTopics": 1
+    },
+    {
+     "id": "5.0",
+     "name": "Network Troubleshooting",
+     "w": 24,
+     "score": 0.3857017543859649,
+     "lab": 0.40712719298245614,
+     "topics": 5,
+     "labTopics": 5
+    }
+   ]
+  },
+  "verifiedOnly": {
+   "overall": 0.15962077067669175,
+   "lab": 0.20720676691729323,
+   "labDomainWeight": 100,
+   "domains": [
+    {
+     "id": "1.0",
+     "name": "Networking Concepts",
+     "w": 23,
+     "score": 0.16041666666666665,
+     "lab": 0.3005952380952381,
+     "topics": 8,
+     "labTopics": 3
+    },
+    {
+     "id": "2.0",
+     "name": "Network Implementation",
+     "w": 20,
+     "score": 0.18333333333333335,
+     "lab": 0.22666666666666666,
+     "topics": 4,
+     "labTopics": 3
+    },
+    {
+     "id": "3.0",
+     "name": "Network Operations",
+     "w": 19,
+     "score": 0.025,
+     "lab": 0.020833333333333332,
+     "topics": 5,
+     "labTopics": 4
+    },
+    {
+     "id": "4.0",
+     "name": "Network Security",
+     "w": 14,
+     "score": 0,
+     "lab": 0,
+     "topics": 3,
+     "labTopics": 1
+    },
+    {
+     "id": "5.0",
+     "name": "Network Troubleshooting",
+     "w": 24,
+     "score": 0.3387844611528822,
+     "lab": 0.36990914786967416,
+     "topics": 5,
+     "labTopics": 5
+    }
+   ]
+  },
+  "counts": {
+   "c": {
+    "V": 37,
+    "IU": 0,
+    "P": 23,
+    "D": 7,
+    "T": 0,
+    "M": 143,
+    "U": 0
+   },
+   "n": 210,
+   "topics": 25
+  },
+  "uplift": [
+   {
+    "tier": "Q",
+    "overall": 0.23164642050201262,
+    "lab": 0.28542165071770337,
+    "changed": 53
+   },
+   {
+    "tier": "P0",
+    "overall": 0.3600931466924888,
+    "lab": 0.4426091507177033,
+    "changed": 74
+   },
+   {
+    "tier": "P1",
+    "overall": 0.44781112914862914,
+    "lab": 0.5819892676767676,
+    "changed": 90
+   },
+   {
+    "tier": "P2",
+    "overall": 0.6296959472544998,
+    "lab": 0.7554729959368117,
+    "changed": 128
+   },
+   {
+    "tier": "P3",
+    "overall": 0.7122890550239235,
+    "lab": 0.8279891822358927,
+    "changed": 145
+   }
+  ]
+ },
+ "shared": {
+  "clusters": [
+   {
+    "name": "IPv4 addressing & subnetting",
+    "s": "V",
+    "c": "1.6",
+    "n": "1.7"
+   },
+   {
+    "name": "IPv6 addressing",
+    "s": "M",
+    "c": "1.8/1.9",
+    "n": "1.8/3.4"
+   },
+   {
+    "name": "VLANs & access ports",
+    "s": "V",
+    "c": "2.1",
+    "n": "2.2"
+   },
+   {
+    "name": "802.1Q trunks & native VLAN",
+    "s": "V",
+    "c": "2.2",
+    "n": "2.2"
+   },
+   {
+    "name": "Inter-VLAN routing, SVI, subinterfaces",
+    "s": "V",
+    "c": "2.1.c",
+    "n": "2.1/2.2"
+   },
+   {
+    "name": "Static & default routing",
+    "s": "V",
+    "c": "3.3",
+    "n": "2.1/5.3"
+   },
+   {
+    "name": "Route selection (LPM, AD, metric)",
+    "s": "P",
+    "c": "3.2",
+    "n": "2.1"
+   },
+   {
+    "name": "Dynamic routing (OSPF)",
+    "s": "M",
+    "c": "3.4",
+    "n": "2.1"
+   },
+   {
+    "name": "Spanning tree",
+    "s": "M",
+    "c": "2.5",
+    "n": "2.2/5.3"
+   },
+   {
+    "name": "Link aggregation / EtherChannel",
+    "s": "M",
+    "c": "2.4",
+    "n": "2.2"
+   },
+   {
+    "name": "NAT/PAT",
+    "s": "M",
+    "c": "4.1",
+    "n": "2.1/1.3"
+   },
+   {
+    "name": "DHCP",
+    "s": "M",
+    "c": "4.3/4.6",
+    "n": "3.4/5.3"
+   },
+   {
+    "name": "DNS",
+    "s": "M",
+    "c": "4.3",
+    "n": "3.4/5.5"
+   },
+   {
+    "name": "NTP",
+    "s": "M",
+    "c": "4.2",
+    "n": "3.4"
+   },
+   {
+    "name": "SNMP",
+    "s": "M",
+    "c": "4.4",
+    "n": "3.2"
+   },
+   {
+    "name": "Syslog",
+    "s": "P",
+    "c": "4.5",
+    "n": "3.2"
+   },
+   {
+    "name": "SSH / management access",
+    "s": "P",
+    "c": "2.8/4.8",
+    "n": "3.5"
+   },
+   {
+    "name": "ACLs",
+    "s": "M",
+    "c": "5.6",
+    "n": "4.3/5.3"
+   },
+   {
+    "name": "Port security / L2 security",
+    "s": "M",
+    "c": "5.7",
+    "n": "4.3"
+   },
+   {
+    "name": "Wireless (SSID, security, AP/WLC)",
+    "s": "D",
+    "c": "1.11/2.6-2.9/5.9-5.10",
+    "n": "2.3"
+   },
+   {
+    "name": "CDP/LLDP",
+    "s": "P",
+    "c": "2.3",
+    "n": "5.5"
+   },
+   {
+    "name": "Interface/cable issues (speed, duplex, errors)",
+    "s": "M",
+    "c": "1.4",
+    "n": "5.2"
+   },
+   {
+    "name": "Troubleshooting tools (ping, traceroute, arp, show)",
+    "s": "V",
+    "c": "1.10/3.1",
+    "n": "5.5"
+   },
+   {
+    "name": "Client OS IP verification",
+    "s": "P",
+    "c": "1.10",
+    "n": "5.5"
+   },
+   {
+    "name": "FHRP",
+    "s": "M",
+    "c": "3.5",
+    "n": "2.1"
+   },
+   {
+    "name": "VPN / IPsec",
+    "s": "M",
+    "c": "5.5",
+    "n": "1.4/3.5"
+   },
+   {
+    "name": "Virtualization & cloud",
+    "s": "M",
+    "c": "1.12/1.2.f",
+    "n": "1.3"
+   },
+   {
+    "name": "Network components / appliances",
+    "s": "P",
+    "c": "1.1",
+    "n": "1.2"
+   },
+   {
+    "name": "Switching concepts / MAC table",
+    "s": "P",
+    "c": "1.13",
+    "n": "1.1/5.5"
+   },
+   {
+    "name": "QoS",
+    "s": "M",
+    "c": "4.7",
+    "n": "1.2"
+   },
+   {
+    "name": "Automation / IaC / API / JSON",
+    "s": "M",
+    "c": "6.x",
+    "n": "1.8/3.5"
+   },
+   {
+    "name": "Topology architectures",
+    "s": "P",
+    "c": "1.2",
+    "n": "1.6"
+   }
+  ],
+  "score": 0.2921875000000001,
+  "strict": 0.25,
+  "lenient": 0.3453124999999999
+ },
+ "phaseAlone": [
+  {
+   "phase": "CERT-Q1",
+   "ccna11": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "ccna20": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "nplus": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   }
+  },
+  {
+   "phase": "CERT-Q2",
+   "ccna11": {
+    "d": 0.0253125763125763,
+    "dl": 0,
+    "n": 21
+   },
+   "ccna20": {
+    "d": 0.013333333333333308,
+    "dl": 0,
+    "n": 8
+   },
+   "nplus": {
+    "d": 0.02356994047619046,
+    "dl": 0,
+    "n": 52
+   }
+  },
+  {
+   "phase": "CERT-Q3",
+   "ccna11": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "ccna20": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "nplus": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   }
+  },
+  {
+   "phase": "CERT-Q4",
+   "ccna11": {
+    "d": 0.013333333333333308,
+    "dl": 0.026666666666666616,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.030000000000000027,
+    "dl": 0.030000000000000054,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.001515789473684248,
+    "dl": 0.0018947368421052269,
+    "n": 1
+   }
+  },
+  {
+   "phase": "CERT-P0-1",
+   "ccna11": {
+    "d": 0.03344444444444444,
+    "dl": 0.05277777777777776,
+    "n": 3
+   },
+   "ccna20": {
+    "d": 0.057142857142857134,
+    "dl": 0.054545454545454564,
+    "n": 2
+   },
+   "nplus": {
+    "d": 0.015416666666666634,
+    "dl": 0.035958333333333314,
+    "n": 3
+   }
+  },
+  {
+   "phase": "CERT-P0-2",
+   "ccna11": {
+    "d": 0.014999999999999986,
+    "dl": 0.04166666666666663,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.028571428571428553,
+    "dl": 0.036363636363636376,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.05600000000000002,
+    "dl": 0.026666666666666672,
+    "n": 9
+   }
+  },
+  {
+   "phase": "CERT-P0-3",
+   "ccna11": {
+    "d": 0.0295726495726496,
+    "dl": 0.03222222222222221,
+    "n": 4
+   },
+   "ccna20": {
+    "d": 0.028571428571428553,
+    "dl": 0.036363636363636376,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.005555555555555536,
+    "dl": 0.0044444444444444176,
+    "n": 1
+   }
+  },
+  {
+   "phase": "CERT-P0-4",
+   "ccna11": {
+    "d": 0.024914529914529943,
+    "dl": 0.029999999999999916,
+    "n": 4
+   },
+   "ccna20": {
+    "d": 0.057142857142857134,
+    "dl": 0.08000000000000007,
+    "n": 2
+   },
+   "nplus": {
+    "d": 0.019915476190476206,
+    "dl": 0.04233333333333328,
+    "n": 4
+   }
+  },
+  {
+   "phase": "CERT-P0-5",
+   "ccna11": {
+    "d": 0.07831501831501833,
+    "dl": 0.12040564373897705,
+    "n": 9
+   },
+   "ccna20": {
+    "d": 0.03,
+    "dl": 0.03428571428571431,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.013267361111111098,
+    "dl": 0.013201388888888888,
+    "n": 3
+   }
+  },
+  {
+   "phase": "CERT-P0-6",
+   "ccna11": {
+    "d": 0.02529914529914526,
+    "dl": 0.026666666666666616,
+    "n": 6
+   },
+   "ccna20": {
+    "d": 0.05000000000000002,
+    "dl": 0.050000000000000044,
+    "n": 4
+   },
+   "nplus": {
+    "d": 0.018958333333333355,
+    "dl": 0.03191666666666665,
+    "n": 6
+   }
+  },
+  {
+   "phase": "CERT-P0-7",
+   "ccna11": {
+    "d": 0.0242857142857143,
+    "dl": 0.031746031746031744,
+    "n": 3
+   },
+   "ccna20": {
+    "d": 0.010000000000000009,
+    "dl": 0.011428571428571482,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.003333333333333327,
+    "dl": 0.0026666666666666505,
+    "n": 1
+   }
+  },
+  {
+   "phase": "CERT-P1-1",
+   "ccna11": {
+    "d": 0.04076923076923081,
+    "dl": 0.06296296296296294,
+    "n": 6
+   },
+   "ccna20": {
+    "d": 0.04571428571428571,
+    "dl": 0.0614285714285715,
+    "n": 2
+   },
+   "nplus": {
+    "d": 0.012391666666666662,
+    "dl": 0.01266666666666666,
+    "n": 2
+   }
+  },
+  {
+   "phase": "CERT-P1-2",
+   "ccna11": {
+    "d": 0.012264957264957271,
+    "dl": 0,
+    "n": 2
+   },
+   "ccna20": {
+    "d": 0.028571428571428553,
+    "dl": 0.036363636363636376,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.0177263157894737,
+    "dl": 0.0284912280701754,
+    "n": 3
+   }
+  },
+  {
+   "phase": "CERT-P1-3",
+   "ccna11": {
+    "d": 0.0222222222222222,
+    "dl": 0.04444444444444434,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.012500000000000011,
+    "dl": 0.012500000000000039,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.0050000000000000044,
+    "dl": 0.007999999999999952,
+    "n": 1
+   }
+  },
+  {
+   "phase": "CERT-P1-4",
+   "ccna11": {
+    "d": 0.014999999999999986,
+    "dl": 0.04166666666666663,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.028571428571428553,
+    "dl": 0.036363636363636376,
+    "n": 5
+   },
+   "nplus": {
+    "d": 0.006666666666666682,
+    "dl": 0.019999999999999962,
+    "n": 1
+   }
+  },
+  {
+   "phase": "CERT-P1-5",
+   "ccna11": {
+    "d": 0.01982905982905983,
+    "dl": 0.05333333333333329,
+    "n": 2
+   },
+   "ccna20": {
+    "d": 0.006000000000000005,
+    "dl": 0.006000000000000005,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.03200000000000003,
+    "dl": 0.046999999999999986,
+    "n": 6
+   }
+  },
+  {
+   "phase": "CERT-P1-6",
+   "ccna11": {
+    "d": 0.02888888888888888,
+    "dl": 0.027777777777777735,
+    "n": 3
+   },
+   "ccna20": {
+    "d": 0.026666666666666616,
+    "dl": 0.015000000000000013,
+    "n": 2
+   },
+   "nplus": {
+    "d": 0.013933333333333325,
+    "dl": 0.0232222222222222,
+    "n": 3
+   }
+  },
+  {
+   "phase": "CERT-P2-1",
+   "ccna11": {
+    "d": 0.112275641025641,
+    "dl": 0.06388888888888888,
+    "n": 11
+   },
+   "ccna20": {
+    "d": 0.044214285714285734,
+    "dl": 0.008500000000000035,
+    "n": 5
+   },
+   "nplus": {
+    "d": 0.06179910714285716,
+    "dl": 0.08499999999999996,
+    "n": 12
+   }
+  },
+  {
+   "phase": "CERT-P2-2",
+   "ccna11": {
+    "d": 0.05000000000000002,
+    "dl": 0,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.04999999999999999,
+    "dl": 0.02857142857142858,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.0111111111111111,
+    "dl": 0.00888888888888889,
+    "n": 2
+   }
+  },
+  {
+   "phase": "CERT-P2-3",
+   "ccna11": {
+    "d": 0.009230769230769237,
+    "dl": 0.026666666666666616,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.021428571428571436,
+    "dl": 0.02999999999999997,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.004042105263157902,
+    "dl": 0.005052631578947309,
+    "n": 2
+   }
+  },
+  {
+   "phase": "CERT-P2-4",
+   "ccna11": {
+    "d": 0.01730769230769233,
+    "dl": 0,
+    "n": 3
+   },
+   "ccna20": {
+    "d": 0.006000000000000005,
+    "dl": 0.006000000000000005,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.05402678571428568,
+    "dl": 0.04242857142857137,
+    "n": 9
+   }
+  },
+  {
+   "phase": "CERT-P2-5",
+   "ccna11": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "ccna20": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "nplus": {
+    "d": 0.0434935064935065,
+    "dl": 0.015113636363636329,
+    "n": 11
+   }
+  },
+  {
+   "phase": "CERT-P2-6",
+   "ccna11": {
+    "d": 0.001634615384615401,
+    "dl": 0,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.008500000000000008,
+    "dl": 0.008500000000000035,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.007412202380952387,
+    "dl": 0.01699999999999996,
+    "n": 2
+   }
+  },
+  {
+   "phase": "CERT-P3-1",
+   "ccna11": {
+    "d": 0.057142857142857134,
+    "dl": 0,
+    "n": 4
+   },
+   "ccna20": {
+    "d": 0.0333333333333333,
+    "dl": 0.07500000000000001,
+    "n": 2
+   },
+   "nplus": {
+    "d": 0.012708333333333321,
+    "dl": 0.009236111111111112,
+    "n": 3
+   }
+  },
+  {
+   "phase": "CERT-P3-2",
+   "ccna11": {
+    "d": 0.014999999999999986,
+    "dl": 0,
+    "n": 1
+   },
+   "ccna20": {
+    "d": 0.028571428571428553,
+    "dl": 0,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.009500000000000008,
+    "dl": 0.007916666666666627,
+    "n": 2
+   }
+  },
+  {
+   "phase": "CERT-P3-3",
+   "ccna11": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "ccna20": {
+    "d": 0,
+    "dl": 0,
+    "n": 0
+   },
+   "nplus": {
+    "d": 0.046333333333333365,
+    "dl": 0.03555555555555551,
+    "n": 7
+   }
+  },
+  {
+   "phase": "CERT-P3-4",
+   "ccna11": {
+    "d": 0.022307692307692334,
+    "dl": 0.009999999999999953,
+    "n": 4
+   },
+   "ccna20": {
+    "d": 0.030000000000000027,
+    "dl": 0.030000000000000054,
+    "n": 1
+   },
+   "nplus": {
+    "d": 0.01405144110275694,
+    "dl": 0.019807852965747663,
+    "n": 5
+   }
+  }
+ ]
+}

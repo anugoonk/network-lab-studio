@@ -1,0 +1,2221 @@
+{
+ "profiles": [
+  {
+   "kind": "cisco-router",
+   "label": "Cisco IOS Router",
+   "model": "Cisco ISR 2911 (simulated)",
+   "vendor": "cisco",
+   "simLevel": "full",
+   "category": "routers",
+   "hasCli": true,
+   "isHost": false,
+   "canForward": true,
+   "ports": 3,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": true,
+    "isHost": false,
+    "canForward": true,
+    "hasCli": true,
+    "defaultAdminUp": false
+   }
+  },
+  {
+   "kind": "cisco-switch",
+   "label": "Cisco IOS Access Switch",
+   "model": "Cisco Catalyst 2960-24TT (simulated)",
+   "vendor": "cisco",
+   "simLevel": "full",
+   "category": "switches",
+   "hasCli": true,
+   "isHost": false,
+   "canForward": false,
+   "ports": 26,
+   "flags": {
+    "isSwitch": true,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "aruba-switch",
+   "label": "HPE Aruba AOS-CX Access Switch",
+   "model": "Aruba CX 6100 24G (simulated)",
+   "vendor": "aruba",
+   "simLevel": "full",
+   "category": "switches",
+   "hasCli": true,
+   "isHost": false,
+   "canForward": true,
+   "ports": 24,
+   "flags": {
+    "isSwitch": true,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": true,
+    "hasCli": true,
+    "defaultAdminUp": false
+   }
+  },
+  {
+   "kind": "l3-switch",
+   "label": "Layer 3 Switch (Distribution)",
+   "model": "Aruba CX 6300M 24G + 4 uplink (simulated)",
+   "vendor": "aruba",
+   "simLevel": "full",
+   "category": "switches",
+   "hasCli": true,
+   "isHost": false,
+   "canForward": true,
+   "ports": 28,
+   "flags": {
+    "isSwitch": true,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": true,
+    "hasCli": true,
+    "defaultAdminUp": false
+   }
+  },
+  {
+   "kind": "pc",
+   "label": "PC",
+   "model": "Generic PC (simulated)",
+   "vendor": "pc",
+   "simLevel": "full",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "laptop",
+   "label": "Laptop",
+   "model": "Generic laptop, Ethernet only (simulated)",
+   "vendor": "pc",
+   "simLevel": "full",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "server",
+   "label": "Server",
+   "model": "Generic server (simulated)",
+   "vendor": "pc",
+   "simLevel": "partial",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "printer",
+   "label": "เครื่องพิมพ์เครือข่าย (Printer)",
+   "model": "Generic network printer (simulated as an IP host)",
+   "vendor": "pc",
+   "simLevel": "partial",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "ip-camera",
+   "label": "กล้อง IP (IP Camera)",
+   "model": "Generic IP camera (simulated as an IP host)",
+   "vendor": "pc",
+   "simLevel": "partial",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "ip-phone",
+   "label": "โทรศัพท์ IP (IP Phone)",
+   "model": "Generic IP phone (simulated as an IP host)",
+   "vendor": "pc",
+   "simLevel": "partial",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "nvr",
+   "label": "เครื่องบันทึกภาพ (NVR)",
+   "model": "Network video recorder (simulated as an IP host)",
+   "vendor": "pc",
+   "simLevel": "partial",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "nas",
+   "label": "ที่เก็บข้อมูลเครือข่าย (NAS)",
+   "model": "Network attached storage (simulated as an IP host)",
+   "vendor": "pc",
+   "simLevel": "partial",
+   "category": "end",
+   "hasCli": true,
+   "isHost": true,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": true,
+    "canForward": false,
+    "hasCli": true,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "wireless-ap",
+   "label": "Wireless Access Point",
+   "model": "Generic Wi-Fi AP, 1 Ethernet uplink (simulated)",
+   "vendor": "generic",
+   "simLevel": "diagram",
+   "category": "other",
+   "hasCli": false,
+   "isHost": false,
+   "canForward": false,
+   "ports": 1,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": false,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "firewall",
+   "label": "Firewall",
+   "model": "Generic 3-zone firewall: LAN / WAN / DMZ (simulated)",
+   "vendor": "generic",
+   "simLevel": "diagram",
+   "category": "other",
+   "hasCli": false,
+   "isHost": false,
+   "canForward": false,
+   "ports": 3,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": false,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "isp-router",
+   "label": "ISP Router / WAN",
+   "model": "Simulated ISP edge router, in-lab WAN (Cisco IOS-style CLI)",
+   "vendor": "cisco",
+   "simLevel": "full",
+   "category": "routers",
+   "hasCli": true,
+   "isHost": false,
+   "canForward": true,
+   "ports": 2,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": true,
+    "isHost": false,
+    "canForward": true,
+    "hasCli": true,
+    "defaultAdminUp": false
+   }
+  },
+  {
+   "kind": "internet-cloud",
+   "label": "อินเทอร์เน็ต (Cloud)",
+   "model": "Internet cloud symbol (diagram only, no Internet access)",
+   "vendor": "generic",
+   "simLevel": "diagram",
+   "category": "wan",
+   "hasCli": false,
+   "isHost": false,
+   "canForward": false,
+   "ports": 4,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": false,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "patch-panel",
+   "label": "แผงพักสาย (Patch Panel)",
+   "model": "24-port patch panel (diagram only, no pass-through)",
+   "vendor": "generic",
+   "simLevel": "diagram",
+   "category": "infrastructure",
+   "hasCli": false,
+   "isHost": false,
+   "canForward": false,
+   "ports": 24,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": false,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "rack",
+   "label": "ตู้ Rack",
+   "model": "Equipment rack (diagram only)",
+   "vendor": "generic",
+   "simLevel": "diagram",
+   "category": "infrastructure",
+   "hasCli": false,
+   "isHost": false,
+   "canForward": false,
+   "ports": 0,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": false,
+    "defaultAdminUp": true
+   }
+  },
+  {
+   "kind": "ups",
+   "label": "เครื่องสำรองไฟ (UPS)",
+   "model": "UPS (diagram only, no power simulation)",
+   "vendor": "generic",
+   "simLevel": "diagram",
+   "category": "infrastructure",
+   "hasCli": false,
+   "isHost": false,
+   "canForward": false,
+   "ports": 0,
+   "flags": {
+    "isSwitch": false,
+    "isRouter": false,
+    "isHost": false,
+    "canForward": false,
+    "hasCli": false,
+    "defaultAdminUp": true
+   }
+  }
+ ],
+ "specs": [
+  {
+   "id": "cisco.enable",
+   "vendor": "cisco",
+   "syntax": "enable",
+   "modes": [
+    "user"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "configure terminal"
+  },
+  {
+   "id": "cisco.disable",
+   "vendor": "cisco",
+   "syntax": "disable",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "enable"
+  },
+  {
+   "id": "cisco.configure",
+   "vendor": "cisco",
+   "syntax": "configure terminal",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "hostname TEST"
+  },
+  {
+   "id": "cisco.exit",
+   "vendor": "cisco",
+   "syntax": "exit",
+   "modes": [
+    "user",
+    "priv",
+    "config",
+    "config-if",
+    "config-subif",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "(ดู prompt)"
+  },
+  {
+   "id": "cisco.end",
+   "vendor": "cisco",
+   "syntax": "end",
+   "modes": [
+    "config",
+    "config-if",
+    "config-subif",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.do",
+   "vendor": "cisco",
+   "syntax": "do <command>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-subif",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "(ผลลัพธ์แสดงทันที)"
+  },
+  {
+   "id": "cisco.show.run",
+   "vendor": "cisco",
+   "syntax": "show running-config",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.show.start",
+   "vendor": "cisco",
+   "syntax": "show startup-config",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show startup-config"
+  },
+  {
+   "id": "cisco.show.version",
+   "vendor": "cisco",
+   "syntax": "show version",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show version"
+  },
+  {
+   "id": "cisco.show.ipbrief",
+   "vendor": "cisco",
+   "syntax": "show ip interface brief",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.show.iparp",
+   "vendor": "cisco",
+   "syntax": "show ip arp",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Layer 2",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show ip arp"
+  },
+  {
+   "id": "cisco.show.mac",
+   "vendor": "cisco",
+   "syntax": "show mac address-table",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Layer 2",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.show.iproute",
+   "vendor": "cisco",
+   "syntax": "show ip route",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "cisco.show.iproute.sw",
+   "vendor": "cisco",
+   "syntax": "show ip route",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "cisco.show.interfaces",
+   "vendor": "cisco",
+   "syntax": "show interfaces",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show interfaces"
+  },
+  {
+   "id": "cisco.show.interfaces.one",
+   "vendor": "cisco",
+   "syntax": "show interfaces <interface>",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show interfaces"
+  },
+  {
+   "id": "cisco.show.interfaces.vlan",
+   "vendor": "cisco",
+   "syntax": "show interfaces vlan <vlan-id>",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.show.intstatus",
+   "vendor": "cisco",
+   "syntax": "show interfaces status",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces status"
+  },
+  {
+   "id": "cisco.show.trunk",
+   "vendor": "cisco",
+   "syntax": "show interfaces trunk",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.show.vlanbrief",
+   "vendor": "cisco",
+   "syntax": "show vlan brief",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.ping",
+   "vendor": "cisco",
+   "syntax": "ping <ip-address>",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "ping 192.168.1.101"
+  },
+  {
+   "id": "cisco.traceroute",
+   "vendor": "cisco",
+   "syntax": "traceroute <ip-address>",
+   "modes": [
+    "user",
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "traceroute 192.168.1.101"
+  },
+  {
+   "id": "cisco.write",
+   "vendor": "cisco",
+   "syntax": "write memory",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show startup-config"
+  },
+  {
+   "id": "cisco.copy",
+   "vendor": "cisco",
+   "syntax": "copy running-config startup-config",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show startup-config"
+  },
+  {
+   "id": "cisco.hostname",
+   "vendor": "cisco",
+   "syntax": "hostname <hostname>",
+   "modes": [
+    "config"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.interface.rt",
+   "vendor": "cisco",
+   "syntax": "interface <interface>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-subif"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.nointerface.sub",
+   "vendor": "cisco",
+   "syntax": "no interface <interface>",
+   "modes": [
+    "config"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.interface.sw",
+   "vendor": "cisco",
+   "syntax": "interface <interface>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces status"
+  },
+  {
+   "id": "cisco.interface.range",
+   "vendor": "cisco",
+   "syntax": "interface range <port-range>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.interface.vlan",
+   "vendor": "cisco",
+   "syntax": "interface vlan <vlan-id>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.nointerface.vlan",
+   "vendor": "cisco",
+   "syntax": "no interface vlan <vlan-id>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.vlan",
+   "vendor": "cisco",
+   "syntax": "vlan <vlan-id>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.no.vlan",
+   "vendor": "cisco",
+   "syntax": "no vlan <vlan-id>",
+   "modes": [
+    "config"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.vlan.name",
+   "vendor": "cisco",
+   "syntax": "name <name>",
+   "modes": [
+    "config-vlan"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.ip.defgw",
+   "vendor": "cisco",
+   "syntax": "ip default-gateway <ip-address>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.noip.defgw",
+   "vendor": "cisco",
+   "syntax": "no ip default-gateway",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.ip.route",
+   "vendor": "cisco",
+   "syntax": "ip route <network> <route-mask> <next-hop>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "cisco.noip.route",
+   "vendor": "cisco",
+   "syntax": "no ip route <network> <route-mask> <next-hop>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "cisco.shutdown",
+   "vendor": "cisco",
+   "syntax": "shutdown",
+   "modes": [
+    "config-if",
+    "config-subif",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief / show interfaces status"
+  },
+  {
+   "id": "cisco.noshutdown",
+   "vendor": "cisco",
+   "syntax": "no shutdown",
+   "modes": [
+    "config-if",
+    "config-subif",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief / show interfaces status"
+  },
+  {
+   "id": "cisco.description",
+   "vendor": "cisco",
+   "syntax": "description <text>",
+   "modes": [
+    "config-if",
+    "config-subif",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.no.description",
+   "vendor": "cisco",
+   "syntax": "no description",
+   "modes": [
+    "config-if",
+    "config-subif",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "cisco-router",
+    "isp-router",
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.switchport.mode",
+   "vendor": "cisco",
+   "syntax": "switchport mode access",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "cisco.switchport.trunk",
+   "vendor": "cisco",
+   "syntax": "switchport mode trunk",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.switchport.vlan",
+   "vendor": "cisco",
+   "syntax": "switchport access vlan <vlan-id>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.no.switchport.vlan",
+   "vendor": "cisco",
+   "syntax": "no switchport access vlan",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show vlan brief"
+  },
+  {
+   "id": "cisco.trunk.allowed",
+   "vendor": "cisco",
+   "syntax": "switchport trunk allowed vlan <vlan-list>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.trunk.allowed.all",
+   "vendor": "cisco",
+   "syntax": "switchport trunk allowed vlan all",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.trunk.allowed.add",
+   "vendor": "cisco",
+   "syntax": "switchport trunk allowed vlan add <vlan-list>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.trunk.allowed.remove",
+   "vendor": "cisco",
+   "syntax": "switchport trunk allowed vlan remove <vlan-list>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.trunk.native",
+   "vendor": "cisco",
+   "syntax": "switchport trunk native vlan <vlan-id>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.no.trunk.allowed",
+   "vendor": "cisco",
+   "syntax": "no switchport trunk allowed vlan",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.no.trunk.native",
+   "vendor": "cisco",
+   "syntax": "no switchport trunk native vlan",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show interfaces trunk"
+  },
+  {
+   "id": "cisco.encapsulation",
+   "vendor": "cisco",
+   "syntax": "encapsulation dot1Q <vlan-id>",
+   "modes": [
+    "config-subif"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.ipaddress",
+   "vendor": "cisco",
+   "syntax": "ip address <ip-address> <subnet-mask>",
+   "modes": [
+    "config-if",
+    "config-subif"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.ipaddress.svi",
+   "vendor": "cisco",
+   "syntax": "ip address <ip-address> <subnet-mask>",
+   "modes": [
+    "config-svi"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.noipaddress",
+   "vendor": "cisco",
+   "syntax": "no ip address",
+   "modes": [
+    "config-if",
+    "config-subif"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-router",
+    "isp-router"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "cisco.noipaddress.svi",
+   "vendor": "cisco",
+   "syntax": "no ip address",
+   "modes": [
+    "config-svi"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "cisco-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "aruba.configure",
+   "vendor": "aruba",
+   "syntax": "configure terminal",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "hostname TEST"
+  },
+  {
+   "id": "aruba.exit",
+   "vendor": "aruba",
+   "syntax": "exit",
+   "modes": [
+    "priv",
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "(ดู prompt)"
+  },
+  {
+   "id": "aruba.end",
+   "vendor": "aruba",
+   "syntax": "end",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Mode",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "aruba.do",
+   "vendor": "aruba",
+   "syntax": "do <command>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "(ผลลัพธ์แสดงทันที)"
+  },
+  {
+   "id": "aruba.show.run",
+   "vendor": "aruba",
+   "syntax": "show running-config",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "aruba.show.start",
+   "vendor": "aruba",
+   "syntax": "show startup-config",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show startup-config"
+  },
+  {
+   "id": "aruba.show.version",
+   "vendor": "aruba",
+   "syntax": "show version",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show version"
+  },
+  {
+   "id": "aruba.show.intbrief",
+   "vendor": "aruba",
+   "syntax": "show interface brief",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.show.int",
+   "vendor": "aruba",
+   "syntax": "show interface <interface>",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface 1/1/1"
+  },
+  {
+   "id": "aruba.show.vlan",
+   "vendor": "aruba",
+   "syntax": "show vlan",
+   "modes": [
+    "priv"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show vlan"
+  },
+  {
+   "id": "aruba.show.ipbrief",
+   "vendor": "aruba",
+   "syntax": "show ip interface brief",
+   "modes": [
+    "priv"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "aruba.show.arp",
+   "vendor": "aruba",
+   "syntax": "show arp",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Layer 2",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show mac-address-table"
+  },
+  {
+   "id": "aruba.show.mac",
+   "vendor": "aruba",
+   "syntax": "show mac-address-table",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Layer 2",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show vlan"
+  },
+  {
+   "id": "aruba.show.iproute",
+   "vendor": "aruba",
+   "syntax": "show ip route",
+   "modes": [
+    "priv"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "aruba.ping",
+   "vendor": "aruba",
+   "syntax": "ping <ip-address>",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "ping 192.168.1.1"
+  },
+  {
+   "id": "aruba.traceroute",
+   "vendor": "aruba",
+   "syntax": "traceroute <ip-address>",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "traceroute 192.168.1.1"
+  },
+  {
+   "id": "aruba.traceroute.maxttl",
+   "vendor": "aruba",
+   "syntax": "traceroute <ip-address> maxttl <max-hops>",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "traceroute 192.168.1.1 maxttl 5"
+  },
+  {
+   "id": "aruba.write",
+   "vendor": "aruba",
+   "syntax": "write memory",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show startup-config"
+  },
+  {
+   "id": "aruba.copy",
+   "vendor": "aruba",
+   "syntax": "copy running-config startup-config",
+   "modes": [
+    "priv"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show startup-config"
+  },
+  {
+   "id": "aruba.hostname",
+   "vendor": "aruba",
+   "syntax": "hostname <hostname>",
+   "modes": [
+    "config"
+   ],
+   "topic": "Config",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "aruba.vlan",
+   "vendor": "aruba",
+   "syntax": "vlan <vlan-id>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show vlan"
+  },
+  {
+   "id": "aruba.no.vlan",
+   "vendor": "aruba",
+   "syntax": "no vlan <vlan-id>",
+   "modes": [
+    "config"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show vlan"
+  },
+  {
+   "id": "aruba.vlan.name",
+   "vendor": "aruba",
+   "syntax": "name <name>",
+   "modes": [
+    "config-vlan"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show vlan"
+  },
+  {
+   "id": "aruba.interface",
+   "vendor": "aruba",
+   "syntax": "interface <interface>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.interface.range",
+   "vendor": "aruba",
+   "syntax": "interface <if-range>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "aruba.interface.vlan",
+   "vendor": "aruba",
+   "syntax": "interface vlan <vlan-id>",
+   "modes": [
+    "config",
+    "config-if",
+    "config-svi",
+    "config-vlan"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "aruba.nointerface.vlan",
+   "vendor": "aruba",
+   "syntax": "no interface vlan <vlan-id>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "aruba.ip.route",
+   "vendor": "aruba",
+   "syntax": "ip route <prefix> <next-hop>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "aruba.noip.route",
+   "vendor": "aruba",
+   "syntax": "no ip route <prefix> <next-hop>",
+   "modes": [
+    "config"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip route"
+  },
+  {
+   "id": "aruba.shutdown",
+   "vendor": "aruba",
+   "syntax": "shutdown",
+   "modes": [
+    "config-if",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.noshutdown",
+   "vendor": "aruba",
+   "syntax": "no shutdown",
+   "modes": [
+    "config-if",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.norouting",
+   "vendor": "aruba",
+   "syntax": "no routing",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.routing",
+   "vendor": "aruba",
+   "syntax": "routing",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.vlan.access",
+   "vendor": "aruba",
+   "syntax": "vlan access <vlan-id>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show vlan"
+  },
+  {
+   "id": "aruba.trunk.allowed",
+   "vendor": "aruba",
+   "syntax": "vlan trunk allowed <vlan-list>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface 1/1/1"
+  },
+  {
+   "id": "aruba.trunk.allowed.no",
+   "vendor": "aruba",
+   "syntax": "no vlan trunk allowed <vlan-list>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface 1/1/1"
+  },
+  {
+   "id": "aruba.trunk.allowed.all",
+   "vendor": "aruba",
+   "syntax": "vlan trunk allowed all",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface 1/1/1"
+  },
+  {
+   "id": "aruba.trunk.native",
+   "vendor": "aruba",
+   "syntax": "vlan trunk native <vlan-id>",
+   "modes": [
+    "config-if"
+   ],
+   "topic": "VLAN",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show interface brief"
+  },
+  {
+   "id": "aruba.ipaddress",
+   "vendor": "aruba",
+   "syntax": "ip address <cidr>",
+   "modes": [
+    "config-if",
+    "config-svi"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "aruba.noipaddress",
+   "vendor": "aruba",
+   "syntax": "no ip address",
+   "modes": [
+    "config-if",
+    "config-svi"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show ip interface brief"
+  },
+  {
+   "id": "aruba.description",
+   "vendor": "aruba",
+   "syntax": "description <text>",
+   "modes": [
+    "config-if",
+    "config-svi"
+   ],
+   "topic": "Interface",
+   "kinds": [
+    "aruba-switch",
+    "l3-switch"
+   ],
+   "verify": "show running-config"
+  },
+  {
+   "id": "pc.ipconfig",
+   "vendor": "pc",
+   "syntax": "ipconfig",
+   "modes": [
+    "pc"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "ipconfig"
+  },
+  {
+   "id": "pc.ipconfig.all",
+   "vendor": "pc",
+   "syntax": "ipconfig /all",
+   "modes": [
+    "pc"
+   ],
+   "topic": "IP",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "arp -a"
+  },
+  {
+   "id": "pc.ping",
+   "vendor": "pc",
+   "syntax": "ping <ipv4>",
+   "modes": [
+    "pc"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "ping 192.168.1.1"
+  },
+  {
+   "id": "pc.tracert",
+   "vendor": "pc",
+   "syntax": "tracert <ipv4>",
+   "modes": [
+    "pc"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "tracert 192.168.1.1"
+  },
+  {
+   "id": "pc.tracert.h",
+   "vendor": "pc",
+   "syntax": "tracert -h <max-hops> <ipv4>",
+   "modes": [
+    "pc"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "tracert -h 5 192.168.1.1"
+  },
+  {
+   "id": "pc.arp",
+   "vendor": "pc",
+   "syntax": "arp -a",
+   "modes": [
+    "pc"
+   ],
+   "topic": "Layer 2",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "ping 192.168.1.1"
+  },
+  {
+   "id": "pc.cls",
+   "vendor": "pc",
+   "syntax": "cls",
+   "modes": [
+    "pc"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "(หน้าจอว่าง)"
+  },
+  {
+   "id": "pc.help",
+   "vendor": "pc",
+   "syntax": "help",
+   "modes": [
+    "pc"
+   ],
+   "topic": "Troubleshooting",
+   "kinds": [
+    "pc",
+    "laptop",
+    "server",
+    "printer",
+    "ip-camera",
+    "ip-phone",
+    "nvr",
+    "nas"
+   ],
+   "verify": "(รายการคำสั่ง)"
+  }
+ ],
+ "samples": [
+  {
+   "key": "office",
+   "name": "Small Office – Cisco & Aruba",
+   "devices": [
+    "cisco-router",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": []
+  },
+  {
+   "key": "intervlan",
+   "name": "Inter-VLAN Routing – Trunk, Router-on-a-Stick & Static Route",
+   "devices": [
+    "cisco-router",
+    "cisco-router",
+    "pc",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": []
+  },
+  {
+   "key": "campus3",
+   "name": "Campus 3 Tier – Aruba CX (static route)",
+   "devices": [
+    "l3-switch",
+    "l3-switch",
+    "l3-switch",
+    "l3-switch",
+    "aruba-switch",
+    "pc",
+    "pc"
+   ],
+   "checks": []
+  },
+  {
+   "key": "trouble",
+   "name": "Challenge: Troubleshooting – ออฟฟิศ Inter-VLAN เสีย",
+   "devices": [
+    "cisco-router",
+    "cisco-router",
+    "pc",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": [
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "link-up",
+    "no-dup-ip"
+   ]
+  },
+  {
+   "key": "dupip",
+   "name": "Challenge: IP ซ้ำ + VLAN ผิด + พอร์ตปิด – Small Office",
+   "devices": [
+    "cisco-router",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": [
+    "ping",
+    "ping",
+    "ping",
+    "no-dup-ip"
+   ]
+  },
+  {
+   "key": "campus",
+   "name": "Challenge: Campus + ISP – L3 Switch, Server, AP",
+   "devices": [
+    "isp-router",
+    "server",
+    "l3-switch",
+    "cisco-switch",
+    "pc",
+    "laptop",
+    "wireless-ap"
+   ],
+   "checks": [
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "link-up",
+    "no-dup-ip"
+   ]
+  },
+  {
+   "key": "campus3trouble",
+   "name": "Challenge: Campus 3 Tier – Aruba CX",
+   "devices": [
+    "l3-switch",
+    "l3-switch",
+    "l3-switch",
+    "l3-switch",
+    "aruba-switch",
+    "pc",
+    "pc"
+   ],
+   "checks": [
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "link-up",
+    "no-dup-ip"
+   ]
+  },
+  {
+   "key": "addressing",
+   "name": "Challenge: Subnet / Encapsulation / WAN IP – Inter-VLAN",
+   "devices": [
+    "cisco-router",
+    "cisco-router",
+    "pc",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": [
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "link-up",
+    "no-dup-ip"
+   ]
+  },
+  {
+   "key": "layer2",
+   "name": "Challenge: VLAN / Trunk – Inter-VLAN",
+   "devices": [
+    "cisco-router",
+    "cisco-router",
+    "pc",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": [
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "link-up",
+    "no-dup-ip"
+   ]
+  },
+  {
+   "key": "scratch",
+   "name": "Challenge: สร้างเครือข่าย 2 VLAN จากศูนย์",
+   "devices": [
+    "cisco-router",
+    "cisco-switch",
+    "aruba-switch",
+    "pc",
+    "pc",
+    "pc"
+   ],
+   "checks": [
+    "port-admin",
+    "trunk-vlan",
+    "trunk-vlan",
+    "trunk-vlan",
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "ping",
+    "no-dup-ip"
+   ]
+  }
+ ]
+}

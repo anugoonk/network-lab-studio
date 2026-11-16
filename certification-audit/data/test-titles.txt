@@ -1,0 +1,534 @@
+tests/audit-phase-a.test.ts:77 | no router crossed: TTL=128 however many switches are in the path
+tests/audit-phase-a.test.ts:84 | three routers crossed: Windows reply arrives with TTL=125
+tests/audit-phase-a.test.ts:90 | a Cisco router replies with initial TTL 255 (minus the routers on the way back)
+tests/audit-phase-a.test.ts:96 | an AOS-CX switch replies with TTL 64 and its own ping shows the reply TTL
+tests/audit-phase-a.test.ts:104 | failed pings carry no reply TTL
+tests/audit-phase-a.test.ts:110 | cable unplugged
+tests/audit-phase-a.test.ts:122 | switch port facing the PC is shut down: also General failure, and the reason names the port
+tests/audit-phase-a.test.ts:130 | pinging its own address still works without a cable (loopback), and ARP failure on a live link is still 
+tests/audit-phase-a.test.ts:140 | vlan 1002-1005 and switchport access vlan 1002-1005 are rejected; 1001 and 1006 work
+tests/audit-phase-a.test.ts:164 | PC: 
+tests/audit-phase-a.test.ts:174 | Cisco router shows U.U.U and 0 percent
+tests/audit-phase-a.test.ts:180 | the source router itself having no route stays a plain failure (no ICMP from itself)
+tests/audit-phase-a.test.ts:187 | when the router cannot reach the source either, the ping just times out
+tests/audit-phase-a.test.ts:194 | a routing loop is still reported as a timeout, not as net unreachable
+tests/audit-phase-a.test.ts:204 | Aruba CX 6100 is not labelled as L2-only (it routes between SVIs)
+tests/audit-phase-a.test.ts:211 | Catalyst 2960 
+tests/autosave.test.ts:12 | true when stored
+tests/autosave.test.ts:18 | false when the storage throws (quota exceeded / blocked)
+tests/autosave.test.ts:28 | false when there is no storage at all
+tests/campus3.test.ts:13 | has the 3-tier layout: 7 devices, 9 cables, every link up, no duplicate IP
+tests/campus3.test.ts:23 | uses /31 routed links and SVI gateways
+tests/campus3.test.ts:29 | everything in the guide works: gateway, inter-VLAN, cores, the second gateway
+tests/campus3.test.ts:46 | the cores can reach the user VLANs through SwitchA
+tests/campus3.test.ts:52 | guide exercise 4: removing the return route on Core-2 breaks only the return leg, adding it back repairs it
+tests/campus3.test.ts:63 | shutting the trunk to the access switch cuts both VPCs off from their gateway
+tests/campus3.test.ts:70 | show ip route on Core-1 lists the connected /31 links and the static routes
+tests/campus3.test.ts:77 | round-trips through export / import
+tests/campus3.test.ts:89 | starts with c1, c4, c6, c7 passing and the other three failing
+tests/campus3.test.ts:93 | fixing the faults one at a time through the CLI unlocks the checks in order
+tests/challenge.test.ts:12 | starts broken: only the checks that do not depend on a fault pass
+tests/challenge.test.ts:23 | is exactly the inter-VLAN lab plus three faults (same devices and cables)
+tests/challenge.test.ts:30 | fixing the real faults through the CLI makes every check pass, one at a time
+tests/challenge.test.ts:46 | result detail never reveals the cause
+tests/challenge.test.ts:54 | 
+tests/challenge.test.ts:60 | link-up fails when the port is shut down or uncabled
+tests/challenge.test.ts:70 | a check on a deleted device fails instead of throwing
+tests/challenge.test.ts:76 | default label names the device
+tests/challenge.test.ts:84 | challenge round-trips through export/import
+tests/challenge.test.ts:91 | rejects a check that points at a missing device or port
+tests/challenge.test.ts:100 | rejects a malformed ping target
+tests/challenge.test.ts:106 | labs without a challenge still load
+tests/challenge.test.ts:117 | config-line looks at the real running-config (Cisco and Aruba), ignoring indentation
+tests/challenge.test.ts:131 | trunk-vlan follows allowed lists on Cisco and Aruba and treats access ports as not carrying
+tests/challenge.test.ts:145 | port-admin reads the administrative state
+tests/challenge.test.ts:153 | route: connected and static (with a reachable next hop) count; a static route behind a down link does not
+tests/challenge.test.ts:165 | no-dup-ip flips when two hosts in one VLAN share an address
+tests/challenge.test.ts:175 | every new kind gets a readable default label and survives export/import; bad references are rejected
+tests/cli-batch2.test.ts:17 | router: an up interface with its IPv4 address and the same MAC the rest of the lab sees
+tests/cli-batch2.test.ts:33 | router: administratively down vs down (no cable)
+tests/cli-batch2.test.ts:41 | Catalyst: connected / notconnect / disabled suffix, Fast vs Gigabit hardware, no IP line on switchports
+tests/cli-batch2.test.ts:54 | show interfaces lists SVIs first, then every port (with sub-interfaces after their parent on a router)
+tests/cli-batch2.test.ts:65 | router sub-interface: 802.1Q VLAN ID and address; unknown sub-interface / SVI is an error
+tests/cli-batch2.test.ts:76 | invalid syntax is rejected; existing show interfaces status / trunk still work; abbreviation works
+tests/cli-batch2.test.ts:90 | returns the port to VLAN 1 — show vlan brief, running-config and the simulation all follow
+tests/cli-batch2.test.ts:105 | applies to every port of an interface range; rejected outside interface mode and on routers
+tests/cli-batch2.test.ts:116 | removes the description of a port, a sub-interface and an SVI (running-config follows; persists)
+tests/cli-batch2.test.ts:130 | is rejected in global configuration mode
+tests/cli-batch2.test.ts:136 | host name, MAC (the one other hosts see in arp -a), DHCP No, static addressing
+tests/cli-batch2.test.ts:160 | cable unplugged: Media disconnected, no address lines; duplicate IP is flagged
+tests/cli-batch2.test.ts:173 | plain ipconfig is unchanged; unknown switch is rejected; read-only
+tests/cli-batch2.test.ts:190 | stays an unknown command
+tests/cli-batch2.test.ts:197 | every command still answers the same for the sample lab
+tests/cli.test.ts:11 | walks user → priv → config → config-if with matching prompts
+tests/cli.test.ts:20 | hostname changes the prompt and the device name
+tests/cli.test.ts:27 | configure terminal in user mode is an error and config is unchanged
+tests/cli.test.ts:37 | router: IP address + no shutdown change interface state and show output
+tests/cli.test.ts:49 | router rejects bad mask, overlapping subnet and switchport commands
+tests/cli.test.ts:61 | switch: create VLAN, set access VLAN, show vlan brief
+tests/cli.test.ts:70 | switch: shutdown shows disabled in show interfaces status
+tests/cli.test.ts:75 | access VLAN on missing VLAN auto-creates with the IOS message
+tests/cli.test.ts:81 | VLAN 1 cannot be deleted; invalid vlan id / interface are errors
+tests/cli.test.ts:89 | supports abbreviations and shows ambiguity
+tests/cli.test.ts:98 | write memory fills startup-config
+tests/cli.test.ts:104 | do show works inside config mode without leaving it
+tests/cli.test.ts:112 | uses configure terminal / interface 1/1/1 / no routing / vlan access
+tests/cli.test.ts:121 | routed interface refuses vlan access until no routing
+tests/cli.test.ts:129 | vlan access to a missing VLAN fails
+tests/cli.test.ts:134 | shutdown reflects in show interface brief
+tests/cli.test.ts:139 | default AOS-CX ports are shut down and routed
+tests/cli.test.ts:163 | ${name}: ${lines[lines.length - 1]}
+tests/cli.test.ts:173 | shell-looking input is never executed, just rejected
+tests/cli.test.ts:182 | lists commands valid in the current mode only
+tests/cli.test.ts:192 | completes the next token
+tests/cli.test.ts:200 | keeps command history per device
+tests/cli.test.ts:209 | has unique ids and valid syntax
+tests/cli.test.ts:214 | ${spec.id} on ${kind}: 
+tests/cli.test.ts:265 | byName helper finds sample devices
+tests/command-library.test.ts:27 | with no filter the list is exactly SPECS, same order, nothing added or lost
+tests/command-library.test.ts:33 | every command can be reached through each filter on its own (vendor, device type, mode, topic)
+tests/command-library.test.ts:42 | the mode and device filters offer every mode / device kind some command uses (none unreachable)
+tests/command-library.test.ts:55 | the device-type filter keeps every command the device supports and nothing else
+tests/command-library.test.ts:61 | topics in the filter cover all commands
+tests/command-library.test.ts:68 | every word of the query must match; vendor narrows the result
+tests/command-library.test.ts:75 | search is case-insensitive and also matches vendor names and device labels
+tests/command-library.test.ts:80 | filters combine with AND
+tests/command-library.test.ts:90 | hasActiveFilters is false only for the cleared state (spaces-only query counts as cleared)
+tests/command-library.test.ts:102 | mode steps come from the vendor tables unchanged
+tests/command-library.test.ts:113 | example groups cover every supported device kind exactly once with its own example
+tests/command-library.test.ts:122 | the primary example is the target device’s own example, or the first supported kind’s
+tests/command-library.test.ts:131 | vendor names are unchanged
+tests/command-library.test.ts:139 | moves by one and stops at both ends
+tests/command-library.test.ts:145 | starts at the first/last item when nothing is selected, -1 for an empty list
+tests/command-library.test.ts:155 | reports ok only when writeText resolved, and passes the exact text
+tests/command-library.test.ts:161 | permission denial is reported as denied, other errors as failed
+tests/command-library.test.ts:168 | no Clipboard API or an insecure page is 
+tests/command-library.test.ts:177 | messages: success names the copied text; failures never say 
+tests/device-capability.test.ts:16 | classifies every existing device type
+tests/device-capability.test.ts:40 | category lives in PROFILES (single source) and the palette reads it
+tests/device-capability.test.ts:48 | engine flags are exactly as before (metadata only, nothing behavioural changed)
+tests/device-capability.test.ts:76 | the classification agrees with the engine flags
+tests/device-capability.test.ts:86 | labels in Thai and English
+tests/device-capability.test.ts:112 | simulated devices accept a CLI / terminal command; diagram-only ones refuse it and leave the Lab unchanged
+tests/device-capability.test.ts:126 | full: two PCs ping each other through a Catalyst 2960 (L2 forwarding)
+tests/device-capability.test.ts:136 | partial: a server is a working IP host (ping both ways) — only its services are missing
+tests/device-capability.test.ts:146 | diagram: a firewall between two PCs in one subnet does not forward
+tests/device-capability.test.ts:156 | diagram: an AP has a single port and no L3 interface, so it can only be a leaf (nothing can sit behind it); the same PC on a switch works
+tests/device-capability.test.ts:173 | keeps full + partial, drops diagram-only
+tests/device-capability.test.ts:180 | combines with search and categories
+tests/device-capability.test.ts:188 | does not change the catalog
+tests/device-capability.test.ts:196 | export/import round-trip of every device type: no capability metadata written, same ids
+tests/devices.test.ts:13 | lists exactly the 19 required devices (10 + 4 diagram objects of DEV-01B-1b + 5 IP end devices of DEV-01C-1), once each, in 5 groups
+tests/devices.test.ts:20 | has the required ports
+tests/devices.test.ts:29 | names the first Layer 3 switch DSW1
+tests/devices.test.ts:35 | two devices of every kind get distinct ids and names
+tests/devices.test.ts:52 | ${kind}: port 24 can be cabled, is then busy, and is reusable after the cable is removed
+tests/devices.test.ts:95 | server pings an ISP router over a real configured link (and not before)
+tests/devices.test.ts:109 | firewall and AP have no console and refuse commands without changing the lab
+tests/devices.test.ts:118 | a laptop behind a firewall cannot ping through it (no firewall/routing engine)
+tests/devices.test.ts:123 | L3 switch uses the AOS-CX CLI
+tests/devices.test.ts:132 | round-trips a lab with every device type, ports and cable ends
+tests/devices.test.ts:146 | opens an old-format lab: an Aruba switch saved with 28 ports keeps them
+tests/devices.test.ts:155 | still rejects an unknown port on a switch
+tests/diagram-devices.test.ts:35 | are diagram-only, in the right category, with every engine flag off and no CLI
+tests/diagram-devices.test.ts:52 | get their own names and the next ids; two of each never collide
+tests/diagram-devices.test.ts:59 | refuse CLI commands and leave the Lab unchanged (no fake CLI)
+tests/diagram-devices.test.ts:73 | two PCs cabled through a patch panel cannot ping; the same PCs on a 2960 can
+tests/diagram-devices.test.ts:91 | the Internet cloud gives no Internet: a PC behind an ISP router cabled to the cloud cannot reach 8.8.8.8
+tests/diagram-devices.test.ts:109 | rack and UPS have no network ports: a cable to them is refused
+tests/diagram-devices.test.ts:121 | a Lab with all four objects (and cables to the cloud / patch panel) round-trips, schemaVersion 1
+tests/diagram-devices.test.ts:137 | every sample Lab still validates, and an existing model with an empty port list is still rejected
+tests/diagram-devices.test.ts:151 | search, categories and the simulation filter
+tests/diagram-devices.test.ts:164 | labels in Thai and English
+tests/diagram-devices.test.ts:174 | rack and UPS: no network ports and no cable connections (TH / EN); never claim cabling
+tests/diagram-devices.test.ts:187 | cloud and patch panel: cables can be drawn, but no routing / no forwarding (TH / EN)
+tests/diagram-devices.test.ts:196 | the generic Diagram Only tooltip does not claim that every diagram object can be cabled
+tests/docs.test.ts:39 | match the command registry (set GEN_DOCS=1 to regenerate)
+tests/docs.test.ts:54 | is not sensitive to CRLF line endings (Windows checkout with core.autocrlf=true)
+tests/endpoint-devices.test.ts:42 | are IP hosts on the existing host profile: Ethernet0, PC terminal, partial simulation, category end
+tests/endpoint-devices.test.ts:51 | get their own names and sequential ids; two of each never collide
+tests/endpoint-devices.test.ts:58 | descriptions say what is not simulated (TH / EN)
+tests/endpoint-devices.test.ts:74 | each new device pings a PC through a Catalyst 2960 (both directions) and its terminal works
+tests/endpoint-devices.test.ts:92 | each new device reaches another subnet through a router (gateway) and tracert shows the router hop
+tests/endpoint-devices.test.ts:112 | VLAN rules apply as for a PC: a device in another access VLAN is not reachable
+tests/endpoint-devices.test.ts:125 | round-trip with all five (configured), schemaVersion 1; sample Labs still validate
+tests/endpoint-devices.test.ts:141 | search, the end-device category and the simulation filter (partial devices stay in)
+tests/hints-complete.test.ts:18 | a challenge without hints (older files) still imports
+tests/hints-complete.test.ts:24 | rejects more than 10 hints
+tests/hints-complete.test.ts:36 | completes a unique prefix and adds a space (IOS)
+tests/hints-complete.test.ts:42 | extends to the common prefix, then lists the options when ambiguous
+tests/hints-complete.test.ts:52 | lists the next keywords after a trailing space
+tests/hints-complete.test.ts:58 | does nothing for an unknown word or a parameter slot
+tests/hints-complete.test.ts:65 | works on AOS-CX and respects the current mode
+tests/hints-complete.test.ts:71 | only completes for devices with a CLI
+tests/hints-complete.test.ts:84 | completes interface names (Cisco accepts the short form and expands it)
+tests/hints-complete.test.ts:94 | completes AOS-CX port names
+tests/hints-complete.test.ts:101 | lists the VLANs that exist after 
+tests/hints-complete.test.ts:107 | completes ping targets with the Lab addresses (not the device own) and works on the PC terminal
+tests/hints-complete.test.ts:115 | does not invent values for free parameters
+tests/history.test.ts:13 | adds one undo step per discrete edit, and a new edit clears redo
+tests/history.test.ts:29 | ignores changes that only touch CLI mode / history
+tests/history.test.ts:36 | merges a drag (many tiny moves) into one step, but a later drag is a new step
+tests/history.test.ts:50 | merges guide typing, but not a device edit in between
+tests/history.test.ts:62 | keeps at most HISTORY_LIMIT steps
+tests/history.test.ts:71 | undo then redo restores exactly the same lab content
+tests/history.test.ts:85 | undoing a cable restores the port
+tests/history.test.ts:97 | undoing a CLI config change reverts config and resets that device to its starting mode, others keep their session
+tests/history.test.ts:112 | a subinterface created by a command disappears on undo without leaving the CLI pointing at it
+tests/i18n-en.test.ts:36 | every command description and check hint is English
+tests/i18n-en.test.ts:41 | sample labs contain no Thai text and still pass the file validation
+tests/i18n-en.test.ts:51 | catalog titles and hints are English
+tests/i18n-en.test.ts:55 | CLI error hints, ping explanations and challenge details come out in English
+tests/i18n-en.test.ts:72 | errors from the file validation are English
+tests/i18n.test.ts:37 | Thai mode returns the Thai text, filling {n} from the arguments
+tests/i18n.test.ts:44 | English mode returns the dictionary text, and falls back to the Thai text for an unknown key
+tests/i18n.test.ts:53 | leaves an unfilled placeholder alone instead of printing 
+tests/i18n.test.ts:62 | finds the keys used in the source (sanity check of this test)
+tests/i18n.test.ts:66 | has an English text for every Thai text the source passes to tx()
+tests/i18n.test.ts:71 | has no stale entries (every key is still used somewhere)
+tests/i18n.test.ts:76 | keeps the same {n} placeholders, the same edge spaces, and contains no Thai text
+tests/l2tables.test.ts:16 | are stable, unicast, locally administered and per interface
+tests/l2tables.test.ts:29 | SW1 learns PC-A locally in VLAN 10, PC-C through the trunk, and R1 in both VLANs on its trunk
+tests/l2tables.test.ts:43 | moving a port to another VLAN moves the MAC; shutting it removes it
+tests/l2tables.test.ts:52 | Cisco and Aruba commands print the same facts in their own layouts
+tests/l2tables.test.ts:66 | R1 lists PC-A on its VLAN 10 sub-interface and PC-B on VLAN 20, never across VLANs; own addresses show age 
+tests/l2tables.test.ts:79 | a PC sees its gateway and VLAN peers; an isolated PC sees nothing
+tests/l2tables.test.ts:90 | Aruba show arp lists SVI neighbours with the physical port they were learned on
+tests/l2tables.test.ts:100 | is empty in the healthy lab
+tests/l2tables.test.ts:104 | flags two hosts in the same VLAN, but not the same address in two isolated VLANs
+tests/l2tables.test.ts:114 | disappears when one of the two is cut off (shutdown port)
+tests/l2tables.test.ts:120 | IOS prints %IP-4-DUPADDR naming the other device MAC when a conflicting address is configured
+tests/l2tables.test.ts:128 | Windows ipconfig marks a duplicate address
+tests/l3.test.ts:16 | works out of the box
+tests/l3.test.ts:27 | VLANs stay isolated without a router path
+tests/l3.test.ts:38 | removing VLAN 20 from the allowed list on one side breaks only VLAN 20
+tests/l3.test.ts:50 | Aruba trunk allowed list is enforced too
+tests/l3.test.ts:62 | turning one end into an access port drops tagged frames
+tests/l3.test.ts:70 | native VLAN: untagged frames follow the native VLAN, and a mismatch leaks VLANs
+tests/l3.test.ts:89 | show interfaces trunk / show vlan reflect the trunk
+tests/l3.test.ts:103 | running-config shows trunk commands
+tests/l3.test.ts:114 | can be built from scratch with the CLI
+tests/l3.test.ts:129 | IP address before encapsulation is rejected like IOS does
+tests/l3.test.ts:135 | shutting the parent port takes every sub-interface down
+tests/l3.test.ts:145 | show ip interface brief lists sub-interfaces; running-config prints encapsulation
+tests/l3.test.ts:156 | no interface removes a sub-interface; physical ports cannot be deleted
+tests/l3.test.ts:165 | missing route on R1 breaks the forward path; missing return route breaks the reply
+tests/l3.test.ts:182 | a static route whose next hop is not on a connected subnet is not installed
+tests/l3.test.ts:192 | wrong next-hop address (nobody owns it) is reported
+tests/l3.test.ts:200 | default route S* is shown on R2
+tests/l3.test.ts:206 | validates network/mask consistency and duplicates replace
+tests/l3.test.ts:217 | Aruba static routes use prefix notation and route (AOS-CX is L3-capable)
+tests/l3.test.ts:244 | Aruba switch routes between VLANs when it is the gateway
+tests/l3.test.ts:257 | SVI goes down when its VLAN has no active port, and recovers
+tests/l3.test.ts:268 | interface vlan on Aruba requires the VLAN to exist; shutdown works
+tests/l3.test.ts:278 | Cisco L2 switch SVI is a management address: pingable, and uses ip default-gateway
+tests/l3.test.ts:294 | a Cisco L2 switch never forwards: using it as a PC gateway fails with an explanation
+tests/l3.test.ts:303 | SVI in a VLAN that is not on the trunk is unreachable and explained
+tests/l3.test.ts:311 | SVI overlap and bad address are rejected
+tests/l3.test.ts:321 | a routed port with an IP is an L3 interface; L2 ports refuse ip address
+tests/l3.test.ts:332 | no routing refuses while an IP is set; vlan trunk on a routed port is refused
+tests/l3.test.ts:358 | ${name}: ${lines[lines.length - 1]}
+tests/l3.test.ts:370 | round-trips trunks, sub-interfaces, SVIs and routes
+tests/l3.test.ts:383 | files saved before trunk/SVI/route support still import (defaults applied)
+tests/l3.test.ts:400 | rejects inconsistent new data
+tests/legacy-ports.test.ts:41 | imports a Lab whose switches have fewer than 24 ports and keeps device IDs, port IDs, config and cable ends
+tests/legacy-ports.test.ts:52 | the imported small-model Lab works: ping across the 1/1/12 uplink, CLI knows only the ports that exist
+tests/legacy-ports.test.ts:62 | a port name that is not part of the model is still rejected
+tests/legacy-ports.test.ts:68 | a switch with no ports at all is rejected
+tests/legacy-ports.test.ts:85 | a healthy workspace has nothing rejected
+tests/legacy-ports.test.ts:92 | one invalid entry among valid ones is reported (with its name, reason and original data) while the rest loads
+tests/legacy-ports.test.ts:106 | when EVERY entry is invalid the app starts on a fresh Lab but the originals are returned, not lost
+tests/legacy-ports.test.ts:113 | a corrupted workspace string is returned as raw data
+tests/legacy-ports.test.ts:120 | an invalid old single-lab save is reported too; a valid one still loads
+tests/legacy-ports.test.ts:131 | a lab that used to be rejected (fewer ports) is no longer rejected
+tests/legacy-ports.test.ts:142 | saveRejected stores copies, does not duplicate, and keeps only the newest REJECTED_LIMIT
+tests/legacy-ports.test.ts:154 | saveRejected reports failure when the browser refuses or there is no storage
+tests/legacy-ports.test.ts:159 | the download bundle holds a normal export envelope per Lab (or the raw text when there was no Lab)
+tests/native-vlan.test.ts:68 | no mismatch while both trunk ends use the same native VLAN
+tests/native-vlan.test.ts:73 | Cisco ↔ Cisco: one entry for the link, flagged as a CDP link
+tests/native-vlan.test.ts:81 | Cisco ↔ Aruba and Aruba ↔ Aruba are detected but are not CDP links
+tests/native-vlan.test.ts:95 | only trunk ↔ trunk on a link that is up is reported
+tests/native-vlan.test.ts:114 | warning disappears when the mismatch is resolved (either side)
+tests/native-vlan.test.ts:127 | printed once, on the command that creates the mismatch, from the local point of view
+tests/native-vlan.test.ts:136 | also printed when the mismatch appears through 
+tests/native-vlan.test.ts:145 | the peer prints it when the peer is the one that creates the mismatch
+tests/native-vlan.test.ts:150 | no CDP message on Cisco ↔ Aruba links and never on Aruba
+tests/native-vlan.test.ts:158 | no message when resolving, and nothing for a failed command
+tests/native-vlan.test.ts:167 | cdpMismatchLog is silent for routers/PCs and for mismatches on other switches
+tests/native-vlan.test.ts:177 | detection does not change the Lab and does not change forwarding (the native-VLAN leak still happens)
+tests/network.test.ts:9 | has the devices, cables and addressing from the brief
+tests/network.test.ts:21 | PC-01 pings PC-10 and the gateway at start
+tests/network.test.ts:30 | breaks PC-01 → PC-10 but keeps the gateway, and recovers after no shutdown
+tests/network.test.ts:45 | shutting the Cisco side of the uplink has the same effect
+tests/network.test.ts:54 | moves only PC-10 access port to VLAN 20: link stays up but ping fails; back to VLAN 10 recovers
+tests/network.test.ts:72 | a VLAN that does not exist on the switch blocks forwarding
+tests/network.test.ts:80 | wrong gateway still allows same-subnet ping
+tests/network.test.ts:109 | routes between two subnets through R1 and checks the return path
+tests/network.test.ts:116 | wrong gateway on PC-01 breaks cross-subnet ping only
+tests/network.test.ts:125 | missing gateway is reported
+tests/network.test.ts:133 | fails on the return path when the far PC has no gateway (one-way)
+tests/network.test.ts:141 | shutting R1 LAN interface breaks the gateway
+tests/network.test.ts:150 | removing a cable changes ping immediately
+tests/network.test.ts:159 | a layer-2 loop does not hang the engine
+tests/network.test.ts:171 | a new PC added to a free port with VLAN and IP can ping (no source changes needed)
+tests/network.test.ts:186 | terminal ping and ipconfig use the same data
+tests/palette-catalog.test.ts:11 | lists every PALETTE_GROUPS device exactly once and no other kind
+tests/palette-catalog.test.ts:17 | takes name / model / note from the catalog unchanged
+tests/palette-catalog.test.ts:25 | groups routers, switches, end devices, other — in that order, catalog order inside a group
+tests/palette-catalog.test.ts:50 | does not change the catalog objects
+tests/palette-catalog.test.ts:58 | empty / blank query shows everything
+tests/palette-catalog.test.ts:63 | searches the device name, case-insensitive, trimmed
+tests/palette-catalog.test.ts:68 | searches the model
+tests/palette-catalog.test.ts:74 | searches the category, in Thai and English
+tests/palette-catalog.test.ts:82 | every word must match (AND)
+tests/palette-catalog.test.ts:87 | no match gives an empty list
+tests/palette-catalog.test.ts:91 | category filter, alone and with a query
+tests/palette-catalog.test.ts:98 | normaliseQuery collapses spaces and lower-cases
+tests/palette-catalog.test.ts:102 | category labels exist in both languages
+tests/persist.test.ts:10 | round-trips names, positions, cables, config and ping results
+tests/persist.test.ts:48 | rejects: ${name}
+tests/persist.test.ts:57 | saves and restores, ignoring corrupt data
+tests/placement.test.ts:36 | zoom 1, no pan: the flow rect equals the element
+tests/placement.test.ts:39 | zoom 0.5 shows twice as much, zoom 2 half as much
+tests/placement.test.ts:43 | pan moves the visible rect the opposite way (React Flow: screen = flow·zoom + translate)
+tests/placement.test.ts:50 | zoom 0 / negative is treated as 1 (no division by zero)
+tests/placement.test.ts:56 | empty canvas: centred exactly on the anchor
+tests/placement.test.ts:61 | several devices added one after another never overlap and keep the minimum gap
+tests/placement.test.ts:67 | fixed order: centre, then right, down, left, up
+tests/placement.test.ts:78 | existing devices near the centre are avoided
+tests/placement.test.ts:85 | uses the measured size of existing nodes when given (a tall node blocks more)
+tests/placement.test.ts:93 | zoom 0.5: many devices fit inside the (larger) visible area, none overlapping
+tests/placement.test.ts:100 | zoom 2: the small visible area fills up, later devices go to the nearest free spot outside it
+tests/placement.test.ts:112 | panned viewport: the device lands in the visible area that was panned to, not at the origin
+tests/placement.test.ts:119 | crowded canvas: a dense block around the anchor is skipped without overlap
+tests/placement.test.ts:126 | existing devices that already overlap each other are left as they are and still avoided
+tests/placement.test.ts:134 | is deterministic: the same input always gives the same output (no randomness)
+tests/placement.test.ts:142 | never moves existing devices (input array and objects are unchanged)
+tests/placement.test.ts:150 | search terminates: when every candidate is taken it falls back to the right of everything
+tests/placement.test.ts:160 | a huge crowd (500 devices) still finishes fast and does not overlap
+tests/placement.test.ts:171 | a device added at a computed spot is an ordinary device: same id sequence, integer x/y, same saved format
+tests/range.test.ts:15 | applies each following interface command to every port, and the prompt shows the range
+tests/range.test.ts:27 | accepts the usual spellings: no spaces, type word, commas, mixed types, abbreviations
+tests/range.test.ts:42 | rejects bad ranges without changing the Lab
+tests/range.test.ts:51 | one port in a range behaves like a plain interface
+tests/range.test.ts:57 | is all-or-nothing: an error on the command changes no port
+tests/range.test.ts:64 | exit / end / interface leave the range and run once
+tests/range.test.ts:76 | typical use: put ports in a VLAN with one command and see them in running-config
+tests/range.test.ts:84 | 
+tests/range.test.ts:90 | the range survives export/import; a range pointing at a missing port is rejected
+tests/range.test.ts:104 | configures every port of 1/1/5-1/1/7 at once
+tests/range.test.ts:115 | accepts a short end of range and comma lists
+tests/range.test.ts:128 | rejects bad ranges; a plain unknown port keeps the normal error and hint
+tests/range.test.ts:137 | exit leaves the range
+tests/range.test.ts:147 | a second command adds to the list instead of replacing it
+tests/range.test.ts:153 | from 
+tests/range.test.ts:158 | no vlan trunk allowed removes VLANs; from 
+tests/range.test.ts:167 | 
+tests/range.test.ts:172 | works through a range: every port gets the VLAN
+tests/reserved-vlans.test.ts:26 | shows the four rows with IOS names and status act/unsup, no ports
+tests/reserved-vlans.test.ts:31 | rows are ordered by VLAN ID: user VLANs below 1002 first, 1006+ after 1005
+tests/reserved-vlans.test.ts:44 | existing user VLAN rows are unchanged (status active, access ports listed)
+tests/reserved-vlans.test.ts:51 | display only: nothing is added to the VLAN database, running-config or the saved Lab
+tests/reserved-vlans.test.ts:64 | cannot be deleted (IOS: %Default VLAN n may not be deleted.) and the state is unchanged
+tests/reserved-vlans.test.ts:75 | cannot be configured or used as an access VLAN
+tests/reserved-vlans.test.ts:81 | 
+tests/reserved-vlans.test.ts:91 | a Lab saved earlier with VLAN 1002 in its database shows that entry once (no duplicate row)
+tests/reserved-vlans.test.ts:99 | Aruba AOS-CX 
+tests/reserved-vlans.test.ts:104 | routers still have no 
+tests/reserved-vlans.test.ts:109 | VLAN forwarding is unchanged (every ping of the sample lab gives the same result as the VLAN database alone)
+tests/samples.test.ts:16 | ${k}: builds, has unique ids, round-trips through export/import
+tests/samples.test.ts:33 | starts with exactly one passing check and a real duplicate
+tests/samples.test.ts:42 | the symptoms can be traced with the new tools (MAC table / ARP)
+tests/samples.test.ts:50 | fixing the three real faults through the CLI / config makes every check pass, one at a time
+tests/samples.test.ts:62 | uses the new device kinds
+tests/samples.test.ts:67 | starts at 3/6; the faults are layered and each fix reveals the next
+tests/samples.test.ts:81 | PC-01 failure before the last fix is a return-path problem (Inspector wording)
+tests/samples.test.ts:92 | the AP is draw-only and does not disturb anything
+tests/samples.test.ts:99 | applyStart returns the faulty start state, keeping guide and checks, and does not share objects with the snapshot
+tests/samples.test.ts:114 | a lab without a start snapshot cannot be reset
+tests/samples.test.ts:120 | captureStart is a deep copy of devices, cables and counters
+tests/samples.test.ts:129 | the start snapshot is validated on import
+tests/samples.test.ts:141 | router and L3 switch ping each other over a routed /30, in both directions
+tests/samples.test.ts:152 | starts with c1, c6, c7 passing; each fix unlocks its checks
+tests/samples.test.ts:165 | starts with c1, c6, c7 passing; each fix unlocks its checks
+tests/samples.test.ts:190 | starts unconfigured: the cabling is there, only the duplicate-IP check passes
+tests/samples.test.ts:196 | the full configuration from the requirements makes every check pass
+tests/share.test.ts:20 | is much shorter than the exported file, and challenges keep their hints and start state
+tests/share.test.ts:29 | accepts the fragment with or without the leading #
+tests/share.test.ts:35 | reads the uncompressed v0 form (browsers without streams write it)
+tests/share.test.ts:41 | rejects truncated, garbled and foreign links without throwing
+tests/share.test.ts:60 | refuses a link that would inflate beyond the size limit
+tests/share.test.ts:68 | only a #lab=… hash counts as a share link
+tests/traceroute.test.ts:118 | 1. PC → Router → PC: gateway, then the destination
+tests/traceroute.test.ts:126 | 2. PC → Switch → Router → PC: the L2 switches are not hops
+tests/traceroute.test.ts:135 | 3. PC → three routers → PC: every router in order, addressed from its interface towards the source
+tests/traceroute.test.ts:142 | 4. PC → Aruba L3 switch → PC: the routing Aruba switch is one hop
+tests/traceroute.test.ts:149 | 4b. an Aruba switch that only bridges (even with an SVI in the same VLAN) is NOT a hop
+tests/traceroute.test.ts:162 | 5. same subnet: one hop, the destination itself
+tests/traceroute.test.ts:169 | 6. different VLANs without routing: nothing leaves the source (gateway unreachable), like ping
+tests/traceroute.test.ts:181 | 7. inter-VLAN routing (router-on-a-stick): the sub-interface is the hop
+tests/traceroute.test.ts:186 | 8. missing default gateway: General failure, like ping
+tests/traceroute.test.ts:194 | 9. missing static route: the router without the route answers !N and the trace stops
+tests/traceroute.test.ts:203 | 9b. a source router with no route at all: no answers until the hop limit
+tests/traceroute.test.ts:210 | 10. shutdown router interface: the router lost its connected route → !N from the gateway
+tests/traceroute.test.ts:218 | 11. disconnected link: between R2 and R3 → R2 has no usable route → !N at hop 2
+tests/traceroute.test.ts:223 | 12. routing loop: R1 and R2 alternate until the hop limit; bounded
+tests/traceroute.test.ts:233 | 13. unreachable destination: routers answer, then no answer until the hop limit
+tests/traceroute.test.ts:247 | 14. maximum hop limit: never more lines than the limit; CLI options validated
+tests/traceroute.test.ts:265 | PC tracert: Windows layout without time columns
+tests/traceroute.test.ts:270 | PC tracert of an invalid address
+tests/traceroute.test.ts:274 | Cisco router traceroute
+tests/traceroute.test.ts:279 | Cisco 2960 traceroute through its ip default-gateway
+tests/traceroute.test.ts:285 | Aruba AOS-CX traceroute
+tests/traceroute.test.ts:290 | timeouts print as * lines
+tests/traceroute.test.ts:295 | traceroute is read-only: the Lab does not change
+tests/traceroute.test.ts:306 | 15. ping is unchanged and agrees with trace: reached ⇔ ping ok; hops are forwarding devices on ping’s path, in order
+tests/traceroute.test.ts:335 | old Lab files (export → import) trace the same
+tests/workspace.test.ts:9 | parses paragraphs, bullets and numbered lists
+tests/workspace.test.ts:19 | only http(s) links are considered safe
+tests/workspace.test.ts:25 | moves list items within bounds
+tests/workspace.test.ts:33 | sample labs ship with a guide that survives export/import
+tests/workspace.test.ts:42 | labs without a guide still import (guide is optional)
+tests/workspace.test.ts:47 | editing the guide changes the content signature (unsaved-work detection)
+tests/workspace.test.ts:59 | rejects a guide with wrong types, too many items, or a non-http link
+tests/workspace.test.ts:74 | round-trips several labs and the active id
+tests/workspace.test.ts:96 | skips corrupt entries and falls back to a valid one
+tests/workspace.test.ts:116 | migrates the single-lab storage of the first version
+tests/workspace.test.ts:138 | starts with the open lab as the only row
+tests/workspace.test.ts:143 | createLab keeps the previous lab and opens the new one with its guide
+tests/workspace.test.ts:158 | openLab switches labs and keeps edits made in each lab
+tests/workspace.test.ts:175 | duplicateLab copies content under a new id without opening it
+tests/workspace.test.ts:188 | delete asks first, removes other labs, and opens a neighbour when the open lab is deleted
+tests/workspace.test.ts:207 | importAsEntry adds a lab without switching; invalid files change nothing
+tests/workspace.test.ts:217 | guide edits through the store mark the lab as changed
+tests/workspace.test.ts:229 | lab rename validates
+tests/workspace.test.ts:236 | left dock toggles are mutually exclusive between menu and guide
+e2e/app.spec.ts:26 | sample lab → ping → shutdown uplink on SW2 → ping fails → no shutdown → ping works
+e2e/app.spec.ts:75 | moving PC-10 to VLAN 20 breaks ping while link stays up; moving back recovers
+e2e/app.spec.ts:99 | wrong gateway keeps same-subnet ping but breaks cross-subnet
+e2e/app.spec.ts:113 | invalid IP config is rejected with a message
+e2e/app.spec.ts:124 | add a new PC from the palette, cable it to a free port, set VLAN + IP, ping
+e2e/app.spec.ts:161 | drag a device from the palette onto the canvas; rename; delete
+e2e/app.spec.ts:174 | drag a cable between two devices, choose ports, and select a link
+e2e/app.spec.ts:191 | wrong mode / cross-vendor syntax is reported and config does not change
+e2e/app.spec.ts:216 | reload keeps names, positions, cables, config and ping results
+e2e/app.spec.ts:234 | export / import round-trip, invalid file is rejected, New Lab asks for confirmation
+e2e/app.spec.ts:279 | panels can be collapsed to enlarge the canvas
+e2e/app.spec.ts:288 | Command Library: filter, wrong-mode message, insert into console
+e2e/app.spec.ts:328 | works out of the box and trunk links are labelled
+e2e/app.spec.ts:339 | trunk allowed-vlan change on SW1 breaks VLAN 20 only; Inspector explains; fix with add
+e2e/app.spec.ts:366 | static/default route removal shows a return-path failure, restore fixes it
+e2e/app.spec.ts:385 | Aruba SVI makes SW2 the gateway; Cisco L2 switch rejects static routes
+e2e/app.spec.ts:410 | router-on-a-stick: sub-interface prompt, encapsulation required before IP
+e2e/campus3.spec.ts:3 | Campus 3 Tier sample: opens from Lab Manager and the guide pings work in the Console
+e2e/challenge.spec.ts:19 | challenge sample: Check shows real results, fixing faults turns them green
+e2e/challenge.spec.ts:56 | instructor creates a challenge, adds a check, and it survives reload
+e2e/challenges-more.spec.ts:24 | the Challenge menu lists the seven challenges and opens each one
+e2e/challenges-more.spec.ts:39 | Challenge 2: the duplicate IP is visible on the canvas and solvable through the UI
+e2e/challenges-more.spec.ts:54 | Challenge 3: layered faults are solved one by one with the AOS-CX and IOS CLI
+e2e/challenges-more.spec.ts:67 | Reset returns to the starting state, asks first, and can be undone
+e2e/challenges-more.spec.ts:92 | instructor: the start state is captured on creation, can be re-captured, and drives the learner Reset
+e2e/command-library.spec.ts:27 | compact list: every registry command is listed once with syntax, vendor, topic and a Put in Console button
+e2e/command-library.spec.ts:48 | detail panel: full syntax, description, devices, mode with how to enter it, examples, verify, actions
+e2e/command-library.spec.ts:80 | keyboard: ↓ from search into the list, ↑/↓/Home/End move, Enter opens the detail, Escape goes back
+e2e/command-library.spec.ts:132 | filters: device type and mode reach every command; Clear Filters resets them; empty state
+e2e/command-library.spec.ts:174 | copy command: success copies the exact example and says so
+e2e/command-library.spec.ts:191 | copy command: permission denied is reported as a failure, never as copied
+e2e/command-library.spec.ts:205 | copy command: no Clipboard API is reported as unsupported
+e2e/command-library.spec.ts:214 | Put in Console from the detail panel: problem shown next to the button, then inserts into the right console
+e2e/command-library.spec.ts:242 | target list holds only devices with a CLI; a selected diagram device does not become the target
+e2e/command-library.spec.ts:264 | English: the library, detail panel, copy feedback and problems contain no Thai text
+e2e/command-library.spec.ts:301 | layout ${vp.width}×${vp.height}: list and detail side by side, no horizontal overflow, list scrolls
+e2e/device-capability.spec.ts:31 | palette: every device shows its level (badge + accessible name)
+e2e/device-capability.spec.ts:46 | canvas nodes and the details panel show the level; partial / diagram devices explain why
+e2e/device-capability.spec.ts:65 | English labels for badges and the filter
+e2e/device-capability.spec.ts:78 | 
+e2e/device-capability.spec.ts:106 | with the filter on, click / keyboard / drag still add devices
+e2e/device-capability.spec.ts:121 | the node badge does not change node size or the cable handle position
+e2e/device-capability.spec.ts:134 | export / import: no capability data in the file, same ids and devices
+e2e/device-capability.spec.ts:151 | canvas marks only partial (◐) and diagram (▭) devices; full ones carry no visible mark but keep the label
+e2e/device-palette.spec.ts:19 | palette is visible right away (no 
+e2e/device-palette.spec.ts:39 | search by name, model and category; no-result state; clear
+e2e/device-palette.spec.ts:64 | category filter (and the search text follows the palette into the left menu)
+e2e/device-palette.spec.ts:84 | click, keyboard and drag add devices; click-added devices do not overlap; ids stay sequential
+e2e/device-palette.spec.ts:112 | TH / EN labels of the palette and the left menu
+e2e/device-palette.spec.ts:144 | left panel collapse/expand keeps the palette available
+e2e/device-palette.spec.ts:157 | desktop ${w}×${h}: palette bar on screen, below the canvas, no horizontal page scroll
+e2e/device-placement.spec.ts:67 | clicking Router, Switch and PC repeatedly: every device gets its own spot, all visible, same layout every session
+e2e/device-placement.spec.ts:102 | after zooming and panning, clicked devices land inside the visible canvas without overlapping
+e2e/device-placement.spec.ts:133 | undo after a palette click removes only that device; redo brings it back at the same spot
+e2e/device-placement.spec.ts:152 | drag-and-drop is unchanged: the device is placed under the cursor, even on top of another one
+e2e/device-placement.spec.ts:167 | export → import keeps click-placed devices: same ids, names, positions and schema
+e2e/devices.spec.ts:21 | palette shows all 19 devices once; each of the 10 network devices can be dragged, selected, renamed and deleted
+e2e/devices.spec.ts:52 | ${kind}: cable port 24 through the UI and see it busy afterwards
+e2e/devices.spec.ts:78 | unplugging a cable frees the port; new devices and cable survive a reload
+e2e/diagram-devices.spec.ts:27 | palette: the four objects are listed as Diagram Only, searchable, in WAN / Infrastructure, hidden by the simulation filter
+e2e/diagram-devices.spec.ts:52 | add by click (no overlap), keyboard and drag; ▭ on the canvas; rack and UPS have no cable handle
+e2e/diagram-devices.spec.ts:85 | details panel: Diagram Only + explanation, no console; the connect dialog offers cloud / patch panel ports but never rack / UPS
+e2e/diagram-devices.spec.ts:104 | no forwarding through a patch panel: two PCs cabled through it cannot ping
+e2e/diagram-devices.spec.ts:127 | export → import → reload keeps the objects, ids and ports; English labels
+e2e/diagram-devices.spec.ts:154 | wording: rack / UPS never claim cabling; link details explain that 
+e2e/endpoint-devices.spec.ts:43 | palette: five IP end devices, Partial Simulation, searchable, in End devices, kept by the simulation filter
+e2e/endpoint-devices.spec.ts:61 | add by click (no overlap), Enter, Space and drag; ◐ on the canvas; cable handle; undo / redo
+e2e/endpoint-devices.spec.ts:87 | details panel: Partial Simulation + what is not simulated, IP settings and a Terminal
+e2e/endpoint-devices.spec.ts:100 | a camera pings a PC through a Catalyst 2960 and the PC pings it back; ipconfig shows its settings
+e2e/endpoint-devices.spec.ts:119 | export → import → reload keeps the devices, their IP settings and ids; English labels
+e2e/features2.spec.ts:21 | interface range: one command configures several ports and the prompt shows the range
+e2e/features2.spec.ts:35 | interface range on AOS-CX
+e2e/features2.spec.ts:44 | Tab completes interface names and ping targets; the PC terminal too
+e2e/features2.spec.ts:62 | a ping animates a packet along the path; the toggle and reduced motion turn it off
+e2e/features2.spec.ts:81 | a ping that fails ends with a red cross where the packet died
+e2e/features2.spec.ts:88 | the Aruba note appears only on AOS-CX consoles
+e2e/features2.spec.ts:97 | challenge editor: reorder and duplicate checks and hints
+e2e/features2.spec.ts:116 | share link: copies a link that opens the Lab as a new Lab in another browser
+e2e/features2.spec.ts:138 | a broken or cut-off share link changes nothing
+e2e/features2.spec.ts:148 | an empty Lab has nothing to share
+e2e/features2.spec.ts:154 | messages appear at the bottom and never cover the toolbar; a click dismisses them
+e2e/guide-menu-manager.spec.ts:27 | is shown with the sample lab and can be closed and reopened
+e2e/guide-menu-manager.spec.ts:39 | instructor can edit title, add a section and a link; changes persist across reload and export
+e2e/guide-menu-manager.spec.ts:76 | a javascript: link is never rendered as a link
+e2e/guide-menu-manager.spec.ts:86 | guide can be deleted and created again on a lab without one
+e2e/guide-menu-manager.spec.ts:98 | a blank lab has no guide until one is created
+e2e/guide-menu-manager.spec.ts:108 | expands, lists nodes, focuses a node, hides labels, shows lab details
+e2e/guide-menu-manager.spec.ts:132 | works as an icon rail: guide toggle, add object opens the menu
+e2e/guide-menu-manager.spec.ts:145 | Close lab / Lab Manager entries open the Lab Manager
+e2e/guide-menu-manager.spec.ts:158 | lists labs, adds samples as new labs, switches without losing work
+e2e/guide-menu-manager.spec.ts:188 | search, duplicate, delete with confirmation, deleting the open lab
+e2e/guide-menu-manager.spec.ts:226 | import adds a lab to the list; a broken file changes nothing; the list survives a reload
+e2e/hints-tab.spec.ts:8 | hints are revealed one at a time and can be authored
+e2e/hints-tab.spec.ts:29 | a challenge without hints shows no hint box
+e2e/hints-tab.spec.ts:37 | Tab completes CLI words and lists options without leaving the console
+e2e/hints-tab.spec.ts:55 | the page has a favicon (no 404 for it)
+e2e/i18n.spec.ts:43 | the language switch: TH by default, EN after clicking, remembered across reloads
+e2e/i18n.spec.ts:64 | English mode: no Thai text is left in the main screens
+e2e/i18n.spec.ts:98 | English mode: challenges, hints, editors, dialogs and messages have no Thai text
+e2e/i18n.spec.ts:151 | English mode: an error message and the duplicate-IP badge are English too
+e2e/l2.spec.ts:20 | duplicate IP: badge on both nodes, listed in the Inspector, gone after the fix
+e2e/l2.spec.ts:48 | MAC table and ARP table commands answer from the live topology
+e2e/l2.spec.ts:68 | challenge editor can add a config-line, a route and a no-duplicate check, which then pass/fail against the real lab
+e2e/native-vlan.spec.ts:4 | native VLAN mismatch on the SW1–SW2 trunk appears in the Inspector and disappears when fixed
+e2e/robustness.spec.ts:29 | import: a Lab whose switches have fewer than 24 ports opens and keeps its ports, cables and behaviour
+e2e/robustness.spec.ts:54 | startup: a saved Lab that cannot be opened is never silently overwritten
+e2e/robustness.spec.ts:95 | blank canvas: dropping the first devices does not zoom the view to 2x or make nodes overlap
+e2e/robustness.spec.ts:120 | opening a Lab with a single device does not blow it up either
+e2e/safety.spec.ts:3 | tab title follows the lab name and shows ● while edits are not exported
+e2e/safety.spec.ts:14 | copy running-config puts the real config on the clipboard (Cisco and Aruba); hosts have no such button
+e2e/safety.spec.ts:39 | autosave works: no warning banner and no 
+e2e/safety.spec.ts:64 | a warning banner appears right away and offers Export
+e2e/safety.spec.ts:72 | closing the page with unexported edits asks for confirmation; without edits it does not
+e2e/undo.spec.ts:14 | undo / redo buttons: delete a device and its cables, then bring everything back
+e2e/undo.spec.ts:32 | keyboard shortcuts work on the canvas but not inside the console input
+e2e/undo.spec.ts:54 | undo reverts a CLI config change and the Inspector/link status follow
+e2e/undo.spec.ts:65 | a dragged device is one undo step; loading another lab clears history
+e2e/workspace-ui.spec.ts:38 | navigation: one active view (aria-current), switching views keeps the canvas viewport and the lab
+e2e/workspace-ui.spec.ts:65 | toolbar: actions are grouped (Lab file · Edit · Network · View) and keep their behaviour
+e2e/workspace-ui.spec.ts:119 | language: Thai labels in Thai mode, English labels in English mode (technical names unchanged)
+e2e/workspace-ui.spec.ts:160 | panels collapse and expand; the canvas resizes and keeps its zoom; Console output survives
+e2e/workspace-ui.spec.ts:197 | device selection and console access from the canvas
+e2e/workspace-ui.spec.ts:211 | desktop layout ${w}×${h}: one-row bars, every toolbar control on screen, no horizontal scroll
+e2e/workspace-ui.spec.ts:237 | keyboard: toolbar controls are reachable with Tab and show a focus ring
+e2e/endpoint-routing.spec.ts(3c9aed7):134 | ping across the router from each new endpoint (and PC-01): replies from the remote PC, output identical to the engine
+e2e/endpoint-routing.spec.ts(3c9aed7):147 | tracert across the router: first hop is the default gateway, last hop is the destination
+e2e/endpoint-routing.spec.ts(3c9aed7):164 | arp -a after communicating: gateway and the local peer are listed, the remote host is not; identical to the engine
+e2e/endpoint-routing.spec.ts(3c9aed7):180 | missing default gateway: remote ping fails with "General failure", tracert cannot leave the subnet, local ping still works
+e2e/endpoint-routing.spec.ts(3c9aed7):204 | existing PC behaviour is unchanged: PC-01 ipconfig / ping / tracert / arp match the engine, and the endpoints print the same format

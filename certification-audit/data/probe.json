@@ -1,0 +1,170 @@
+{
+ "names": [
+  "R1:cisco-router",
+  "R2:cisco-router",
+  "PC-E:pc",
+  "SW1:cisco-switch",
+  "SW2:aruba-switch",
+  "PC-A:pc",
+  "PC-B:pc",
+  "PC-C:pc",
+  "PC-D:pc"
+ ],
+ "hostRoute": [
+  {
+   "l": "enable",
+   "out": [],
+   "ok": true
+  },
+  {
+   "l": "configure terminal",
+   "out": [
+    "Enter configuration commands, one per line.  End with CNTL/Z."
+   ],
+   "ok": true
+  },
+  {
+   "l": "ip route 172.31.5.5 255.255.255.255 10.0.0.2",
+   "out": [],
+   "ok": true
+  },
+  {
+   "l": "end",
+   "out": [],
+   "ok": true
+  },
+  {
+   "l": "show ip route",
+   "out": [
+    "Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP",
+    "       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area",
+    "       * - candidate default",
+    "",
+    "Gateway of last resort is not set",
+    "",
+    "      10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks",
+    "C        10.0.0.0/30 is directly connected, GigabitEthernet0/1",
+    "L        10.0.0.1/32 is directly connected, GigabitEthernet0/1",
+    "      172.16.0.0/24 is subnetted, 1 subnets",
+    "S        172.16.0.0 [1/0] via 10.0.0.2",
+    "      172.31.0.0/32 is subnetted, 1 subnets",
+    "S        172.31.5.5 [1/0] via 10.0.0.2",
+    "      192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks",
+    "C        192.168.10.0/24 is directly connected, GigabitEthernet0/0.10",
+    "L        192.168.10.1/32 is directly connected, GigabitEthernet0/0.10",
+    "      192.168.20.0/24 is variably subnetted, 2 subnets, 2 masks",
+    "C        192.168.20.0/24 is directly connected, GigabitEthernet0/0.20",
+    "L        192.168.20.1/32 is directly connected, GigabitEthernet0/0.20"
+   ],
+   "ok": true
+  }
+ ],
+ "floating": [
+  {
+   "l": "configure terminal",
+   "out": [
+    "Enter configuration commands, one per line.  End with CNTL/Z."
+   ],
+   "ok": true
+  },
+  {
+   "l": "ip route 172.31.6.0 255.255.255.0 10.0.0.2 200",
+   "out": [
+    "                                                      ^",
+    "% Invalid input detected at '^' marker."
+   ],
+   "ok": false
+  },
+  {
+   "l": "end",
+   "out": [],
+   "ok": true
+  }
+ ],
+ "enableSecret": [
+  {
+   "l": "configure terminal",
+   "out": [
+    "Enter configuration commands, one per line.  End with CNTL/Z."
+   ],
+   "ok": true
+  },
+  {
+   "l": "enable secret cisco",
+   "out": [
+    "           ^",
+    "% Invalid input detected at '^' marker."
+   ],
+   "ok": false
+  },
+  {
+   "l": "end",
+   "out": [],
+   "ok": true
+  }
+ ],
+ "ospf": [
+  {
+   "l": "configure terminal",
+   "out": [
+    "Enter configuration commands, one per line.  End with CNTL/Z."
+   ],
+   "ok": true
+  },
+  {
+   "l": "router ospf 1",
+   "out": [
+    "           ^",
+    "% Invalid input detected at '^' marker."
+   ],
+   "ok": false
+  },
+  {
+   "l": "end",
+   "out": [],
+   "ok": true
+  }
+ ],
+ "ipv6": [
+  {
+   "l": "configure terminal",
+   "out": [
+    "Enter configuration commands, one per line.  End with CNTL/Z."
+   ],
+   "ok": true
+  },
+  {
+   "l": "ipv6 unicast-routing",
+   "out": [
+    "           ^",
+    "% Invalid input detected at '^' marker."
+   ],
+   "ok": false
+  },
+  {
+   "l": "end",
+   "out": [],
+   "ok": true
+  }
+ ],
+ "cdp": [
+  {
+   "l": "show cdp neighbors",
+   "out": [
+    "        ^",
+    "% Invalid input detected at '^' marker."
+   ],
+   "ok": false
+  }
+ ],
+ "showLogging": [
+  {
+   "l": "show logging",
+   "out": [
+    "        ^",
+    "% Invalid input detected at '^' marker."
+   ],
+   "ok": false
+  }
+ ]
+}
