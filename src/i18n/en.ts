@@ -1039,4 +1039,5 @@ export const EN: Record<string, string> = {
   "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตให้เข้าถึง clipboard ให้เลือกข้อความตัวอย่างแล้วกด Ctrl+C": "Copy failed — the browser did not allow access to the clipboard. Select the example text and press Ctrl+C",
   "คัดลอกไม่สำเร็จ — เบราว์เซอร์นี้ไม่รองรับการคัดลอกอัตโนมัติ ให้เลือกข้อความตัวอย่างแล้วกด Ctrl+C": "Copy failed — this browser does not support copying from the page. Select the example text and press Ctrl+C",
   "คัดลอกไม่สำเร็จ — ให้เลือกข้อความตัวอย่างแล้วกด Ctrl+C": "Copy failed — select the example text and press Ctrl+C",
+  "ปิดบังรหัสผ่านที่พบในประวัติคำสั่ง {0} บรรทัด": "Masked passwords found in the command history: {0} line(s)",
 };

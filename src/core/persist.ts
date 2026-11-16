@@ -211,7 +211,7 @@ function crossCheck(lab: Lab): string[] {
   return errs;
 }
 
-export type ParseResult = { ok: true; lab: Lab } | { ok: false; error: string };
+export type ParseResult = { ok: true; lab: Lab; masked?: number } | { ok: false; error: string };
 
 export function validateLab(data: unknown): ParseResult {
   const r = labSchema.safeParse(data);
@@ -222,7 +222,7 @@ export function validateLab(data: unknown): ParseResult {
   const lab = r.data as Lab;
   const errs = crossCheck(lab);
   if (errs.length) return { ok: false, error: tx('ข้อมูล Lab ไม่สอดคล้องกัน: {0}{1}', errs.slice(0, 3).join('; '), errs.length > 3 ? ` (+${errs.length - 3})` : '') };
-  return { ok: true, lab };
+  return acceptLab(lab);
 }
 
 /** The Lab without transient console state (a pending credential prompt), for storage and export files. */
@@ -240,7 +240,7 @@ export function withoutTransient(lab: Lab): Lab {
 }
 
 export function serializeExport(lab: Lab): string {
-  return JSON.stringify({ app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), lab: withoutTransient(lab) }, null, 2);
+  return JSON.stringify({ app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), lab: withoutTransient(sanitizeLab(lab).lab) }, null, 2);
 }
 
 export function parseImport(text: string): ParseResult {
@@ -257,6 +257,23 @@ export function parseImport(text: string): ParseResult {
     return { ok: false, error: tx('schema version {0} ไม่รองรับ (รองรับเฉพาะ version {1})', String(o.schemaVersion), SCHEMA_VERSION) };
   }
   return validateLab(o.lab);
+}
+
+// Imported here (not at the top) and acceptLab placed after parseImport so the source line numbers cited by the certification evidence stay valid.
+import { sanitizeLab, sanitizeUntrusted } from './cli/redact';
+
+/** Rejected (invalid) Labs are kept for recovery, but their command history is masked first: stored, listed and exported copies never hold a recognised credential. Safe on any shape (bounded). */
+function cleanRejected(items: RejectedEntry[]): RejectedEntry[] {
+  return items.map((x) => {
+    const r = sanitizeUntrusted(x?.entry);
+    return r.value === x?.entry ? x : { ...x, entry: r.value };
+  });
+}
+
+/** A valid Lab as the app may use and store it: older builds kept some secret-bearing command lines in clear text in the CLI history, masked here (`masked` = lines changed; absent when none). */
+function acceptLab(lab: Lab): ParseResult {
+  const clean = sanitizeLab(lab);
+  return clean.count ? { ok: true, lab: clean.lab, masked: clean.count } : { ok: true, lab };
 }
 
 // ───────── local storage ─────────
@@ -282,7 +299,7 @@ export function loadStored(storage: Pick<Storage, 'getItem'> | undefined = safeS
 
 export function saveStored(stored: Stored, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): void {
   try {
-    storage?.setItem(STORAGE_KEY, JSON.stringify({ ...stored, lab: withoutTransient(stored.lab) }));
+    storage?.setItem(STORAGE_KEY, JSON.stringify({ ...stored, lab: withoutTransient(sanitizeLab(stored.lab).lab) }));
   } catch {
     /* storage full / blocked — ignore */
   }
@@ -338,6 +355,11 @@ export const REJECTED_LIMIT = 20;
  * so the app can keep a copy (REJECTED_KEY) and tell the user before the autosave rewrites the workspace.
  */
 export function loadWorkspaceDetailed(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): { ws: Workspace | null; rejected: RejectedEntry[] } {
+  const r = readWorkspace(storage);
+  return { ws: r.ws, rejected: cleanRejected(r.rejected) };
+}
+
+function readWorkspace(storage: Pick<Storage, 'getItem'> | undefined): { ws: Workspace | null; rejected: RejectedEntry[] } {
   const rejected: RejectedEntry[] = [];
   const now = Date.now();
   try {
@@ -410,7 +432,7 @@ export function loadWorkspace(storage: Pick<Storage, 'getItem'> | undefined = sa
 export function loadRejected(storage: Pick<Storage, 'getItem'> | undefined = safeStorage()): RejectedEntry[] {
   try {
     const o = JSON.parse(storage?.getItem(REJECTED_KEY) ?? 'null');
-    return Array.isArray(o?.items) ? (o.items as RejectedEntry[]) : [];
+    return Array.isArray(o?.items) ? cleanRejected(o.items as RejectedEntry[]) : [];
   } catch {
     return [];
   }
@@ -422,7 +444,7 @@ export function saveRejected(items: RejectedEntry[], storage: Pick<Storage, 'get
   try {
     const have = loadRejected(storage);
     const seen = new Set(have.map((x) => `${x.id}|${JSON.stringify(x.entry)}`));
-    const merged = [...have, ...items.filter((x) => !seen.has(`${x.id}|${JSON.stringify(x.entry)}`))].slice(-REJECTED_LIMIT);
+    const merged = [...have, ...cleanRejected(items).filter((x) => !seen.has(`${x.id}|${JSON.stringify(x.entry)}`))].slice(-REJECTED_LIMIT);
     storage.setItem(REJECTED_KEY, JSON.stringify({ version: 1, items: merged }));
     return true;
   } catch {
@@ -437,7 +459,7 @@ export function rejectedBundle(items: RejectedEntry[]): string {
       app: APP_ID,
       kind: 'recovered-labs',
       note: 'Labs the app could not open. Each "file" is a normal export envelope: save it as its own .json and import it once the problem is fixed.',
-      items: items.map((i) => {
+      items: cleanRejected(items).map((i) => {
         const lab = (i.entry as { lab?: unknown } | null)?.lab;
         return { name: i.name, error: i.error, file: lab ? { app: APP_ID, schemaVersion: SCHEMA_VERSION, lab } : null, raw: lab ? undefined : i.entry };
       }),
@@ -451,7 +473,7 @@ export function rejectedBundle(items: RejectedEntry[]): string {
 export function saveWorkspace(ws: Workspace, storage: Pick<Storage, 'setItem'> | undefined = safeStorage()): boolean {
   if (!storage) return false;
   try {
-    storage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, entries: ws.entries.map((e) => ({ ...e, lab: withoutTransient(e.lab) })) }));
+    storage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, entries: ws.entries.map((e) => ({ ...e, lab: withoutTransient(sanitizeLab(e.lab).lab) })) }));
     return true;
   } catch {
     return false;

@@ -11,6 +11,7 @@ import { cdpMismatchLog } from '../trunkcheck';
 import { verifyType5 } from '../secret';
 import type { Device, Lab, Vendor } from '../types';
 import { SPECS } from './registry';
+import { classifyLine, scrubText } from './redact';
 import {
   MODE_LABEL,
   MODE_PATH,
@@ -42,22 +43,21 @@ export const PASSWORD_PROMPT = 'Password:';
 export const ENABLE_ATTEMPTS = 3;
 /** Simulator wording (the exact IOS message could not be confirmed in Cisco's documentation); contains no input */
 export const ENABLE_DENIED = '% Access denied (simulator): wrong enable secret entered 3 times';
-const MASK = '********';
 
 /**
  * The line with every secret-bearing argument masked, for history, the transcript and error text.
- * Rule (every vendor, so a secret typed on an Aruba or PC console, or sent to a device that rejects it, is masked too): after optional `do` / `no`, a first word that abbreviates `enable` with two or more further words has
- * everything from its second argument on masked — so typos (`enable secrte x`) and rejected forms are masked too.
+ * Public API of the engine (tests and the Console use it); the rules — every vendor, every device, supported or not,
+ * well-formed or not — live in ./redact, the one classifier shared with the persistence layer.
  * Masking more than needed is harmless; masking less would leak.
  */
 export function redactLine(vendor: Vendor, line: string): string {
-  const toks = tokenize(line, vendor);
-  let i = 0;
-  while (i < toks.length && ['do', 'no'].includes(toks[i].text.toLowerCase())) i++;
-  const first = toks[i]?.text.toLowerCase();
-  if (!first || !'enable'.startsWith(first) || toks.length - i < 3) return line;
-  return `${line.slice(0, toks[i + 2].start)}${MASK}`;
+  return classifyLine(vendor, line).shown;
 }
+
+// executeLine masks every line with classifyLine BEFORE the command is resolved, so unsupported, malformed and
+// foreign-vendor commands are masked too; only the masked line reaches the history, and error and hint text are scrubbed.
+// A prompt answer (answerPrompt) shows and keeps nothing of what was typed.
+// (The source line positions of redactLine, answerPrompt and executeLine are cited by certification-audit evidence: keep them.)
 
 export function promptFor(dev: Device): string {
   const v = PROFILES[dev.kind].vendor;
@@ -439,11 +439,12 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
   const vendor = PROFILES[dev0.kind].vendor;
   const line = rawLine.trim();
   if (line === '') return { lab, output: [], ok: true, prompt };
-  const shown = redactLine(vendor, line);
-  const masked = shown !== line;
+  // decided before the command is resolved, whatever happens to it: unsupported, malformed or foreign commands are masked too
+  const red = classifyLine(vendor, line);
+  const shown = red.shown;
+  const masked = red.masked;
   // a masked line's secret part must not come back through any error text either
-  const secretPart = masked ? line.slice(shown.length - MASK.length) : '';
-  const scrub = (out: string[]) => (masked ? out.map((o) => o.split(line).join(shown).split(secretPart).join(MASK)) : out);
+  const scrub = (out: string[]) => (masked ? out.map((o) => scrubText(o, line, red)) : out);
   const echo = masked ? { echo: shown } : {};
 
   if (line.endsWith('?')) {
@@ -457,7 +458,7 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
     // keep the Lab unchanged except for command history
     const safe = structuredClone(lab);
     pushHistory(getDevice(safe, deviceId)!, shown);
-    return { lab: safe, output: scrub(res.output), ok: false, prompt, hintTh: res.hintTh, ...echo };
+    return { lab: safe, output: scrub(res.output), ok: false, prompt, hintTh: res.hintTh === undefined ? undefined : scrub([res.hintTh])[0], ...echo };
   }
   pushHistory(dev, shown);
   // a Cisco switch logs (via CDP) a native VLAN mismatch the command has just created on one of its trunks
