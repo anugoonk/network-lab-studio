@@ -1,0 +1,357 @@
+// Certification gap analysis model — Network Lab Studio @ 950fb0c (CERT-Q4a evidence update: CDP topics M → P; earlier CERT-Q3 update at 3e00c13).
+// Objective IDs and hierarchy from the official documents (wording paraphrased). Statuses from repository evidence.
+// Status codes: V=VERIFIED IU=IMPLEMENTED_UNVERIFIED P=PARTIAL D=DIAGRAM_ONLY T=THEORY_ONLY M=MISSING U=UNKNOWN
+
+export const SCORE = { V: 1.0, IU: 0.75, P: 0.4, D: 0.15, T: 0.1, M: 0.0 }; // U excluded from numerator AND denominator, reported separately
+export const SCENARIOS = {
+  proposed: SCORE,
+  strict: { V: 1.0, IU: 0.5, P: 0.25, D: 0.0, T: 0.0, M: 0.0 },
+  lenient: { V: 1.0, IU: 1.0, P: 0.6, D: 0.25, T: 0.2, M: 0.0 },
+};
+export const STATUS_NAME = { V: 'VERIFIED', IU: 'IMPLEMENTED_UNVERIFIED', P: 'PARTIAL', D: 'DIAGRAM_ONLY', T: 'THEORY_ONLY', M: 'MISSING', U: 'UNKNOWN' };
+export const REL = { H: 1.0, M: 0.5, L: 0.0 }; // practical-Lab relevance weight
+
+// ───────────── evidence dictionary (original refs at dcbf4cb/3c9aed7; CERT-Q3 refs at main 3e00c13; CERT-Q4a refs at main 950fb0c) ─────────────
+export const EV = {
+  's.l2': 'src/core/network.ts — l2Domain() l.191, portCarries() l.81, allowsVlan() l.78',
+  't.q3lpm': 'tests/route-selection.test.ts:101, :110, :116, :127, :140, :147, :158, :174 -- CERT-Q3 A1-A8: real IOS CLI + trace/ping, overlapping prefixes, order independence, connected tie, missing route, down next-hop fallback, deterministic export/import; Cisco router only; no ECMP/AD/metric fidelity claim',
+  't.q3host': 'tests/route-selection.test.ts:189, :200, :210, :217 -- CERT-Q3 B1-B4: exact /32 host selection vs neighbours, route/config output, unreachable next-hop fallback, invalid input leaves routes unchanged; IPv4 Cisco router only (IPv6 remains separately MISSING)',
+  't.q3link': 'tests/link-messages.test.ts:65, :73, :81, :92, :109, :118, :125 -- CERT-Q3 C1-C7: existing IOS message format and real up/down happy paths; F-1 through F-5 unresolved, syslog stays PARTIAL',
+  's.l3': 'src/core/network.ts — l3Interfaces() l.130, selectRoute() l.462 (longest prefix; connected wins ties), deliver() l.532',
+  's.ping': 'src/core/network.ts — ping() l.711, trace() l.624',
+  's.link': 'src/core/network.ts — linkStatus() l.35, portLine() l.57 (up / down / admin-down / no-cable)',
+  's.l2t': 'src/core/l2tables.ts — macTable() l.50, arpTable() l.74, duplicateIps() l.103 (steady-state model, header l.4-6)',
+  's.ip': 'src/core/ip.ts — isValidMask() l.18, isHostAddress() l.46 (rejects 0.x, 127.x, >=224), subnetsOverlap() l.57, parseCidr() l.72',
+  's.trunkchk': 'src/core/trunkcheck.ts — nativeVlanMismatches() l.42, cdpMismatchLog() l.70 (%CDP-4-NATIVE_VLAN_MISMATCH)',
+  's.cisco': 'src/core/cli/cisco.ts — 58 command specs at dcbf4cb, 60 at 950fb0c (+ show cdp neighbors [detail]); show ip route renderer l.240-275 at 3e00c13 (+1 at 950fb0c) (codes C/L/S/S*, fixed [1/0], gateway of last resort)',
+  's.aruba': 'src/core/cli/aruba.ts — 41 command specs',
+  's.pc': 'src/core/cli/pc.ts — 8 specs (ipconfig, ipconfig /all, ping, tracert, tracert -h, arp -a, cls, help); "DHCP Enabled: No" (l.29)',
+  's.syslog': 'src/core/cli/cisco.ts l.774 %LINK-5-CHANGED, l.785 %LINK-3-UPDOWN, l.207 %IP-4-DUPADDR (lines at 3e00c13; l.791, l.802, l.208 at 950fb0c); src/core/trunkcheck.ts l.8 %CDP-4-NATIVE_VLAN_MISMATCH',
+  's.prof': 'src/core/profiles.ts — 19 device kinds; simLevel full(7)/partial(6)/diagram(6)',
+  's.chal': 'src/core/challenge.ts — evaluateCheck() l.79; check kinds ping/link-up/config-line/trunk-vlan/port-admin/route/no-dup-ip (src/core/types.ts l.125-137)',
+  's.samples': 'src/core/sample.ts — 10 sample Labs incl. 7 graded challenges; src/core/sampleGuides.ts',
+  's.persist': 'src/core/persist.ts — validateLab() l.216, serializeExport() l.242, parseImport() l.246 (JSON, schemaVersion 1; baseline 51251c0 — they were l.211 / l.223 / l.227 at 950fb0c, shifted by CERT-P0-1a); withoutTransient() l.229 (a pending credential prompt is never stored or exported); optional security.enableSecret schema l.76 (type-5 hash only)',
+  's.secret': 'src/core/secret.ts — md5() l.17, md5crypt() l.65, hashType5() l.102, verifyType5() l.107; TYPE5_RE l.62 (MD5-crypt "$1$<salt>$<22 chars>", synchronous) -- CERT-P0-1a, main 51251c0; byte compatibility with openssl passwd -1 vectors, not with a physical device',
+  's.enable': 'src/core/cli/cisco.ts — setEnableSecret() l.23; registry specs cisco.enable (l.490, asks Password: when a secret exists), cisco.enable.secret / .secret.0 / .secret.5 (l.676-700), cisco.no.enable.secret (l.704); running-config line "enable secret 5 <hash>" (l.79) -- CERT-P0-1a, main 51251c0. Enable secret only: no enable password, username, line console/vty, login, SSH, service password-encryption',
+  's.credin': 'src/core/cli/engine.ts — redactLine() l.53 (vendor-independent after fix1), answerPrompt() l.407 (hidden answer, ENABLE_ATTEMPTS = 3 simulator setting), executeLine() l.429; src/components/Console.tsx l.63, l.164 (type=password while a prompt is pending); src/store.ts l.553 (a secret answer is not written to the transcript) -- CERT-P0-1a + fix1, main 51251c0',
+  's.ui': 'src/components/Canvas.tsx, Palette.tsx, Console.tsx, Inspector.tsx, CommandLibrary.tsx, ChallengePanel.tsx, GuidePanel.tsx, FileManager.tsx',
+  't.vlan': 'tests/cli.test.ts:61 "switch: create VLAN, set access VLAN, show vlan brief"; :75; tests/network.test.ts:54, :72; tests/l3.test.ts:27 "VLANs stay isolated without a router path"; e2e/app.spec.ts:75',
+  't.vlan1': 'tests/cli.test.ts:81 "VLAN 1 cannot be deleted; …"; tests/cli-batch2.test.ts:90 "returns the port to VLAN 1 …"',
+  't.reserved': 'tests/reserved-vlans.test.ts:26-64; tests/audit-phase-a.test.ts:140',
+  't.trunk': 'tests/l3.test.ts:38, :50, :62, :89, :103; tests/challenge.test.ts:131; e2e/app.spec.ts:339',
+  't.native': 'tests/l3.test.ts:70 "native VLAN: … a mismatch leaks VLANs"; tests/native-vlan.test.ts:68-167; e2e/native-vlan.spec.ts:4',
+  't.intervlan': 'tests/l3.test.ts:114-156 (router-on-a-stick), :244 "Aruba switch routes between VLANs when it is the gateway"; e2e/app.spec.ts:385, :410',
+  't.svi': 'tests/l3.test.ts:257, :268, :278, :294, :303, :311',
+  't.routed': 'tests/l3.test.ts:321, :332; tests/campus3.test.ts:23 "uses /31 routed links and SVI gateways"; tests/samples.test.ts:141',
+  't.static': 'tests/l3.test.ts:165, :182, :192, :206, :217; tests/campus3.test.ts:70; e2e/app.spec.ts:366',
+  't.default': 'tests/l3.test.ts:200 "default route S* is shown on R2" (asserts "Gateway of last resort is 10.0.0.1 …"); e2e/app.spec.ts:366 (asserts "Gateway of last resort is not set")',
+  't.ping': 'tests/network.test.ts:21-150; tests/audit-phase-a.test.ts:77-194; e2e/app.spec.ts:26, :99',
+  't.trace': 'tests/traceroute.test.ts:118-223; tests/endpoint-devices.test.ts:92; e2e/endpoint-routing.spec.ts:147 (3c9aed7)',
+  't.arp': 'tests/l2tables.test.ts:79, :90; tests/samples.test.ts:42; e2e/l2.spec.ts:48; e2e/endpoint-routing.spec.ts:164 (3c9aed7)',
+  't.mac': 'tests/l2tables.test.ts:29 "SW1 learns PC-A locally …"; e2e/l2.spec.ts:48',
+  't.dup': 'tests/l2tables.test.ts:120, :128; tests/challenge.test.ts:165; tests/cli-batch2.test.ts:160; e2e/l2.spec.ts:20; e2e/challenges-more.spec.ts:39',
+  't.ipval': 'tests/cli.test.ts:49 "router rejects bad mask, overlapping subnet …"; tests/l3.test.ts:311, :321; e2e/app.spec.ts:113',
+  't.gw': 'tests/network.test.ts:80, :116, :125, :133; tests/l3.test.ts:278, :294; e2e/app.spec.ts:99; e2e/endpoint-routing.spec.ts:180 (3c9aed7)',
+  't.ipconfig': 'tests/cli-batch2.test.ts:136, :173; tests/network.test.ts:186; e2e/endpoint-devices.spec.ts:100; e2e/endpoint-routing.spec.ts:204 (3c9aed7)',
+  't.showif': 'tests/cli.test.ts:37, :70, :134; tests/cli-batch2.test.ts:54, :76; tests/l3.test.ts:145',
+  't.link': 'tests/network.test.ts:30, :45, :150; tests/challenge.test.ts:60, :145; e2e/app.spec.ts:26',
+  't.config': 'tests/cli.test.ts:20, :98 "write memory fills startup-config", :104; tests/challenge.test.ts:117; tests/persist.test.ts:10; e2e/safety.spec.ts:14; e2e/app.spec.ts:216, :234',
+  't.cli': 'tests/cli.test.ts:11, :27, :89, :182, :192, :209, :214 (every registry example executed on every supported device kind)',
+  't.chal': 'tests/challenge.test.ts:12, :30, :46; tests/campus3.test.ts:93; e2e/challenge.spec.ts:19, :56; e2e/challenges-more.spec.ts:24-92; e2e/l2.spec.ts:68; e2e/hints-tab.spec.ts:8',
+  't.addrchal': 'tests/samples.test.ts:151 "Challenge 5: addressing faults" (dot1Q, PC mask /30, WAN IP)',
+  't.campus3': 'tests/campus3.test.ts:13-93; e2e/campus3.spec.ts:3',
+  't.diagram': 'tests/device-capability.test.ts:146 "diagram: a firewall … does not forward", :156 (AP is a leaf); tests/diagram-devices.test.ts:59, :73, :91, :109; e2e/diagram-devices.spec.ts:104',
+  't.endpoint': 'tests/endpoint-devices.test.ts:74, :92, :112; tests/device-capability.test.ts:136 (server = IP host only); e2e/endpoint-devices.spec.ts:100',
+  't.loop': 'tests/network.test.ts:159 "a layer-2 loop does not hang the engine" (no STP / no storm modelled); tests/traceroute.test.ts:223',
+  't.ttl': 'tests/audit-phase-a.test.ts:77-104 (TTL 128/125/255/64 per routers crossed)',
+  't.syslog': 'tests/l2tables.test.ts:120 (%IP-4-DUPADDR); tests/native-vlan.test.ts:150, :167 (%CDP-4-NATIVE_VLAN_MISMATCH)',
+  't.topo': 'tests/network.test.ts:9; e2e/app.spec.ts:124, :161, :174; e2e/devices.spec.ts:21',
+  't.range': 'tests/range.test.ts:15-172; e2e/features2.spec.ts:21, :35',
+  's.cdp': 'src/core/cli/cdp.ts — neighbors() l.25 (physical Lab.links, both ports operationally up via linkStatus(), Cisco IOS kinds only), entryAddress() l.43, showCdpNeighbors() l.53; registry specs cisco.show.cdp.neighbors / .detail in src/core/cli/cisco.ts (privileged EXEC) -- CERT-Q4a, main 950fb0c; read-only topology view: no CDP advertisements, timers/holdtime, CDP/LLDP configuration or LLDP',
+  't.secret': 'tests/secret.test.ts:21, :35, :45 (RFC 1321 MD5 vectors, type-5 verify, random 4-char salt); tests/enable-secret.test.ts:51, :63, :78, :96, :106, :116, :129, :139, :151, :166, :175, :183, :200, :205, :224, :242, :252, :269 -- CERT-P0-1a at 51251c0: enable without a secret unchanged, Password: prompt, right/wrong/3 wrong answers, disable, hidden answer is never a command, Catalyst + ISP router, running-config hash only, secret 0 / 5 forms, no enable secret, non-Cisco rejection, history/echo/error masking, localStorage + workspace + export + import, 40 randomised secrets, legacy Labs',
+  't.secfix': 'tests/enable-secret-all-devices.test.ts:39, :49, :72, :82, :92, :106, :121 -- CERT-P0-1a fix1 (33 unit tests): redaction on every vendor, Cisco/Aruba/PC/IP endpoint kinds, no-CLI kinds, store transcript, Cisco authentication unchanged; with the 3a27eef engine put back 22 of 33 fail',
+  't.secretE2E': 'e2e/enable-secret.spec.ts:8; e2e/enable-secret-unsupported.spec.ts:11 -- CERT-P0-1a + fix1 in a real browser: hidden Password:, wrong then right answer, nothing on screen / history / storage; Aruba + PC reject and the raw secret is absent from screen, history, storage, export and after reload',
+  't.cdp': 'tests/cdp.test.ts:50, :56, :103, :111, :121, :131, :147, :158, :188, :197, :219, :237; e2e/cdp.spec.ts:6 -- CERT-Q4a (33 unit + 1 E2E, real executeLine on real topology): local/remote ports, orientation, operational state not inferred from local admin, unplug/reconnect, unsupported kinds and patch panel excluded, detail IP/version without invented data, deterministic export/import, mode/do/help/Tab, LLDP/cdp config rejected',
+  'p.cdp': 'Main CI run 43377797700 (950fb0c: npm test success, E2E 138/138, deploy success) · Pages deployment 7758721759 · production smoke10 (scratchpad, live site, 2026-11-13): UI-built R1-SW1-R2 topology, summary/detail ports, shutdown removes the neighbor, PC/Aruba/IP phone excluded, AOS-CX rejects the command',
+  'p.p01a': 'CERT-P0-1a + fix1 at main = production 51251c0. REPORTED by the gates (logs of CI are not readable without login, so the unit count in CI is unverified): Linux CI run 43784316839 (ci/cert-p0-1a-fix1) and main CI run 43784804302 — build ok, E2E 140 passed / 0 failed / 0 flaky / 0 skipped, deploy ok · Pages deployment 7813043791 · production JS/CSS/HTML byte-identical to a clean build of 51251c0 · production smoke 63/63 (58 + CDP 1 + enable secret 3 + all-device security 1; 0 console errors, 0 failed requests) · synthetic-secret check of 12 input forms on Cisco router, Cisco switch, ISP router, Aruba switch, PC. REPRODUCED DIRECTLY by this evidence update (2026-11-16): local unit suite 855/855; production smoke11 3/3 and smoke12 1/1 against the live site (bundle index-DwEygOnl.js). Simulator behaviour only: no real Cisco hardware or IOS image was used',
+  'p.smoke': 'Production smoke 58/58 (scratchpad scripts, live site, 2026-11-13): smoke/smoke2f ping+traceroute text = engine; smoke8 endpoints ping/tracert/arp/no-gateway/VLAN isolation; smoke6 challenge; smoke7 diagram objects do not forward; smoke9 Command Library',
+};
+
+// helper to build topic objects compactly
+const T = (o) => o;
+
+// ───────────────────────────── CCNA 200-301 v1.1 ─────────────────────────────
+export const CCNA11 = {
+  name: 'Cisco CCNA 200-301', version: 'v1.1',
+  source: 'https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf (official, © 2024 Cisco, retrieved 2026-11-13, sha256 da15a22d…bd5)',
+  domains: [
+    { id: '1.0', name: 'Network Fundamentals', w: 20, topics: [
+      T({ id: '1.1', t: 'Role and function of network components', out: 'Explain', rel: 'L', subs: [
+        { id: '1.1.a', t: 'Routers', s: 'V' }, { id: '1.1.b', t: 'Layer 2 and Layer 3 switches', s: 'V' },
+        { id: '1.1.c', t: 'Next-generation firewalls and IPS', s: 'D' }, { id: '1.1.d', t: 'Access points', s: 'D' },
+        { id: '1.1.e', t: 'Controllers (WLC)', s: 'M' }, { id: '1.1.f', t: 'Endpoints', s: 'V' }, { id: '1.1.g', t: 'Servers', s: 'P' }, { id: '1.1.h', t: 'PoE', s: 'M' }],
+        req: 'Devices behave according to their role (route, switch, filter, bridge wireless, host services)', cap: 'Routers/L2/L3 switches/hosts fully simulated; server = IP host only; firewall & AP drawable but do not forward',
+        dev: 'cisco-router, isp-router, cisco-switch, aruba-switch, l3-switch, pc, laptop, server(partial), firewall(diagram), wireless-ap(diagram)', cli: 'IOS/AOS-CX/PC terminal',
+        src: ['s.prof', 's.l3', 's.l2'], unit: ['t.static', 't.svi', 't.endpoint', 't.diagram'], e2e: ['t.intervlan'], prod: ['p.smoke'],
+        miss: 'Firewall policy, IPS, WLC, PoE power, server services', mtests: '—', rec: 'Concept notes (Q2); firewall/AP behaviour via DEV-01E; WLC via P2-1', cx: 'XL', prio: 'P2', shared: 'Y', ph: ['CERT-P2-1', 'CERT-P2-6'] }),
+      T({ id: '1.2', t: 'Characteristics of topology architectures', out: 'Describe', rel: 'M', subs: [
+        { id: '1.2.a', t: 'Two-tier', s: 'P' }, { id: '1.2.b', t: 'Three-tier', s: 'P' }, { id: '1.2.c', t: 'Spine-leaf', s: 'P' },
+        { id: '1.2.d', t: 'WAN', s: 'P' }, { id: '1.2.e', t: 'SOHO', s: 'P' }, { id: '1.2.f', t: 'On-premises and cloud', s: 'D' }],
+        req: 'Build each architecture and observe its characteristics (redundancy, ECMP, WAN edge, NAT at SOHO edge)', cap: 'Topologies can be built and routed with static routes (Campus 3 Tier sample); no redundancy (no STP/FHRP/ECMP), no NAT, internet cloud is diagram-only',
+        dev: 'l3-switch, aruba-switch, cisco-router, isp-router, internet-cloud(diagram)', cli: 'ip route, interface vlan, routed ports',
+        src: ['s.samples', 's.l3'], unit: ['t.campus3', 't.routed'], e2e: ['t.campus3'], prod: ['p.smoke'],
+        miss: 'Redundant paths (STP, FHRP, ECMP), SOHO services (NAT/DHCP/Wi-Fi), cloud connectivity', mtests: 'No test labels architecture characteristics', rec: 'Architecture labs once STP/OSPF/NAT exist; concept notes now', cx: 'L', prio: 'P2', shared: 'Y', ph: ['CERT-P0-5', 'CERT-P0-6', 'CERT-P0-3'] }),
+      T({ id: '1.3', t: 'Physical interface and cabling types', out: 'Compare', rel: 'L', subs: [
+        { id: '1.3.a', t: 'Single-mode fiber, multimode fiber, copper', s: 'M' }, { id: '1.3.b', t: 'Ethernet shared media vs point-to-point', s: 'M' }],
+        req: 'Cable/media types with consequences (distance, speed, compatibility)', cap: 'Cables are untyped links', dev: 'all', cli: '—', src: ['s.link'], unit: [], e2e: [], prod: [],
+        miss: 'Cable/media type model', mtests: '—', rec: 'CERT-P2-4 physical layer model', cx: 'M', prio: 'P2', shared: 'Y', ph: ['CERT-P2-4'] }),
+      T({ id: '1.4', t: 'Interface and cable issues (collisions, errors, duplex/speed mismatch)', out: 'Identify', rel: 'H', s: 'M',
+        req: 'Configurable speed/duplex, mismatch symptoms, error counters', cap: 'Only admin-down / no-cable states; duplex/speed columns are fixed display values', dev: 'switches, routers', cli: 'show interfaces (no counters)',
+        src: ['s.link', 's.cisco'], unit: ['t.showif', 't.link'], e2e: [], prod: [], miss: 'speed/duplex commands, mismatch, collisions/CRC counters, err-disabled', mtests: '—', rec: 'CERT-P1-5', cx: 'M', prio: 'P1', shared: 'Y', ph: ['CERT-P1-5'] }),
+      T({ id: '1.5', t: 'TCP vs UDP', out: 'Compare', rel: 'L', s: 'M', req: 'Transport-layer behaviour (ports, handshake, reliability)', cap: 'No layer 4; only ICMP echo', dev: '—', cli: '—', src: ['s.ping'], unit: [], e2e: [], prod: [],
+        miss: 'Any L4 model', mtests: '—', rec: 'Concept note (Q2); later packet view (P3-4)', cx: 'L', prio: 'P3', shared: 'Y', ph: ['CERT-Q2', 'CERT-P3-4'] }),
+      T({ id: '1.6', t: 'Configure and verify IPv4 addressing and subnetting', out: 'Configure & verify', rel: 'H', s: 'V',
+        req: 'Assign IP/mask on hosts, router ports, sub-interfaces, SVIs; validation; reachability follows subnetting', cap: 'Full: mask validation, host-address validation, overlap detection, /30 and /31, ping/traceroute follow subnet rules',
+        dev: 'routers, switches (SVI), hosts', cli: 'ip address, ip address <cidr> (AOS-CX), PC IP form, ipconfig', src: ['s.ip', 's.l3'], unit: ['t.ipval', 't.ping', 't.routed', 't.addrchal'], e2e: ['t.gw'], prod: ['p.smoke'],
+        miss: '—', mtests: '—', rec: 'Subnetting curriculum labs (no dev)', cx: 'S', prio: '—', shared: 'Y', ph: ['CERT-Q1'] }),
+      T({ id: '1.7', t: 'Private IPv4 addressing', out: 'Describe', rel: 'L', s: 'M', req: 'Distinguish RFC1918 from public space (usually with NAT)', cap: 'Any unicast address accepted; no public/private semantics, no NAT', dev: '—', cli: '—', src: ['s.ip'], unit: [], e2e: [], prod: [],
+        miss: 'Private/public semantics', mtests: '—', rec: 'Concept note (Q2); meaningful only with NAT (P0-3)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2', 'CERT-P0-3'] }),
+      T({ id: '1.8', t: 'Configure and verify IPv6 addressing and prefix', out: 'Configure & verify', rel: 'H', s: 'M', req: 'IPv6 addresses, prefixes, link-local, ping/traceroute v6', cap: 'No IPv6 (parser rejects ipv6 commands — probe 2026-11-13)', dev: '—', cli: '—', src: ['s.ip'], unit: [], e2e: [], prod: [],
+        miss: 'Entire IPv6 stack', mtests: '—', rec: 'CERT-P1-1', cx: 'XL', prio: 'P1', shared: 'Y', ph: ['CERT-P1-1'] }),
+      T({ id: '1.9', t: 'IPv6 address types', out: 'Describe', rel: 'L', subs: [
+        { id: '1.9.a', t: 'Unicast (global, unique local, link local)', s: 'M' }, { id: '1.9.b', t: 'Anycast', s: 'M' }, { id: '1.9.c', t: 'Multicast', s: 'M' }, { id: '1.9.d', t: 'Modified EUI-64', s: 'M' }],
+        req: 'Observe address types on configured interfaces', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'IPv6', mtests: '—', rec: 'CERT-P1-1', cx: 'XL', prio: 'P1', shared: 'Y', ph: ['CERT-P1-1'] }),
+      T({ id: '1.10', t: 'Verify IP parameters for client OS (Windows, macOS, Linux)', out: 'Verify', rel: 'H', s: 'P', req: 'ipconfig / ifconfig / ip addr style output per OS', cap: 'Windows-style ipconfig and ipconfig /all only (all host kinds use the same Windows terminal)',
+        dev: 'pc, laptop, server, printer, ip-camera, ip-phone, nvr, nas', cli: 'ipconfig, ipconfig /all', src: ['s.pc'], unit: ['t.ipconfig'], e2e: ['t.ipconfig'], prod: ['p.smoke'],
+        miss: 'macOS/Linux commands (ifconfig, ip addr, ip route)', mtests: '—', rec: 'CERT-P2-3 (CLI only, no engine change)', cx: 'S', prio: 'P2', shared: 'Y', ph: ['CERT-P2-3'] }),
+      T({ id: '1.11', t: 'Wireless principles', out: 'Describe', rel: 'L', subs: [
+        { id: '1.11.a', t: 'Non-overlapping Wi-Fi channels', s: 'M' }, { id: '1.11.b', t: 'SSID', s: 'M' }, { id: '1.11.c', t: 'RF', s: 'M' }, { id: '1.11.d', t: 'Encryption', s: 'M' }],
+        req: 'AP/SSID/channel/security parameters', cap: 'AP is a diagram object with no wireless parameters', dev: 'wireless-ap(diagram)', cli: '—', src: ['s.prof'], unit: ['t.diagram'], e2e: [], prod: [],
+        miss: 'Wireless model', mtests: '—', rec: 'CERT-P2-1 (+ concept notes Q2)', cx: 'XL', prio: 'P2', shared: 'Y', ph: ['CERT-P2-1', 'CERT-Q2'] }),
+      T({ id: '1.12', t: 'Virtualization fundamentals (VMs, containers, VRFs)', out: 'Explain', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '1.13', t: 'Switching concepts', out: 'Describe', rel: 'M', subs: [
+        { id: '1.13.a', t: 'MAC learning and aging', s: 'P' }, { id: '1.13.b', t: 'Frame switching', s: 'P' }, { id: '1.13.c', t: 'Frame flooding', s: 'P' }, { id: '1.13.d', t: 'MAC address table', s: 'V' }],
+        req: 'Per-frame learn/forward/flood with aging', cap: 'Steady-state MAC table derived from topology (no learning/aging events); forwarding computed per VLAN domain, not per frame',
+        dev: 'cisco-switch, aruba-switch, l3-switch', cli: 'show mac address-table, show mac-address-table', src: ['s.l2t', 's.l2'], unit: ['t.mac'], e2e: ['t.mac'], prod: [],
+        miss: 'Learning/aging timeline, unknown-unicast flooding visualisation', mtests: '—', rec: 'CERT-P3-4 packet view (frame-level animation)', cx: 'L', prio: 'P3', shared: 'Y', ph: ['CERT-P3-4'] }),
+    ] },
+    { id: '2.0', name: 'Network Access', w: 20, topics: [
+      T({ id: '2.1', t: 'Configure and verify VLANs (normal range) across switches', out: 'Configure & verify', rel: 'H', subs: [
+        { id: '2.1.a', t: 'Access ports (data and voice)', s: 'P', n: 'data VERIFIED; voice VLAN missing' }, { id: '2.1.b', t: 'Default VLAN', s: 'V' }, { id: '2.1.c', t: 'InterVLAN connectivity', s: 'V' }],
+        req: 'VLAN database, access ports, voice VLAN, inter-VLAN routing', cap: 'VLANs, access ports, VLAN 1 rules, reserved VLANs, router-on-a-stick and SVI routing on IOS and AOS-CX',
+        dev: 'cisco-switch, aruba-switch, l3-switch, cisco-router', cli: 'vlan, name, switchport access vlan, vlan access, interface vlan, encapsulation dot1Q', src: ['s.l2', 's.l3', 's.cisco', 's.aruba'], unit: ['t.vlan', 't.vlan1', 't.reserved', 't.intervlan'], e2e: ['t.vlan', 't.intervlan'], prod: ['p.smoke'],
+        miss: 'switchport voice vlan', mtests: '—', rec: 'Add voice VLAN (CLI + engine treats tagged phone traffic) in CERT-P1-5', cx: 'M', prio: 'P1', shared: 'Y', ph: ['CERT-P1-5'] }),
+      T({ id: '2.2', t: 'Configure and verify interswitch connectivity', out: 'Configure & verify', rel: 'H', subs: [
+        { id: '2.2.a', t: 'Trunk ports', s: 'V' }, { id: '2.2.b', t: '802.1Q', s: 'V' }, { id: '2.2.c', t: 'Native VLAN', s: 'V' }],
+        req: 'Trunks, allowed lists, native VLAN incl. mismatch', cap: 'Trunks with allowed lists (add/remove/all), native VLAN incl. mismatch leakage and %CDP mismatch warning; no DTP',
+        dev: 'switches', cli: 'switchport mode trunk, switchport trunk allowed/native, vlan trunk allowed/native', src: ['s.l2', 's.trunkchk'], unit: ['t.trunk', 't.native'], e2e: ['t.trunk', 't.native'], prod: ['p.smoke'],
+        miss: 'DTP negotiation', mtests: '—', rec: '—', cx: '—', prio: '—', shared: 'Y', ph: [] }),
+      T({ id: '2.3', t: 'Configure and verify CDP and LLDP', out: 'Configure & verify', rel: 'H', s: 'P', n: 'CERT-Q4a (950fb0c): CDP verify subset only (show cdp neighbors [detail], tested); LLDP and CDP/LLDP configuration MISSING',
+        req: 'show cdp/lldp neighbors, enable/disable per port', cap: 'CERT-Q4a: show cdp neighbors and show cdp neighbors detail on Cisco IOS router/ISP router/2960 (privileged EXEC), derived from real cables with both ports operationally up; correct local/remote interfaces, IP only from an up peer interface, deterministic; Aruba/hosts/diagram excluded. Read-only topology view: no advertisements, holdtime/timers, interface filter, CDP configuration or LLDP. Native-VLAN mismatch message unchanged',
+        dev: 'cisco-router, isp-router, cisco-switch', cli: 'show cdp neighbors, show cdp neighbors detail', src: ['s.cdp', 's.trunkchk'], unit: ['t.cdp', 't.syslog'], e2e: ['t.cdp'], prod: ['p.cdp'], miss: 'show lldp neighbors (IOS and AOS-CX), cdp run / cdp enable / lldp run / lldp transmit|receive, interface-filtered queries, advertisement/holdtime behaviour', mtests: 'LLDP and enable/disable tests (after implementation)', rec: 'CERT-Q4b (LLDP + CDP/LLDP config; needs an optional Lab schema field)', cx: 'S', prio: 'P0', shared: 'Y', ph: ['CERT-Q4'] }),
+      T({ id: '2.4', t: 'Configure and verify L2/L3 EtherChannel (LACP)', out: 'Configure & verify', rel: 'H', s: 'M', req: 'channel-group, port-channel, LACP states, load sharing', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P1-3', cx: 'L', prio: 'P1', shared: 'Y', ph: ['CERT-P1-3'] }),
+      T({ id: '2.5', t: 'Interpret Rapid PVST+ operation', out: 'Interpret', rel: 'M', subs: [
+        { id: '2.5.a', t: 'Root port, root bridge (primary/secondary), port names', s: 'M' }, { id: '2.5.b', t: 'Port states and roles', s: 'M' }, { id: '2.5.c', t: 'PortFast', s: 'M' }, { id: '2.5.d', t: 'Root guard, loop guard, BPDU filter/guard', s: 'M' }],
+        req: 'Loop-free L2 topology with elected root, roles/states, show spanning-tree', cap: 'No STP; an L2 loop is tolerated silently (tests/network.test.ts:159) — fidelity gap', dev: '—', cli: '—', src: ['s.l2'], unit: ['t.loop'], e2e: [], prod: [],
+        miss: 'Entire STP', mtests: '—', rec: 'CERT-P0-6', cx: 'XL', prio: 'P0', shared: 'Y', ph: ['CERT-P0-6'] }),
+      T({ id: '2.6', t: 'Cisco wireless architectures and AP modes', out: 'Describe', rel: 'L', s: 'M', req: '—', cap: 'AP diagram object only', dev: 'wireless-ap(diagram)', cli: '—', src: ['s.prof'], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2); CERT-P2-1', cx: 'L', prio: 'P2', shared: 'N', ph: ['CERT-Q2', 'CERT-P2-1'] }),
+      T({ id: '2.7', t: 'Physical connections of WLAN components (AP, WLC, access/trunk, LAG)', out: 'Describe', rel: 'L', s: 'D', req: 'Cable AP/WLC to access or trunk ports with behaviour', cap: 'AP can be cabled to a switch port but does not bridge', dev: 'wireless-ap(diagram)', cli: '—', src: ['s.prof'], unit: ['t.diagram'], e2e: [], prod: ['p.smoke'], miss: 'AP bridging, WLC, LAG', mtests: '—', rec: 'CERT-P2-1', cx: 'L', prio: 'P2', shared: 'N', ph: ['CERT-P2-1'] }),
+      T({ id: '2.8', t: 'Device management access (Telnet, SSH, HTTP/S, console, TACACS+/RADIUS, cloud)', out: 'Describe', rel: 'L', s: 'P', req: 'Several access methods', cap: 'Console CLI only', dev: 'routers, switches', cli: 'console', src: ['s.ui'], unit: ['t.cli'], e2e: [], prod: [], miss: 'SSH/Telnet/HTTP, AAA', mtests: '—', rec: 'CERT-P0-1', cx: 'M', prio: 'P0', shared: 'Y', ph: ['CERT-P0-1'] }),
+      T({ id: '2.9', t: 'Interpret WLAN GUI configuration', out: 'Interpret', rel: 'M', s: 'M', req: 'WLC GUI screens', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P2-1', cx: 'L', prio: 'P2', shared: 'N', ph: ['CERT-P2-1'] }),
+    ] },
+    { id: '3.0', name: 'IP Connectivity', w: 25, topics: [
+      T({ id: '3.1', t: 'Components of the routing table', out: 'Interpret', rel: 'M', subs: [
+        { id: '3.1.a', t: 'Routing protocol code', s: 'P', n: 'C/L/S/S* only' }, { id: '3.1.b', t: 'Prefix', s: 'V' }, { id: '3.1.c', t: 'Network mask', s: 'V' }, { id: '3.1.d', t: 'Next hop', s: 'V' },
+        { id: '3.1.e', t: 'Administrative distance', s: 'P', n: 'always [1/…] for static' }, { id: '3.1.f', t: 'Metric', s: 'P', n: 'always 0' }, { id: '3.1.g', t: 'Gateway of last resort', s: 'V' }],
+        req: 'show ip route with all components for several sources', cap: 'IOS-style show ip route (classful grouping) for connected/local/static/default; AOS-CX show ip route',
+        dev: 'routers, l3/aruba switches, 2960', cli: 'show ip route', src: ['s.cisco', 's.l3'], unit: ['t.static', 't.default'], e2e: ['t.static'], prod: ['p.smoke'],
+        miss: 'Dynamic-route codes/AD/metric', mtests: '—', rec: 'Comes with CERT-P0-5 (OSPF) and floating static (CERT-P0-7)', cx: 'M', prio: 'P0', shared: 'Y', ph: ['CERT-P0-5', 'CERT-P0-7'] }),
+      T({ id: '3.2', t: 'How a router makes a forwarding decision', out: 'Determine', rel: 'M', subs: [
+        { id: '3.2.a', t: 'Longest prefix match', s: 'V', n: 'CERT-Q3 A1-A8 (t.q3lpm): real-engine IPv4 LPM on Cisco routers; AD/metric/ECMP not certified' }, { id: '3.2.b', t: 'Administrative distance', s: 'P', n: 'connected beats static on equal prefix only' }, { id: '3.2.c', t: 'Routing protocol metric', s: 'M' }],
+        req: 'LPM, AD and metric tie-breaking', cap: 'LPM + connected-over-static', dev: 'routers, AOS-CX switches', cli: 'show ip route, traceroute', src: ['s.l3'], unit: ['t.q3lpm'], e2e: [], prod: [],
+        miss: 'AD comparison between sources, metrics', mtests: 'AOS-CX-specific LPM; AD/metric not implemented', rec: 'CERT-Q3 completed (LPM evidence), CERT-P0-7, CERT-P0-5', cx: 'M', prio: 'P0', shared: 'Y', ph: ['CERT-Q3', 'CERT-P0-7', 'CERT-P0-5'] }),
+      T({ id: '3.3', t: 'Configure and verify IPv4 and IPv6 static routing', out: 'Configure & verify', rel: 'H', subs: [
+        { id: '3.3.a', t: 'Default route', s: 'V' }, { id: '3.3.b', t: 'Network route', s: 'V' }, { id: '3.3.c', t: 'Host route', s: 'V', n: 'CERT-Q3 B1-B4 (t.q3host): IPv4 /32 forwarding, display, fallback and rejection; IPv6 is assessed separately' }, { id: '3.3.d', t: 'Floating static', s: 'M', n: 'AD argument rejected (probe)' },
+        { id: '3.3.v6', t: '(derived) IPv6 static routing — the topic covers IPv4 and IPv6', s: 'M', derived: true }],
+        req: 'ip route / ipv6 route with all variants', cap: 'IPv4 network/default/host static routes on IOS and AOS-CX with next-hop validation; return-path failures explained',
+        dev: 'routers, AOS-CX switches', cli: 'ip route, no ip route', src: ['s.l3', 's.cisco', 's.aruba'], unit: ['t.static', 't.default', 't.q3host'], e2e: ['t.static'], prod: ['p.smoke'],
+        miss: 'Floating static (AD), IPv6 static', mtests: 'AOS-CX-specific host route; IPv6 not implemented', rec: 'CERT-Q3 completed (host-route evidence), CERT-P0-7, CERT-P1-1', cx: 'M', prio: 'P0', shared: 'Y', ph: ['CERT-Q3', 'CERT-P0-7', 'CERT-P1-1'] }),
+      T({ id: '3.4', t: 'Configure and verify single-area OSPFv2', out: 'Configure & verify', rel: 'H', subs: [
+        { id: '3.4.a', t: 'Neighbor adjacencies', s: 'M' }, { id: '3.4.b', t: 'Point-to-point', s: 'M' }, { id: '3.4.c', t: 'Broadcast (DR/BDR selection)', s: 'M' }, { id: '3.4.d', t: 'Router ID', s: 'M' }],
+        req: 'router ospf, network/area, neighbors, DR/BDR, router-id, OSPF routes in table', cap: 'Parser rejects router ospf (probe)', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [],
+        miss: 'Entire OSPF', mtests: '—', rec: 'CERT-P0-5', cx: 'XL', prio: 'P0', shared: 'Y', ph: ['CERT-P0-5'] }),
+      T({ id: '3.5', t: 'First hop redundancy protocols', out: 'Describe', rel: 'L', s: 'M', req: 'Virtual gateway failover', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P2-2', cx: 'L', prio: 'P2', shared: 'Y', ph: ['CERT-P2-2'] }),
+    ] },
+    { id: '4.0', name: 'IP Services', w: 10, topics: [
+      T({ id: '4.1', t: 'Inside source NAT (static and pools)', out: 'Configure & verify', rel: 'H', s: 'M', req: 'ip nat inside/outside, static, pool, overload, translations table', cap: 'None; internet cloud does not route (tests/diagram-devices.test.ts:91)', dev: '—', cli: '—', src: [], unit: ['t.diagram'], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P0-3 (needs routable internet edge)', cx: 'XL', prio: 'P0', shared: 'Y', ph: ['CERT-P0-3'] }),
+      T({ id: '4.2', t: 'NTP client and server', out: 'Configure & verify', rel: 'H', s: 'M', req: 'ntp server/master, show ntp status/associations, clock', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P1-6', cx: 'M', prio: 'P1', shared: 'Y', ph: ['CERT-P1-6'] }),
+      T({ id: '4.3', t: 'Role of DHCP and DNS', out: 'Explain', rel: 'L', s: 'M', req: 'Observe DHCP lease and name resolution', cap: 'Static addressing only (ipconfig prints DHCP Enabled: No); server has no services', dev: 'server(partial)', cli: '—', src: ['s.pc'], unit: ['t.endpoint'], e2e: [], prod: [], miss: 'DHCP, DNS', mtests: '—', rec: 'CERT-P0-4, CERT-P1-2', cx: 'L', prio: 'P0', shared: 'Y', ph: ['CERT-P0-4', 'CERT-P1-2'] }),
+      T({ id: '4.4', t: 'Function of SNMP', out: 'Explain', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P1-6', cx: 'M', prio: 'P1', shared: 'Y', ph: ['CERT-P1-6'] }),
+      T({ id: '4.5', t: 'Syslog features (facilities, severity levels)', out: 'Describe', rel: 'L', s: 'P', req: 'logging configuration, severity filtering, show logging', cap: 'Four IOS-format messages with facility-severity-mnemonic (%LINK-3-UPDOWN, %LINK-5-CHANGED, %IP-4-DUPADDR, %CDP-4-NATIVE_VLAN_MISMATCH); no logging config, show logging rejected (probe)',
+        dev: 'Cisco devices', cli: '— (messages appear in console)', src: ['s.syslog'], unit: ['t.syslog'], e2e: [], prod: [], miss: 'logging buffered/host/trap, show logging', mtests: '%LINK-* messages not asserted', rec: 'CERT-Q4 (show logging buffer), CERT-P1-6', cx: 'S', prio: 'P1', shared: 'Y', ph: ['CERT-Q4', 'CERT-P1-6'] }),
+      T({ id: '4.6', t: 'DHCP client and relay', out: 'Configure & verify', rel: 'H', s: 'M', req: 'ip address dhcp, ip helper-address, DHCP server pool', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P0-4 (= DEV-01D)', cx: 'L', prio: 'P0', shared: 'Y', ph: ['CERT-P0-4'] }),
+      T({ id: '4.7', t: 'QoS per-hop behaviour', out: 'Explain', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '4.8', t: 'Remote access using SSH', out: 'Configure', rel: 'H', s: 'M', req: 'hostname/domain, crypto key, username, line vty, transport input ssh, ssh from a host', cap: 'None for SSH (domain name, crypto key, username, line vty, transport input and the ssh client are not implemented; CERT-P0-1a adds only enable secret)', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P0-1', cx: 'M', prio: 'P0', shared: 'Y', ph: ['CERT-P0-1'] }),
+      T({ id: '4.9', t: 'TFTP/FTP capabilities', out: 'Describe', rel: 'L', s: 'M', req: '—', cap: 'None (write memory exists, no file transfer)', dev: '—', cli: '—', src: ['s.cisco'], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+    ] },
+    { id: '5.0', name: 'Security Fundamentals', w: 15, topics: [
+      T({ id: '5.1', t: 'Key security concepts', out: 'Define', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '5.2', t: 'Security program elements', out: 'Describe', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '5.3', t: 'Device access control with local passwords', out: 'Configure & verify', rel: 'H', s: 'P', req: 'enable secret, line console/vty password, login local, username', cap: 'CERT-P0-1a: enable secret, enable secret 0/5 and no enable secret on Cisco IOS router / ISP router / 2960 — hidden Password: prompt, 3 wrong answers (a simulator setting), type-5 MD5-crypt hash in running-config, masked history/echo/storage/export on every device; NOT implemented: line console/vty password, login / login local, username, enable password, service password-encryption', dev: 'cisco-router, isp-router, cisco-switch', cli: 'enable secret, enable secret 0, enable secret 5, no enable secret, enable (Password:)', src: ['s.secret', 's.enable', 's.credin', 's.persist'], unit: ['t.secret', 't.secfix'], e2e: ['t.secretE2E'], prod: ['p.p01a'], miss: 'line console/vty password, login / login local, username, enable password, service password-encryption', mtests: '—', rec: 'CERT-P0-1', cx: 'M', prio: 'P0', shared: 'Y', ph: ['CERT-P0-1'] }),
+      T({ id: '5.4', t: 'Password policy elements and alternatives', out: 'Describe', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '5.5', t: 'IPsec remote-access and site-to-site VPNs', out: 'Describe', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2); P3-2', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2', 'CERT-P3-2'] }),
+      T({ id: '5.6', t: 'Configure and verify ACLs', out: 'Configure & verify', rel: 'H', s: 'M', req: 'standard/extended numbered/named ACLs applied in/out, hit counters, ping/traceroute effect', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P0-2', cx: 'L', prio: 'P0', shared: 'Y', ph: ['CERT-P0-2'] }),
+      T({ id: '5.7', t: 'Layer 2 security (DHCP snooping, DAI, port security)', out: 'Configure & verify', rel: 'H', s: 'M', req: 'switchport port-security, err-disable, snooping/DAI', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P1-4 (port security first; snooping after DHCP)', cx: 'L', prio: 'P1', shared: 'Y', ph: ['CERT-P1-4'] }),
+      T({ id: '5.8', t: 'AAA concepts', out: 'Compare', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '5.9', t: 'Wireless security protocols (WPA/WPA2/WPA3)', out: 'Describe', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2); P2-1', cx: 'S', prio: 'P2', shared: 'Y', ph: ['CERT-Q2', 'CERT-P2-1'] }),
+      T({ id: '5.10', t: 'Configure WLAN in GUI with WPA2-PSK', out: 'Configure & verify', rel: 'H', s: 'M', req: 'WLC/AP GUI, SSID + PSK, client association', cap: 'None', dev: 'wireless-ap(diagram)', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P2-1', cx: 'XL', prio: 'P2', shared: 'Y', ph: ['CERT-P2-1'] }),
+    ] },
+    { id: '6.0', name: 'Automation and Programmability', w: 10, topics: [
+      T({ id: '6.1', t: 'How automation impacts network management', out: 'Explain', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2); P3-1', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2', 'CERT-P3-1'] }),
+      T({ id: '6.2', t: 'Traditional vs controller-based networking', out: 'Compare', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '6.3', t: 'Controller-based / SDN architecture', out: 'Describe', rel: 'L', subs: [{ id: '6.3.a', t: 'Separation of control and data plane', s: 'M' }, { id: '6.3.b', t: 'Northbound and southbound APIs', s: 'M' }],
+        req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-Q2'] }),
+      T({ id: '6.4', t: 'AI (generative/predictive) and ML in network operations', out: 'Explain', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'Concept note (Q2)', cx: 'S', prio: 'P3', shared: 'N', ph: ['CERT-Q2'] }),
+      T({ id: '6.5', t: 'REST-based APIs (auth, CRUD, HTTP verbs, encoding)', out: 'Describe', rel: 'L', s: 'M', req: 'Read/modify Lab via REST-like calls', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P3-1', cx: 'M', prio: 'P3', shared: 'Y', ph: ['CERT-P3-1'] }),
+      T({ id: '6.6', t: 'Configuration management tools (Ansible, Terraform)', out: 'Recognize', rel: 'L', s: 'M', req: '—', cap: 'None', dev: '—', cli: '—', src: [], unit: [], e2e: [], prod: [], miss: 'All', mtests: '—', rec: 'CERT-P3-1', cx: 'M', prio: 'P3', shared: 'Y', ph: ['CERT-P3-1'] }),
+      T({ id: '6.7', t: 'Components of JSON-encoded data', out: 'Recognize', rel: 'L', s: 'M', req: 'Inspect JSON as a learning activity', cap: 'Lab export is JSON (schemaVersion 1) but not presented as learning content', dev: '—', cli: '—', src: ['s.persist'], unit: [], e2e: [], prod: [], miss: 'Guided JSON view', mtests: '—', rec: 'CERT-P3-1 (JSON view of device config)', cx: 'S', prio: 'P3', shared: 'Y', ph: ['CERT-P3-1'] }),
+    ] },
+  ],
+};
+
+// ───────────────────────────── CCNA 200-301 v2.0 (separate model; first test date 2027-02-03 per secondary sources) ─────────────────────────────
+export const CCNA20 = {
+  name: 'Cisco CCNA 200-301', version: 'v2.0',
+  source: 'https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301_CCNA_v2.0_Exam_Topics_PDF.pdf (official, © 2026 Cisco, retrieved 2026-11-13, sha256 5f0bf00d…923e)',
+  domains: [
+    { id: '1.0', name: 'Network Infrastructure and Connectivity', w: 25, topics: [
+      { id: '1.1', t: 'Diagnose interface and cable issues (copper/fiber, duplex, speed, distance, signal, pinout)', rel: 'H', s: 'M', ph: ['CERT-P1-5', 'CERT-P2-4'] },
+      { id: '1.2', t: 'Hypervisors, VMs and containers', rel: 'L', s: 'M', ph: ['CERT-Q2'] },
+      { id: '1.3', t: 'Troubleshoot IPv4 configuration, assignment and subnetting (public/private)', rel: 'H', s: 'P', n: 'static config/subnetting VERIFIED; assignment (DHCP) and public/private missing', ph: ['CERT-P0-4', 'CERT-P0-3'] },
+      { id: '1.4', t: 'Troubleshoot IPv6 configuration, assignment and prefix sizing', rel: 'H', s: 'M', ph: ['CERT-P1-1'] },
+      { id: '1.5', t: 'Wireless principles', rel: 'L', subs: [{ id: '1.5.a', t: 'Band and channel selection', s: 'M' }, { id: '1.5.b', t: 'RF characteristics', s: 'M' }, { id: '1.5.c', t: 'Security protocols', s: 'M' }, { id: '1.5.d', t: 'Cause of interference', s: 'M' }], ph: ['CERT-P2-1', 'CERT-Q2'] },
+      { id: '1.6', t: 'Troubleshoot wired and wireless client connectivity (Windows/macOS/Linux)', rel: 'H', s: 'P', n: 'wired, Windows-style only', ph: ['CERT-P2-3', 'CERT-P2-1'] },
+      { id: '1.7', t: 'Troubleshoot DHCPv4 client, server and relay on IOS', rel: 'H', s: 'M', ph: ['CERT-P0-4'] },
+    ] },
+    { id: '2.0', name: 'Switching and Network Access', w: 25, topics: [
+      { id: '2.1', t: 'Configure infrastructure connectivity (switch-switch, switch-router)', rel: 'H', subs: [{ id: '2.1.a', t: 'L2/L3 physical interfaces', s: 'V' }, { id: '2.1.b', t: 'L2 802.1Q trunks', s: 'V' }, { id: '2.1.c', t: 'L2/L3 LACP port-channel', s: 'M' }, { id: '2.1.d', t: 'SVI', s: 'V' }], ph: ['CERT-P1-3'] },
+      { id: '2.2', t: 'Edge-host port attributes (VLAN, PoE, port channel, LACP)', rel: 'H', subs: [{ id: '2.2.a', t: 'Desktop, printer, IoT', s: 'P', n: 'VLAN yes; PoE no' }, { id: '2.2.b', t: 'Wireless APs', s: 'D' }, { id: '2.2.c', t: 'VoIP phone', s: 'P', n: 'IP phone is an IP host; no voice VLAN/PoE' }, { id: '2.2.d', t: 'Virtualized hosts', s: 'M' }, { id: '2.2.e', t: 'Network appliances', s: 'D' }], ph: ['CERT-P1-5', 'CERT-P2-4', 'CERT-P2-1'] },
+      { id: '2.3', t: 'Validate documentation using CDP and LLDP', rel: 'H', s: 'P', n: 'CERT-Q4a (t.cdp, p.cdp): CDP neighbor/detail output checks cabling and port documentation on Cisco IOS; LLDP MISSING', ph: ['CERT-Q4'] },
+      { id: '2.4', t: 'Troubleshoot L2/L3 with show (incl. logs), ping, extended ping, traceroute, packet capture', rel: 'H', s: 'P', n: 'show/ping/traceroute VERIFIED; show logs, extended ping, packet capture missing', ph: ['CERT-Q4', 'CERT-P3-4'] },
+      { id: '2.5', t: 'Configure Rapid PVST+', rel: 'H', subs: [{ id: '2.5.a', t: 'Root port/bridge, port names', s: 'M' }, { id: '2.5.b', t: 'Port states and roles', s: 'M' }, { id: '2.5.c', t: 'PortFast', s: 'M' }, { id: '2.5.d', t: 'Root guard, loop guard, BPDU guard', s: 'M' }], ph: ['CERT-P0-6'] },
+    ] },
+    { id: '3.0', name: 'IP Routing', w: 20, topics: [
+      { id: '3.1', t: 'Interpret a routing table to identify the next hop (protocol, prefix/mask, AD, metric, default)', rel: 'H', s: 'P', n: 'static/connected/default only; fixed AD/metric', ph: ['CERT-P0-5', 'CERT-P0-7'] },
+      { id: '3.2', t: 'Troubleshoot IPv4 and IPv6 static routing', rel: 'H', subs: [{ id: '3.2.a', t: 'Default route', s: 'V' }, { id: '3.2.b', t: 'Network route', s: 'V' }, { id: '3.2.c', t: 'Host route', s: 'V', n: 'CERT-Q3 B1-B4 (t.q3host): IPv4 /32 forwarding and next-hop fault fallback; IPv6 separately MISSING' }, { id: '3.2.d', t: 'Floating static', s: 'M' }, { id: '3.2.v6', t: '(derived) IPv6 static', s: 'M', derived: true }], ph: ['CERT-Q3', 'CERT-P0-7', 'CERT-P1-1'] },
+      { id: '3.3', t: 'Configure single-area OSPFv2 and OSPFv3', rel: 'H', subs: [{ id: '3.3.a', t: 'Neighbor adjacencies', s: 'M' }, { id: '3.3.b', t: 'Point-to-point', s: 'M' }, { id: '3.3.c', t: 'Broadcast (DR/BDR)', s: 'M' }, { id: '3.3.d', t: 'Router ID', s: 'M' }], ph: ['CERT-P0-5', 'CERT-P1-1'] },
+      { id: '3.4', t: 'Interpret FHRP status (HSRP, VRRP)', rel: 'M', s: 'M', ph: ['CERT-P2-2'] },
+    ] },
+    { id: '4.0', name: 'Network Services and Security', w: 20, topics: [
+      { id: '4.1', t: 'Local usernames and AAA client (TACACS+/RADIUS) for management', rel: 'H', s: 'M', ph: ['CERT-P0-1'] },
+      { id: '4.2', t: 'Manage config/software files with SFTP/SCP', rel: 'M', s: 'M', ph: ['CERT-P0-1'] },
+      { id: '4.3', t: 'Configure NAT/PAT on IOS XE', rel: 'H', s: 'M', ph: ['CERT-P0-3'] },
+      { id: '4.4', t: 'Diagnose DNS record issues (A, AAAA, CNAME, MX, NS, PTR)', rel: 'H', s: 'M', ph: ['CERT-P1-2'] },
+      { id: '4.5', t: 'IPsec VPNs (protocols, transport modes)', rel: 'L', s: 'M', ph: ['CERT-Q2', 'CERT-P3-2'] },
+      { id: '4.6', t: 'Configure IPv4 ACLs (standard/extended, numbered/named)', rel: 'H', s: 'M', ph: ['CERT-P0-2'] },
+      { id: '4.7', t: 'Configure Layer 2 security', rel: 'H', subs: [{ id: '4.7.a', t: 'DHCP snooping', s: 'M' }, { id: '4.7.b', t: 'Dynamic ARP inspection', s: 'M' }, { id: '4.7.c', t: 'Storm control', s: 'M' }, { id: '4.7.d', t: 'RA guard', s: 'M' }, { id: '4.7.e', t: 'Port security', s: 'M' }], ph: ['CERT-P1-4'] },
+    ] },
+    { id: '5.0', name: 'AI, and Network Operations and Management', w: 10, topics: [
+      { id: '5.1', t: 'Role of agentic AI in network operations', rel: 'L', s: 'M', ph: ['CERT-Q2'] },
+      { id: '5.2', t: 'Select a prompt for a generative AI system (data classification, format, persona)', rel: 'M', s: 'M', ph: ['CERT-P3-1'] },
+      { id: '5.3', t: 'Network management approaches (device/cloud/controller/automation/IaC)', rel: 'L', s: 'M', ph: ['CERT-Q2'] },
+      { id: '5.4', t: 'Function of SNMP', rel: 'L', s: 'M', ph: ['CERT-P1-6'] },
+      { id: '5.5', t: 'Use configuration management (e.g. Ansible) to execute commands', rel: 'H', s: 'M', ph: ['CERT-P3-1'] },
+      { id: '5.6', t: 'Interpret syslog content, severity levels and facilities', rel: 'M', s: 'P', n: 'four IOS-format messages; no logging buffer/config', ph: ['CERT-Q4', 'CERT-P1-6'] },
+    ] },
+  ],
+};
+
+// ───────────────────────────── CompTIA Network+ N10-009 ─────────────────────────────
+// Bullet IDs like "2.2-b3" are DERIVED (CompTIA numbers only objectives 1.1–5.5); bullet order follows the official document.
+const B = (id, t, s, n) => ({ id, t, s, n });
+export const NPLUS = {
+  name: 'CompTIA Network+', version: 'N10-009 (Exam Objectives v4.0)',
+  source: 'CompTIA "Network+ N10-009 Certification Exam Objectives v4.0" (© 2023 CompTIA) — copy hosted at https://onlc.com/comptia/n10-009-exam-objectives.pdf (sha256 2c6c73e4…3e01); domain weights and exam code cross-checked on https://www.comptia.org/certifications/network (retrieved 2026-11-13). CompTIA-hosted PDF links returned HTML, not the PDF.',
+  domains: [
+    { id: '1.0', name: 'Networking Concepts', w: 23, topics: [
+      { id: '1.1', t: 'OSI model concepts', out: 'Explain', rel: 'M', subs: [B('1.1-b1', 'Layer 1 Physical', 'P', 'link up/down/no-cable only'), B('1.1-b2', 'Layer 2 Data link', 'V'), B('1.1-b3', 'Layer 3 Network', 'V'), B('1.1-b4', 'Layer 4 Transport', 'M'), B('1.1-b5', 'Layer 5 Session', 'M'), B('1.1-b6', 'Layer 6 Presentation', 'M'), B('1.1-b7', 'Layer 7 Application', 'M')], ev: ['s.l2', 's.l3', 't.vlan', 't.ping'], ph: ['CERT-Q2', 'CERT-P3-4'] },
+      { id: '1.2', t: 'Networking appliances, applications and functions', out: 'Compare', rel: 'L', subs: [B('1.2-b1', 'Router', 'V'), B('1.2-b2', 'Switch', 'V'), B('1.2-b3', 'Firewall', 'D'), B('1.2-b4', 'IDS/IPS', 'M'), B('1.2-b5', 'Load balancer', 'M'), B('1.2-b6', 'Proxy', 'M'), B('1.2-b7', 'NAS', 'P', 'IP host only'), B('1.2-b8', 'SAN', 'M'), B('1.2-b9', 'Wireless AP', 'D'), B('1.2-b10', 'Wireless controller', 'M'), B('1.2-b11', 'CDN', 'M'), B('1.2-b12', 'VPN', 'M'), B('1.2-b13', 'QoS', 'M'), B('1.2-b14', 'TTL', 'V', 'TTL per router crossed, traceroute')], ev: ['s.prof', 't.diagram', 't.endpoint', 't.ttl', 't.trace'], ph: ['CERT-Q2', 'CERT-P2-6'] },
+      { id: '1.3', t: 'Cloud concepts and connectivity', out: 'Summarize', rel: 'L', subs: [B('1.3-b1', 'NFV', 'M'), B('1.3-b2', 'VPC', 'M'), B('1.3-b3', 'Network security groups', 'M'), B('1.3-b4', 'Network security lists', 'M'), B('1.3-b5', 'Cloud gateways (internet, NAT)', 'M'), B('1.3-b6', 'Connectivity (VPN, Direct Connect)', 'M'), B('1.3-b7', 'Deployment models', 'M'), B('1.3-b8', 'Service models', 'M'), B('1.3-b9', 'Scalability', 'M'), B('1.3-b10', 'Elasticity', 'M'), B('1.3-b11', 'Multitenancy', 'M')], ev: [], ph: ['CERT-Q2'] },
+      { id: '1.4', t: 'Ports, protocols, services and traffic types', out: 'Explain', rel: 'L', subs: [B('1.4-b1', 'Well-known protocol/port table', 'M'), B('1.4-b2', 'ICMP', 'V'), B('1.4-b3', 'TCP', 'M'), B('1.4-b4', 'UDP', 'M'), B('1.4-b5', 'GRE', 'M'), B('1.4-b6', 'IPSec (AH, ESP, IKE)', 'M'), B('1.4-b7', 'Unicast', 'V'), B('1.4-b8', 'Multicast', 'M'), B('1.4-b9', 'Anycast', 'M'), B('1.4-b10', 'Broadcast', 'P', 'VLAN = broadcast domain; no broadcast traffic shown')], ev: ['s.ping', 't.ping'], ph: ['CERT-Q2', 'CERT-P3-4'] },
+      { id: '1.5', t: 'Transmission media and transceivers', out: 'Compare', rel: 'L', subs: [B('1.5-b1', 'Wireless (802.11, cellular, satellite)', 'M'), B('1.5-b2', 'Wired (802.3, fiber types, DAC, coax, speeds, plenum)', 'M'), B('1.5-b3', 'Transceivers (protocol, SFP/QSFP)', 'M'), B('1.5-b4', 'Connector types', 'M')], ev: [], ph: ['CERT-P2-4'] },
+      { id: '1.6', t: 'Topologies, architectures and types', out: 'Compare', rel: 'M', subs: [B('1.6-b1', 'Mesh', 'P'), B('1.6-b2', 'Hybrid', 'P'), B('1.6-b3', 'Star / hub and spoke', 'V'), B('1.6-b4', 'Spine and leaf', 'P'), B('1.6-b5', 'Point to point', 'V', '/30, /31 routed links'), B('1.6-b6', 'Three-tier hierarchical', 'P', 'Campus 3 Tier sample, no redundancy'), B('1.6-b7', 'Collapsed core', 'P'), B('1.6-b8', 'Traffic flows (north-south, east-west)', 'M')], ev: ['s.samples', 't.campus3', 't.routed', 't.topo'], ph: ['CERT-P0-6', 'CERT-P0-5'] },
+      { id: '1.7', t: 'Use appropriate IPv4 addressing (scenario)', out: 'Apply', rel: 'H', subs: [B('1.7-b1', 'Public vs private (APIPA, RFC1918, loopback)', 'P', 'loopback/0.x/224+ rejected as host addresses; no APIPA, no public/private semantics'), B('1.7-b2', 'Subnetting (VLSM, CIDR)', 'V'), B('1.7-b3', 'IPv4 address classes A–E', 'P', 'class D/E rejected as host; classful grouping in show ip route; no class concept')], ev: ['s.ip', 't.ipval', 't.addrchal', 't.routed'], ph: ['CERT-Q3', 'CERT-P0-4', 'CERT-P0-3'] },
+      { id: '1.8', t: 'Evolving use cases (SDN/SD-WAN, VXLAN, ZTA, SASE/SSE, IaC, IPv6)', out: 'Summarize', rel: 'L', subs: [B('1.8-b1', 'SDN and SD-WAN', 'M'), B('1.8-b2', 'VXLAN', 'M'), B('1.8-b3', 'Zero trust architecture', 'M'), B('1.8-b4', 'SASE/SSE', 'M'), B('1.8-b5', 'Infrastructure as code (automation, source control)', 'M'), B('1.8-b6', 'IPv6 addressing (exhaustion, tunneling, dual stack, NAT64)', 'M')], ev: [], ph: ['CERT-Q2', 'CERT-P1-1', 'CERT-P3-1'] },
+    ] },
+    { id: '2.0', name: 'Network Implementation', w: 20, topics: [
+      { id: '2.1', t: 'Characteristics of routing technologies', out: 'Explain', rel: 'M', subs: [B('2.1-b1', 'Static routing', 'V'), B('2.1-b2', 'Dynamic routing (BGP, EIGRP, OSPF)', 'M'), B('2.1-b3', 'Route selection: administrative distance', 'P'), B('2.1-b4', 'Route selection: prefix length', 'V', 'CERT-Q3 A1-A8 (t.q3lpm): real-engine Cisco IPv4 LPM; not AD/metric/ECMP verification'), B('2.1-b5', 'Route selection: metric', 'M'), B('2.1-b6', 'Address translation (NAT, PAT)', 'M'), B('2.1-b7', 'FHRP', 'M'), B('2.1-b8', 'Virtual IP', 'M'), B('2.1-b9', 'Subinterfaces', 'V')], ev: ['s.l3', 't.static', 't.default', 't.intervlan', 't.q3lpm'], ph: ['CERT-P0-5', 'CERT-P0-7', 'CERT-P0-3', 'CERT-P2-2', 'CERT-Q3'] },
+      { id: '2.2', t: 'Configure switching technologies and features (scenario)', out: 'Configure', rel: 'H', subs: [B('2.2-b1', 'VLAN database', 'V'), B('2.2-b2', 'SVI', 'V'), B('2.2-b3', 'Native VLAN', 'V'), B('2.2-b4', 'Voice VLAN', 'M'), B('2.2-b5', '802.1Q tagging', 'V'), B('2.2-b6', 'Link aggregation', 'M'), B('2.2-b7', 'Speed', 'M'), B('2.2-b8', 'Duplex', 'M'), B('2.2-b9', 'Spanning tree', 'M'), B('2.2-b10', 'MTU / jumbo frames', 'M')], ev: ['s.l2', 't.vlan', 't.svi', 't.native', 't.trunk'], ph: ['CERT-P1-5', 'CERT-P1-3', 'CERT-P0-6'] },
+      { id: '2.3', t: 'Select and configure wireless devices and technologies (scenario)', out: 'Configure', rel: 'H', subs: [B('2.3-b1', 'Channels', 'M'), B('2.3-b2', 'Frequency options', 'M'), B('2.3-b3', 'SSID/BSSID/ESSID', 'M'), B('2.3-b4', 'Network types', 'M'), B('2.3-b5', 'Encryption (WPA2, WPA3)', 'M'), B('2.3-b6', 'Guest networks / captive portal', 'M'), B('2.3-b7', 'Authentication (PSK vs enterprise)', 'M'), B('2.3-b8', 'Antennas', 'M'), B('2.3-b9', 'Autonomous vs lightweight AP', 'M')], ev: ['t.diagram'], ph: ['CERT-P2-1'] },
+      { id: '2.4', t: 'Physical installation factors', out: 'Explain', rel: 'L', subs: [B('2.4-b1', 'Locations (IDF, MDF)', 'M'), B('2.4-b2', 'Rack size', 'D'), B('2.4-b3', 'Port-side exhaust/intake', 'M'), B('2.4-b4', 'Cabling (patch panel, fiber panel)', 'D', 'patch panel object, does not pass traffic'), B('2.4-b5', 'Lockable', 'M'), B('2.4-b6', 'Power (UPS, PDU, load, voltage)', 'D', 'UPS object only'), B('2.4-b7', 'Environmental (humidity, fire, temperature)', 'M')], ev: ['s.prof', 't.diagram'], ph: ['CERT-P2-5', 'CERT-Q2'] },
+    ] },
+    { id: '3.0', name: 'Network Operations', w: 19, topics: [
+      { id: '3.1', t: 'Organizational processes and procedures', out: 'Explain', rel: 'M', subs: [B('3.1-b1', 'Physical vs logical diagrams', 'P', 'canvas is a logical diagram with physical objects'), B('3.1-b2', 'Rack diagrams', 'D'), B('3.1-b3', 'Cable maps and diagrams', 'P', 'links with port labels'), B('3.1-b4', 'Network diagrams L1/L2/L3', 'P'), B('3.1-b5', 'Asset inventory', 'M'), B('3.1-b6', 'IPAM', 'M'), B('3.1-b7', 'SLA', 'M'), B('3.1-b8', 'Wireless survey / heat map', 'M'), B('3.1-b9', 'Life-cycle management', 'M'), B('3.1-b10', 'Change management', 'M'), B('3.1-b11', 'Configuration management (production, backup, baseline)', 'P', 'running vs startup config, write memory, export/import')], ev: ['s.ui', 's.persist', 't.config', 't.topo'], ph: ['CERT-P2-5', 'CERT-Q2'] },
+      { id: '3.2', t: 'Use network monitoring technologies (scenario)', out: 'Apply', rel: 'H', subs: [B('3.2-b1', 'SNMP (traps, MIB, v2c/v3, community, auth)', 'M'), B('3.2-b2', 'Flow data', 'M'), B('3.2-b3', 'Packet capture', 'M'), B('3.2-b4', 'Baseline metrics / anomaly alerting', 'M'), B('3.2-b5', 'Log aggregation (syslog collector, SIEM)', 'M'), B('3.2-b6', 'API integration', 'M'), B('3.2-b7', 'Port mirroring', 'M'), B('3.2-b8', 'Network discovery', 'M'), B('3.2-b9', 'Traffic analysis', 'M'), B('3.2-b10', 'Performance monitoring', 'M'), B('3.2-b11', 'Availability monitoring', 'P', 'link status + Inspector + ping checks'), B('3.2-b12', 'Configuration monitoring', 'P', 'challenge config-line / no-dup-ip checks')], ev: ['s.chal', 's.ui', 't.chal', 't.link'], ph: ['CERT-P1-6', 'CERT-P3-4'] },
+      { id: '3.3', t: 'Disaster recovery concepts', out: 'Explain', rel: 'L', subs: [B('3.3-b1', 'DR metrics (RPO, RTO, MTTR, MTBF)', 'M'), B('3.3-b2', 'DR sites', 'M'), B('3.3-b3', 'High availability (active-active/passive)', 'M'), B('3.3-b4', 'Testing (tabletop, validation)', 'M')], ev: [], ph: ['CERT-Q2'] },
+      { id: '3.4', t: 'Implement IPv4 and IPv6 network services (scenario)', out: 'Implement', rel: 'H', subs: [B('3.4-b1', 'DHCP (reservations, scope, lease, options, relay, exclusions)', 'M'), B('3.4-b2', 'SLAAC', 'M'), B('3.4-b3', 'DNS (DNSSEC, DoH/DoT, records, zones, authoritative, recursive)', 'M'), B('3.4-b4', 'Hosts file', 'M'), B('3.4-b5', 'Time protocols (NTP, PTP, NTS)', 'M')], ev: ['s.pc'], ph: ['CERT-P0-4', 'CERT-P1-2', 'CERT-P1-6', 'CERT-P1-1'] },
+      { id: '3.5', t: 'Network access and management methods', out: 'Compare', rel: 'M', subs: [B('3.5-b1', 'Site-to-site VPN', 'M'), B('3.5-b2', 'Client-to-site VPN', 'M'), B('3.5-b3', 'SSH', 'M'), B('3.5-b4', 'GUI', 'M'), B('3.5-b5', 'API', 'M'), B('3.5-b6', 'Console', 'V', 'device console CLI'), B('3.5-b7', 'Jump box/host', 'M'), B('3.5-b8', 'In-band vs out-of-band', 'M')], ev: ['s.ui', 't.cli'], ph: ['CERT-P0-1', 'CERT-P3-2'] },
+    ] },
+    { id: '4.0', name: 'Network Security', w: 14, topics: [
+      { id: '4.1', t: 'Basic network security concepts', out: 'Explain', rel: 'L', subs: [B('4.1-b1', 'Encryption, certificates, IAM', 'M'), B('4.1-b2', 'Geofencing', 'M'), B('4.1-b3', 'Physical security', 'M'), B('4.1-b4', 'Deception technologies', 'M'), B('4.1-b5', 'Security terminology / CIA', 'M'), B('4.1-b6', 'Audits and compliance', 'M'), B('4.1-b7', 'Network segmentation enforcement (IoT, OT, guest, BYOD)', 'P', 'VLAN isolation verified incl. IoT endpoints; no enforcement policy')], ev: ['t.vlan', 't.endpoint'], ph: ['CERT-Q2', 'CERT-P0-2'] },
+      { id: '4.2', t: 'Types of attacks and their impact', out: 'Summarize', rel: 'L', subs: [B('4.2-b1', 'DoS/DDoS', 'M'), B('4.2-b2', 'VLAN hopping', 'M'), B('4.2-b3', 'MAC flooding', 'M'), B('4.2-b4', 'ARP poisoning/spoofing', 'M'), B('4.2-b5', 'DNS poisoning/spoofing', 'M'), B('4.2-b6', 'Rogue DHCP / AP, evil twin', 'M'), B('4.2-b7', 'On-path attack', 'M'), B('4.2-b8', 'Social engineering', 'M'), B('4.2-b9', 'Malware', 'M')], ev: [], ph: ['CERT-Q2'] },
+      { id: '4.3', t: 'Apply security features, defenses and solutions (scenario)', out: 'Apply', rel: 'H', subs: [B('4.3-b1', 'Disable unused ports and services', 'P', 'shutdown verified; services n/a'), B('4.3-b2', 'Change default passwords', 'M'), B('4.3-b3', 'NAC: port security, 802.1X, MAC filtering', 'M'), B('4.3-b4', 'Key management', 'M'), B('4.3-b5', 'ACL', 'M'), B('4.3-b6', 'URL / content filtering', 'M'), B('4.3-b7', 'Zones (trusted/untrusted, screened subnet)', 'D', 'firewall object has LAN/WAN/DMZ ports, no policy')], ev: ['t.link', 't.diagram'], ph: ['CERT-P0-1', 'CERT-P0-2', 'CERT-P1-4', 'CERT-P2-6'] },
+    ] },
+    { id: '5.0', name: 'Network Troubleshooting', w: 24, topics: [
+      { id: '5.1', t: 'Troubleshooting methodology', out: 'Explain', rel: 'M', subs: [B('5.1-b1', 'Identify the problem', 'P', 'Check shows failing checks; hints'), B('5.1-b2', 'Establish a theory', 'P'), B('5.1-b3', 'Test the theory', 'V', 'ping/traceroute/show + checks'), B('5.1-b4', 'Plan of action', 'M'), B('5.1-b5', 'Implement or escalate', 'V', 'fixing via CLI turns checks green'), B('5.1-b6', 'Verify full functionality', 'V', 'Check re-evaluates live Lab'), B('5.1-b7', 'Document findings', 'M')], ev: ['s.chal', 't.chal'], ph: ['CERT-Q1'] },
+      { id: '5.2', t: 'Troubleshoot cabling and physical interface issues (scenario)', out: 'Troubleshoot', rel: 'H', subs: [B('5.2-b1', 'Incorrect cable type', 'M'), B('5.2-b2', 'Signal degradation', 'M'), B('5.2-b3', 'Improper termination / TX-RX transposed', 'M'), B('5.2-b4', 'Interface counters (CRC, runts, giants, drops)', 'M'), B('5.2-b5', 'Port status: administratively down', 'V'), B('5.2-b6', 'Port status: error disabled / suspended', 'M'), B('5.2-b7', 'PoE (budget, standard)', 'M'), B('5.2-b8', 'Transceivers (mismatch, signal)', 'M')], ev: ['s.link', 't.link', 't.showif'], ph: ['CERT-P1-5', 'CERT-P2-4'] },
+      { id: '5.3', t: 'Troubleshoot network service issues (scenario)', out: 'Troubleshoot', rel: 'H', subs: [B('5.3-b1', 'STP (loops, root, roles, states)', 'M'), B('5.3-b2', 'Incorrect VLAN assignment', 'V'), B('5.3-b3', 'ACLs', 'M'), B('5.3-b4', 'Route selection: routing table', 'V'), B('5.3-b5', 'Route selection: default routes', 'V'), B('5.3-b6', 'Address pool exhaustion', 'M'), B('5.3-b7', 'Incorrect default gateway', 'V'), B('5.3-b8', 'Incorrect IP / duplicate IP', 'V'), B('5.3-b9', 'Incorrect subnet mask', 'V', 'Challenge 5 PC mask /30')], ev: ['s.l2', 's.l3', 's.l2t', 's.chal', 't.vlan', 't.static', 't.default', 't.gw', 't.dup', 't.addrchal', 't.chal'], ph: ['CERT-P0-6', 'CERT-P0-2', 'CERT-P0-4'] },
+      { id: '5.4', t: 'Troubleshoot performance issues (scenario)', out: 'Troubleshoot', rel: 'M', subs: [B('5.4-b1', 'Congestion/contention, bottlenecking', 'M'), B('5.4-b2', 'Bandwidth / throughput', 'M'), B('5.4-b3', 'Latency', 'M'), B('5.4-b4', 'Packet loss', 'M'), B('5.4-b5', 'Jitter', 'M'), B('5.4-b6', 'Wireless (interference, coverage, roaming)', 'M')], ev: [], ph: ['CERT-P3-3', 'CERT-P2-1'] },
+      { id: '5.5', t: 'Use appropriate tools and protocols (scenario)', out: 'Apply', rel: 'H', subs: [B('5.5-b1', 'Protocol analyzer', 'M'), B('5.5-b2', 'ping', 'V'), B('5.5-b3', 'traceroute/tracert', 'V'), B('5.5-b4', 'nslookup / dig', 'M'), B('5.5-b5', 'tcpdump', 'M'), B('5.5-b6', 'netstat', 'M'), B('5.5-b7', 'ip/ifconfig/ipconfig', 'P', 'ipconfig only'), B('5.5-b8', 'arp', 'V'), B('5.5-b9', 'Nmap', 'M'), B('5.5-b10', 'LLDP/CDP', 'P', 'CDP on Cisco IOS only (show cdp neighbors [detail], t.cdp); LLDP missing'), B('5.5-b11', 'Speed tester', 'M'), B('5.5-b12', 'Hardware tools (toner, cable tester, taps, Wi-Fi analyzer, VFL)', 'M'), B('5.5-b13', 'show mac-address-table', 'V'), B('5.5-b14', 'show route', 'V'), B('5.5-b15', 'show interface', 'V'), B('5.5-b16', 'show config', 'V'), B('5.5-b17', 'show arp', 'V'), B('5.5-b18', 'show vlan', 'V'), B('5.5-b19', 'show power', 'M')], ev: ['s.pc', 's.cisco', 's.aruba', 's.cdp', 't.ping', 't.trace', 't.arp', 't.mac', 't.showif', 't.config', 't.vlan', 't.cdp'], ph: ['CERT-Q4', 'CERT-P2-3', 'CERT-P3-4'] },
+    ] },
+  ],
+};
+
+// ───────────────────────────── shared capability clusters (appear in BOTH CCNA v1.1 and N10-009) ─────────────────────────────
+export const SHARED = [
+  ['IPv4 addressing & subnetting', 'V', '1.6', '1.7'], ['IPv6 addressing', 'M', '1.8/1.9', '1.8/3.4'], ['VLANs & access ports', 'V', '2.1', '2.2'],
+  ['802.1Q trunks & native VLAN', 'V', '2.2', '2.2'], ['Inter-VLAN routing, SVI, subinterfaces', 'V', '2.1.c', '2.1/2.2'], ['Static & default routing', 'V', '3.3', '2.1/5.3'],
+  ['Route selection (LPM, AD, metric)', 'P', '3.2', '2.1'], ['Dynamic routing (OSPF)', 'M', '3.4', '2.1'], ['Spanning tree', 'M', '2.5', '2.2/5.3'],
+  ['Link aggregation / EtherChannel', 'M', '2.4', '2.2'], ['NAT/PAT', 'M', '4.1', '2.1/1.3'], ['DHCP', 'M', '4.3/4.6', '3.4/5.3'], ['DNS', 'M', '4.3', '3.4/5.5'],
+  ['NTP', 'M', '4.2', '3.4'], ['SNMP', 'M', '4.4', '3.2'], ['Syslog', 'P', '4.5', '3.2'], ['SSH / management access', 'P', '2.8/4.8', '3.5'],
+  ['ACLs', 'M', '5.6', '4.3/5.3'], ['Port security / L2 security', 'M', '5.7', '4.3'], ['Wireless (SSID, security, AP/WLC)', 'D', '1.11/2.6-2.9/5.9-5.10', '2.3'],
+  ['CDP/LLDP', 'P', '2.3', '5.5'], ['Interface/cable issues (speed, duplex, errors)', 'M', '1.4', '5.2'], ['Troubleshooting tools (ping, traceroute, arp, show)', 'V', '1.10/3.1', '5.5'],
+  ['Client OS IP verification', 'P', '1.10', '5.5'], ['FHRP', 'M', '3.5', '2.1'], ['VPN / IPsec', 'M', '5.5', '1.4/3.5'], ['Virtualization & cloud', 'M', '1.12/1.2.f', '1.3'],
+  ['Network components / appliances', 'P', '1.1', '1.2'], ['Switching concepts / MAC table', 'P', '1.13', '1.1/5.5'], ['QoS', 'M', '4.7', '1.2'], ['Automation / IaC / API / JSON', 'M', '6.x', '1.8/3.5'],
+  ['Topology architectures', 'P', '1.2', '1.6'],
+];
+
+// ───────────────────────────── roadmap phases (ID → objectives they target) ─────────────────────────────
+export const PHASES = {
+  'CERT-Q1': 'Certification-tagged labs from existing features (no code; curriculum)',
+  'CERT-Q2': 'Concept notes for describe-level objectives (content only)',
+  'CERT-Q3': 'Tests for implemented-but-unverified behaviour (LPM, host route, class D/E, %LINK messages)',
+  'CERT-Q4': 'Read-only show commands from existing state: show cdp/lldp neighbors, show logging',
+  'CERT-P0-1': 'Device access security: enable secret, username, line con/vty, SSH',
+  'CERT-P0-2': 'IPv4 ACLs (standard/extended, numbered/named)',
+  'CERT-P0-3': 'NAT/PAT + routable internet edge',
+  'CERT-P0-4': 'DHCP server/client/relay (= DEV-01D part)',
+  'CERT-P0-5': 'Single-area OSPFv2',
+  'CERT-P0-6': 'STP / Rapid PVST+',
+  'CERT-P0-7': 'Administrative distance & floating static',
+  'CERT-P1-1': 'IPv6 (addressing, static, ping/traceroute v6)',
+  'CERT-P1-2': 'DNS service + nslookup',
+  'CERT-P1-3': 'EtherChannel / LACP',
+  'CERT-P1-4': 'Port security (+ DHCP snooping/DAI after P0-4)',
+  'CERT-P1-5': 'Interface speed/duplex/errors, err-disabled, voice VLAN',
+  'CERT-P1-6': 'NTP, syslog configuration, SNMP basics',
+  'CERT-P2-1': 'Wireless (AP bridge, SSID/WPA2-PSK, WLC GUI)',
+  'CERT-P2-2': 'FHRP (HSRP/VRRP)',
+  'CERT-P2-3': 'Client OS commands (ifconfig/ip, netstat)',
+  'CERT-P2-4': 'Physical layer (cable/media types, PoE, transceivers)',
+  'CERT-P2-5': 'Documentation objects (zones, IDF/MDF, rack/cable maps, IPAM view)',
+  'CERT-P2-6': 'Firewall zone policy',
+  'CERT-P3-1': 'Automation view (JSON config, REST-style API, playbook runner)',
+  'CERT-P3-2': 'VPN/IPsec concept lab',
+  'CERT-P3-3': 'Performance simulation (latency, loss, bandwidth)',
+  'CERT-P3-4': 'Packet/frame view (capture-style)',
+};

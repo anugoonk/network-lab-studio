@@ -1,0 +1,140 @@
+== mask|subnet|/30|cidr|prefix: 15
+tests/cli.test.ts:49 | router rejects bad mask, overlapping subnet and switchport commands
+tests/device-capability.test.ts:146 | diagram: a firewall between two PCs in one subnet does not forward
+tests/endpoint-devices.test.ts:92 | each new device reaches another subnet through a router (gateway) and tracert shows the router hop
+tests/hints-complete.test.ts:36 | completes a unique prefix and adds a space (IOS)
+tests/hints-complete.test.ts:42 | extends to the common prefix, then lists the options when ambiguous
+tests/l3.test.ts:182 | a static route whose next hop is not on a connected subnet is not installed
+== gateway: 25
+tests/campus3.test.ts:23 | uses /31 routed links and SVI gateways
+tests/campus3.test.ts:29 | everything in the guide works: gateway, inter-VLAN, cores, the second gateway
+tests/campus3.test.ts:63 | shutting the trunk to the access switch cuts both VPCs off from their gateway
+tests/endpoint-devices.test.ts:92 | each new device reaches another subnet through a router (gateway) and tracert shows the router hop
+tests/l2tables.test.ts:79 | a PC sees its gateway and VLAN peers; an isolated PC sees nothing
+tests/l3.test.ts:244 | Aruba switch routes between VLANs when it is the gateway
+== arp: 7
+tests/audit-phase-a.test.ts:130 | pinging its own address still works without a cable (loopback), and ARP failure on a live link is still 
+tests/cli-batch2.test.ts:136 | host name, MAC (the one other hosts see in arp -a), DHCP No, static addressing
+tests/l2tables.test.ts:90 | Aruba show arp lists SVI neighbours with the physical port they were learned on
+tests/samples.test.ts:42 | the symptoms can be traced with the new tools (MAC table / ARP)
+e2e/l2.spec.ts:48 | MAC table and ARP table commands answer from the live topology
+e2e/endpoint-routing.spec.ts(3c9aed7):164 | arp -a after communicating: gateway and the local peer are listed, the remote host is not; identical to the engine
+== mac address|mac-address|mac table: 2
+tests/samples.test.ts:42 | the symptoms can be traced with the new tools (MAC table / ARP)
+e2e/l2.spec.ts:48 | MAC table and ARP table commands answer from the live topology
+== traceroute|tracert: 29
+tests/endpoint-devices.test.ts:92 | each new device reaches another subnet through a router (gateway) and tracert shows the router hop
+tests/traceroute.test.ts:118 | 1. PC → Router → PC: gateway, then the destination
+tests/traceroute.test.ts:126 | 2. PC → Switch → Router → PC: the L2 switches are not hops
+tests/traceroute.test.ts:135 | 3. PC → three routers → PC: every router in order, addressed from its interface towards the source
+tests/traceroute.test.ts:142 | 4. PC → Aruba L3 switch → PC: the routing Aruba switch is one hop
+tests/traceroute.test.ts:149 | 4b. an Aruba switch that only bridges (even with an SVI in the same VLAN) is NOT a hop
+== ping: 48
+tests/audit-phase-a.test.ts:96 | an AOS-CX switch replies with TTL 64 and its own ping shows the reply TTL
+tests/audit-phase-a.test.ts:104 | failed pings carry no reply TTL
+tests/audit-phase-a.test.ts:130 | pinging its own address still works without a cable (loopback), and ARP failure on a live link is still 
+tests/audit-phase-a.test.ts:187 | when the router cannot reach the source either, the ping just times out
+tests/challenge.test.ts:100 | rejects a malformed ping target
+tests/cli.test.ts:49 | router rejects bad mask, overlapping subnet and switchport commands
+== static route|ip route|default route|longest|route: 70
+tests/audit-phase-a.test.ts:77 | no router crossed: TTL=128 however many switches are in the path
+tests/audit-phase-a.test.ts:84 | three routers crossed: Windows reply arrives with TTL=125
+tests/audit-phase-a.test.ts:90 | a Cisco router replies with initial TTL 255 (minus the routers on the way back)
+tests/audit-phase-a.test.ts:174 | Cisco router shows U.U.U and 0 percent
+tests/audit-phase-a.test.ts:180 | the source router itself having no route stays a plain failure (no ICMP from itself)
+tests/audit-phase-a.test.ts:187 | when the router cannot reach the source either, the ping just times out
+== native: 14
+tests/l3.test.ts:70 | native VLAN: untagged frames follow the native VLAN, and a mismatch leaks VLANs
+tests/native-vlan.test.ts:68 | no mismatch while both trunk ends use the same native VLAN
+tests/native-vlan.test.ts:73 | Cisco ↔ Cisco: one entry for the link, flagged as a CDP link
+tests/native-vlan.test.ts:81 | Cisco ↔ Aruba and Aruba ↔ Aruba are detected but are not CDP links
+tests/native-vlan.test.ts:95 | only trunk ↔ trunk on a link that is up is reported
+tests/native-vlan.test.ts:114 | warning disappears when the mismatch is resolved (either side)
+== trunk: 17
+tests/campus3.test.ts:63 | shutting the trunk to the access switch cuts both VPCs off from their gateway
+tests/challenge.test.ts:131 | trunk-vlan follows allowed lists on Cisco and Aruba and treats access ports as not carrying
+tests/cli-batch2.test.ts:76 | invalid syntax is rejected; existing show interfaces status / trunk still work; abbreviation works
+tests/l2tables.test.ts:29 | SW1 learns PC-A locally in VLAN 10, PC-C through the trunk, and R1 in both VLANs on its trunk
+tests/l3.test.ts:50 | Aruba trunk allowed list is enforced too
+tests/l3.test.ts:89 | show interfaces trunk / show vlan reflect the trunk
+== access vlan|switchport access|vlan access|vlan brief|show vlan: 10
+tests/audit-phase-a.test.ts:140 | vlan 1002-1005 and switchport access vlan 1002-1005 are rejected; 1001 and 1006 work
+tests/cli-batch2.test.ts:90 | returns the port to VLAN 1 — show vlan brief, running-config and the simulation all follow
+tests/cli.test.ts:61 | switch: create VLAN, set access VLAN, show vlan brief
+tests/cli.test.ts:75 | access VLAN on missing VLAN auto-creates with the IOS message
+tests/cli.test.ts:112 | uses configure terminal / interface 1/1/1 / no routing / vlan access
+tests/cli.test.ts:121 | routed interface refuses vlan access until no routing
+== inter-vlan|router-on-a-stick|sub-interface|subif|dot1q|encapsulation|svi: 23
+tests/audit-phase-a.test.ts:204 | Aruba CX 6100 is not labelled as L2-only (it routes between SVIs)
+tests/campus3.test.ts:23 | uses /31 routed links and SVI gateways
+tests/campus3.test.ts:29 | everything in the guide works: gateway, inter-VLAN, cores, the second gateway
+tests/challenge.test.ts:23 | is exactly the inter-VLAN lab plus three faults (same devices and cables)
+tests/cli-batch2.test.ts:54 | show interfaces lists SVIs first, then every port (with sub-interfaces after their parent on a router)
+tests/cli-batch2.test.ts:65 | router sub-interface: 802.1Q VLAN ID and address; unknown sub-interface / SVI is an error
+== shutdown|admin|link: 40
+tests/audit-phase-a.test.ts:130 | pinging its own address still works without a cable (loopback), and ARP failure on a live link is still 
+tests/campus3.test.ts:13 | has the 3-tier layout: 7 devices, 9 cables, every link up, no duplicate IP
+tests/campus3.test.ts:23 | uses /31 routed links and SVI gateways
+tests/campus3.test.ts:70 | show ip route on Core-1 lists the connected /31 links and the static routes
+tests/challenge.test.ts:60 | link-up fails when the port is shut down or uncabled
+tests/challenge.test.ts:145 | port-admin reads the administrative state
+== dup: 17
+tests/campus3.test.ts:13 | has the 3-tier layout: 7 devices, 9 cables, every link up, no duplicate IP
+tests/challenge.test.ts:165 | no-dup-ip flips when two hosts in one VLAN share an address
+tests/cli-batch2.test.ts:160 | cable unplugged: Media disconnected, no address lines; duplicate IP is flagged
+tests/l2tables.test.ts:120 | IOS prints %IP-4-DUPADDR naming the other device MAC when a conflicting address is configured
+tests/l2tables.test.ts:128 | Windows ipconfig marks a duplicate address
+tests/l3.test.ts:206 | validates network/mask consistency and duplicates replace
+== cdp: 4
+tests/native-vlan.test.ts:73 | Cisco ↔ Cisco: one entry for the link, flagged as a CDP link
+tests/native-vlan.test.ts:81 | Cisco ↔ Aruba and Aruba ↔ Aruba are detected but are not CDP links
+tests/native-vlan.test.ts:150 | no CDP message on Cisco ↔ Aruba links and never on Aruba
+tests/native-vlan.test.ts:167 | cdpMismatchLog is silent for routers/PCs and for mismatches on other switches
+== show interfaces|interface brief|status: 9
+tests/cli-batch2.test.ts:54 | show interfaces lists SVIs first, then every port (with sub-interfaces after their parent on a router)
+tests/cli-batch2.test.ts:76 | invalid syntax is rejected; existing show interfaces status / trunk still work; abbreviation works
+tests/cli.test.ts:70 | switch: shutdown shows disabled in show interfaces status
+tests/cli.test.ts:134 | shutdown reflects in show interface brief
+tests/l3.test.ts:89 | show interfaces trunk / show vlan reflect the trunk
+tests/l3.test.ts:145 | show ip interface brief lists sub-interfaces; running-config prints encapsulation
+== startup|write memory|running-config|copy run: 10
+tests/challenge.test.ts:117 | config-line looks at the real running-config (Cisco and Aruba), ignoring indentation
+tests/cli-batch2.test.ts:90 | returns the port to VLAN 1 — show vlan brief, running-config and the simulation all follow
+tests/cli-batch2.test.ts:116 | removes the description of a port, a sub-interface and an SVI (running-config follows; persists)
+tests/cli.test.ts:98 | write memory fills startup-config
+tests/l3.test.ts:103 | running-config shows trunk commands
+tests/l3.test.ts:145 | show ip interface brief lists sub-interfaces; running-config prints encapsulation
+== challenge|check: 44
+tests/campus3.test.ts:93 | fixing the faults one at a time through the CLI unlocks the checks in order
+tests/challenge.test.ts:12 | starts broken: only the checks that do not depend on a fault pass
+tests/challenge.test.ts:23 | is exactly the inter-VLAN lab plus three faults (same devices and cables)
+tests/challenge.test.ts:30 | fixing the real faults through the CLI makes every check pass, one at a time
+tests/challenge.test.ts:46 | result detail never reveals the cause
+tests/challenge.test.ts:54 | 
+== hostname: 1
+tests/cli.test.ts:20 | hostname changes the prompt and the device name
+== ipconfig: 5
+tests/cli-batch2.test.ts:173 | plain ipconfig is unchanged; unknown switch is rejected; read-only
+tests/l2tables.test.ts:128 | Windows ipconfig marks a duplicate address
+tests/network.test.ts:186 | terminal ping and ipconfig use the same data
+e2e/endpoint-devices.spec.ts:100 | a camera pings a PC through a Catalyst 2960 and the PC pings it back; ipconfig shows its settings
+e2e/endpoint-routing.spec.ts(3c9aed7):204 | existing PC behaviour is unchanged: PC-01 ipconfig / ping / tracert / arp match the engine, and the endpoints print the same f
+== reserved|1002: 12
+tests/audit-phase-a.test.ts:140 | vlan 1002-1005 and switchport access vlan 1002-1005 are rejected; 1001 and 1006 work
+tests/reserved-vlans.test.ts:26 | shows the four rows with IOS names and status act/unsup, no ports
+tests/reserved-vlans.test.ts:31 | rows are ordered by VLAN ID: user VLANs below 1002 first, 1006+ after 1005
+tests/reserved-vlans.test.ts:44 | existing user VLAN rows are unchanged (status active, access ports listed)
+tests/reserved-vlans.test.ts:51 | display only: nothing is added to the VLAN database, running-config or the saved Lab
+tests/reserved-vlans.test.ts:64 | cannot be deleted (IOS: %Default VLAN n may not be deleted.) and the state is unchanged
+== ttl|unreachable|general failure|no route: 15
+tests/audit-phase-a.test.ts:77 | no router crossed: TTL=128 however many switches are in the path
+tests/audit-phase-a.test.ts:84 | three routers crossed: Windows reply arrives with TTL=125
+tests/audit-phase-a.test.ts:90 | a Cisco router replies with initial TTL 255 (minus the routers on the way back)
+tests/audit-phase-a.test.ts:96 | an AOS-CX switch replies with TTL 64 and its own ping shows the reply TTL
+tests/audit-phase-a.test.ts:104 | failed pings carry no reply TTL
+tests/audit-phase-a.test.ts:122 | switch port facing the PC is shut down: also General failure, and the reason names the port
+== loop: 4
+tests/audit-phase-a.test.ts:130 | pinging its own address still works without a cable (loopback), and ARP failure on a live link is still 
+tests/audit-phase-a.test.ts:194 | a routing loop is still reported as a timeout, not as net unreachable
+tests/network.test.ts:159 | a layer-2 loop does not hang the engine
+tests/traceroute.test.ts:223 | 12. routing loop: R1 and R2 alternate until the hop limit; bounded

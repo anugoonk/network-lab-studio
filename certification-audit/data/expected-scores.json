@@ -1,0 +1,32 @@
+{
+ "note": "Figures as PUBLISHED in CERTIFICATION_GAP_ANALYSIS.md (2026-11-13, CERT-Q4a update at 950fb0c: CCNA v1.1 2.3, v2.0 2.3, N+ 5.5-b10 and the CDP/LLDP shared cluster MISSING to PARTIAL; CERT-P0-1a update at 51251c0 (2026-11-16): CCNA v1.1 5.3 MISSING to PARTIAL, eight CCNA v1.1 figures entered from the reviewed gen.mjs results; earlier CERT-Q3 four IU to VERIFIED), entered by hand from the report — percentages, 1 decimal. Used by recompute-from-matrices.mjs; do not regenerate this file from the scripts.",
+ "published": {
+  "ccna11": {
+   "overall": 20.5, "lab": 30.8, "strictOverall": 17.7, "strictLab": 27.5, "lenientOverall": 23.9, "lenientLab": 35.2, "verifiedOverall": 13.7, "verifiedLab": 22.2,
+   "domains": {
+    "1.0": { "overall": 21.3, "lab": 37.1 }, "2.0": { "overall": 30.6, "lab": 44.0 }, "3.0": { "overall": 36.2, "lab": 40.2 },
+    "4.0": { "overall": 4.4, "lab": 0.0 }, "5.0": { "overall": 4.0, "lab": 10.0 }, "6.0": { "overall": 0.0, "lab": null }
+   }
+  },
+  "ccna20": {
+   "overall": 17.4, "lab": 19.6, "strictOverall": 13.2, "lenientOverall": 22.7, "verifiedOverall": 6.8,
+   "domains": {
+    "1.0": { "overall": 11.4, "lab": 16.0 }, "2.0": { "overall": 35.4, "lab": 35.4 }, "3.0": { "overall": 25.0, "lab": 28.6 },
+    "4.0": { "overall": 0.0, "lab": 0.0 }, "5.0": { "overall": 6.7, "lab": 10.0 }
+   }
+  },
+  "nplus": {
+   "overall": 20.7, "lab": 28.4, "strictOverall": 18.6, "strictLab": 25.3, "lenientOverall": 23.1, "lenientLab": 32.2, "verifiedOverall": 16.0, "verifiedLab": 20.7,
+   "domains": {
+    "1.0": { "overall": 24.3, "lab": 51.1 }, "2.0": { "overall": 21.1, "lab": 23.6 }, "3.0": { "overall": 7.0, "lab": 7.0 },
+    "4.0": { "overall": 4.5, "lab": 7.9 }, "5.0": { "overall": 37.0, "lab": 39.5 }
+   }
+  },
+  "shared": { "proposed": 29.2, "strict": 25.0, "lenient": 34.5 }
+ },
+ "structure": {
+  "ccna11": { "domains": 6, "topics": 53, "items": 98 },
+  "ccna20": { "domains": 5, "topics": 29, "items": 53 },
+  "nplus": { "domains": 5, "topics": 25, "items": 210 }
+ }
+}
