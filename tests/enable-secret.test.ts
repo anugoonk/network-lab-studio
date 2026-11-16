@@ -197,9 +197,9 @@ describe('CERT-P0-1a no secret leaks', () => {
     expect(t.visible()).not.toContain(SECRET);
   });
 
-  it('redaction leaves ordinary lines and other vendors alone', () => {
+  it('redaction leaves ordinary lines alone and masks the secret argument for every vendor (fix1)', () => {
     for (const l of ['show running-config', 'enable', 'interface gi0/1', 'end', 'hostname R9']) expect(redactLine('cisco', l)).toBe(l);
-    expect(redactLine('aruba', 'enable secret abc')).toBe('enable secret abc');
+    for (const v of ['cisco', 'aruba', 'pc', 'generic'] as const) expect(redactLine(v, 'enable secret abc')).toBe('enable secret ********');
   });
 
   it('localStorage and the workspace hold the hash, never the secret or a pending prompt; reload drops the prompt', () => {

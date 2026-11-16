@@ -46,12 +46,11 @@ const MASK = '********';
 
 /**
  * The line with every secret-bearing argument masked, for history, the transcript and error text.
- * Rule (Cisco): after optional `do` / `no`, a first word that abbreviates `enable` with two or more further words has
+ * Rule (every vendor, so a secret typed on an Aruba or PC console, or sent to a device that rejects it, is masked too): after optional `do` / `no`, a first word that abbreviates `enable` with two or more further words has
  * everything from its second argument on masked — so typos (`enable secrte x`) and rejected forms are masked too.
  * Masking more than needed is harmless; masking less would leak.
  */
 export function redactLine(vendor: Vendor, line: string): string {
-  if (vendor !== 'cisco') return line;
   const toks = tokenize(line, vendor);
   let i = 0;
   while (i < toks.length && ['do', 'no'].includes(toks[i].text.toLowerCase())) i++;
@@ -432,7 +431,9 @@ export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecRe
   if (!dev0) return { lab, output: ['Device not found'], ok: false, prompt: '' };
   const prompt = promptFor(dev0);
   if (!PROFILES[dev0.kind].hasCli) {
-    return { lab, output: [tx('{0} ไม่มี Console ในโปรแกรมนี้ (วาดและต่อสายเท่านั้น)', PROFILES[dev0.kind].label)], ok: false, prompt };
+    // no CLI to run it, but the caller still echoes the line into the transcript: hand back it masked
+    const shown0 = redactLine(PROFILES[dev0.kind].vendor, rawLine.trim());
+    return { lab, output: [tx('{0} ไม่มี Console ในโปรแกรมนี้ (วาดและต่อสายเท่านั้น)', PROFILES[dev0.kind].label)], ok: false, prompt, ...(shown0 !== rawLine.trim() ? { echo: shown0 } : {}) };
   }
   if (dev0.cli.pending) return answerPrompt(lab, deviceId, rawLine);
   const vendor = PROFILES[dev0.kind].vendor;
