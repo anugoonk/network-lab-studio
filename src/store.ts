@@ -267,6 +267,9 @@ export const useStore = create<State>((set, get) => {
     });
   };
 
+  /** an imported Lab had secrets in its command history (older builds): tell the learner they were masked (never shows them) */
+  const addMaskedNote = (n: number) =>
+    set((s) => ({ notice: { kind: 'ok', text: `${s.notice?.text ? `${s.notice.text} · ` : ''}${tx('ปิดบังรหัสผ่านที่พบในประวัติคำสั่ง {0} บรรทัด', n)}` } }));
   const applyHistory = (lab: Lab, history: History) => {
     applyingHistory = true;
     try {
@@ -382,6 +385,7 @@ export const useStore = create<State>((set, get) => {
       const e: LabEntry = { id: newLabId(), name: r.lab.name, updatedAt: Date.now(), savedSig: contentSignature(r.lab), lab: r.lab };
       loadEntry(e, [...get().others, activeEntry()]);
       set({ notice: { kind: 'ok', text: tx('เปิด "{0}" จากลิงก์แชร์แล้ว (เพิ่มเป็น Lab ใหม่ในรายการ — Lab เดิมของคุณยังอยู่)', r.lab.name) } });
+      if (r.masked) addMaskedNote(r.masked);
       return true;
     },
     copyConfig: async (deviceId) => {
@@ -617,6 +621,7 @@ export const useStore = create<State>((set, get) => {
         return r.error;
       }
       get().requestReplace({ kind: 'import', lab: r.lab, fileName: name });
+      if (r.masked) addMaskedNote(r.masked);
       return null;
     },
 
@@ -685,6 +690,7 @@ export const useStore = create<State>((set, get) => {
       }
       const e: LabEntry = { id: newLabId(), name: r.lab.name, updatedAt: Date.now(), savedSig: contentSignature(r.lab), lab: r.lab };
       set({ others: [...get().others, e], notice: { kind: 'ok', text: tx('นำเข้า {0} เป็น "{1}" ในรายการแล้ว', name, r.lab.name) } });
+      if (r.masked) addMaskedNote(r.masked);
       return null;
     },
   };
