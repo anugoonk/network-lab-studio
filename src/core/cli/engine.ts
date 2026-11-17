@@ -54,11 +54,6 @@ export function redactLine(vendor: Vendor, line: string): string {
   return classifyLine(vendor, line).shown;
 }
 
-// executeLine masks every line with classifyLine BEFORE the command is resolved, so unsupported, malformed and
-// foreign-vendor commands are masked too; only the masked line reaches the history, and error and hint text are scrubbed.
-// A prompt answer (answerPrompt) shows and keeps nothing of what was typed.
-// (The source line positions of redactLine, answerPrompt and executeLine are cited by certification-audit evidence: keep them.)
-
 export function promptFor(dev: Device): string {
   const v = PROFILES[dev.kind].vendor;
   if (dev.cli.pending) return PASSWORD_PROMPT;
@@ -426,6 +421,9 @@ function answerPrompt(lab: Lab, deviceId: string, rawLine: string): ExecResult {
   };
 }
 
+// executeLine masks every line with classifyLine BEFORE the command is resolved, so unsupported, malformed and
+// foreign-vendor commands are masked too; only the masked line reaches the history, and error and hint text are scrubbed.
+// A prompt answer (answerPrompt) shows and keeps nothing of what was typed.
 export function executeLine(lab: Lab, deviceId: string, rawLine: string): ExecResult {
   const dev0 = getDevice(lab, deviceId);
   if (!dev0) return { lab, output: ['Device not found'], ok: false, prompt: '' };

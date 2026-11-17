@@ -5,6 +5,7 @@ import { PROFILES } from './profiles';
 import { TYPE5_RE } from './secret';
 import type { CliMode, DeviceKind, Lab } from './types';
 import { tx } from '../i18n';
+import { sanitizeLab, sanitizeUntrusted } from './cli/redact';
 
 export const SCHEMA_VERSION = 1;
 export const STORAGE_KEY = 'nls.lab.v1';
@@ -225,6 +226,12 @@ export function validateLab(data: unknown): ParseResult {
   return acceptLab(lab);
 }
 
+/** A valid Lab as the app may use and store it: older builds kept some secret-bearing command lines in clear text in the CLI history, masked here (`masked` = lines changed; absent when none). */
+function acceptLab(lab: Lab): ParseResult {
+  const clean = sanitizeLab(lab);
+  return clean.count ? { ok: true, lab: clean.lab, masked: clean.count } : { ok: true, lab };
+}
+
 /** The Lab without transient console state (a pending credential prompt), for storage and export files. */
 export function withoutTransient(lab: Lab): Lab {
   if (!lab.devices.some((d) => d.cli.pending)) return lab;
@@ -257,23 +264,6 @@ export function parseImport(text: string): ParseResult {
     return { ok: false, error: tx('schema version {0} ไม่รองรับ (รองรับเฉพาะ version {1})', String(o.schemaVersion), SCHEMA_VERSION) };
   }
   return validateLab(o.lab);
-}
-
-// Imported here (not at the top) and acceptLab placed after parseImport so the source line numbers cited by the certification evidence stay valid.
-import { sanitizeLab, sanitizeUntrusted } from './cli/redact';
-
-/** Rejected (invalid) Labs are kept for recovery, but their command history is masked first: stored, listed and exported copies never hold a recognised credential. Safe on any shape (bounded). */
-function cleanRejected(items: RejectedEntry[]): RejectedEntry[] {
-  return items.map((x) => {
-    const r = sanitizeUntrusted(x?.entry);
-    return r.value === x?.entry ? x : { ...x, entry: r.value };
-  });
-}
-
-/** A valid Lab as the app may use and store it: older builds kept some secret-bearing command lines in clear text in the CLI history, masked here (`masked` = lines changed; absent when none). */
-function acceptLab(lab: Lab): ParseResult {
-  const clean = sanitizeLab(lab);
-  return clean.count ? { ok: true, lab: clean.lab, masked: clean.count } : { ok: true, lab };
 }
 
 // ───────── local storage ─────────
@@ -349,6 +339,14 @@ export interface RejectedEntry {
 
 export const REJECTED_KEY = 'nls.workspace.rejected.v1';
 export const REJECTED_LIMIT = 20;
+
+/** Rejected (invalid) Labs are kept for recovery, but their command history is masked first: stored, listed and exported copies never hold a recognised credential. Safe on any shape (bounded). */
+function cleanRejected(items: RejectedEntry[]): RejectedEntry[] {
+  return items.map((x) => {
+    const r = sanitizeUntrusted(x?.entry);
+    return r.value === x?.entry ? x : { ...x, entry: r.value };
+  });
+}
 
 /**
  * Loads the saved workspace. Entries that fail validation are NOT dropped silently: they are returned in `rejected`

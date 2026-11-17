@@ -1,9 +1,9 @@
 // QC of the certification model: objective counts, duplicate IDs, domain weights, and every evidence reference.
-// Usage (from anywhere): node certification-audit/scripts/qc.mjs    — needs git and the branch/commit 3c9aed7 locally.
-import { readFileSync, existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+// Usage (from anywhere): node certification-audit/scripts/qc.mjs    — needs git and the commit 3c9aed7 locally (one cited e2e file lives only there).
+// (reads data/anchors.json through anchors.mjs)
 import { CCNA11, CCNA20, NPLUS, EV } from './model.mjs';
 import { fileURLToPath } from 'node:url';
+import { checkAll, loadRegistry } from './anchors.mjs';
 // repository root = two levels above this script (certification-audit/scripts/qc.mjs)
 const REPO = fileURLToPath(new URL('../../', import.meta.url)).split('\\').join('/').replace(/\/$/, '');
 const out = [];
@@ -13,32 +13,13 @@ for (const ex of [CCNA11, CCNA20, NPLUS]) {
   const dup = ids.filter((x, i) => ids.indexOf(x) !== i);
   out.push(`${ex.name} ${ex.version}: domains=${ex.domains.length} weightSum=${w} topics=${topics} ids=${ids.length} duplicates=${JSON.stringify(dup)}`);
 }
-let bad = 0, checked = 0;
-for (const [k, v] of Object.entries(EV)) {
-  for (const m of v.matchAll(/((?:src|tests|e2e)\/[\w./-]+\.(?:tsx|ts))(?::(\d+)(?:-(\d+))?((?:, :\d+(?:-\d+)?)*))?/g)) {
-    const file = m[1];
-    const pending = file === 'e2e/endpoint-routing.spec.ts';
-    const text = pending ? execSync(`git -C "${REPO}" show 3c9aed7:${file}`).toString() : (existsSync(`${REPO}/${file}`) ? readFileSync(`${REPO}/${file}`, 'utf8') : null);
-    if (text === null) { out.push(`MISSING FILE ${k}: ${file}`); bad++; continue; }
-    const lines = text.split('\n');
-    const nums = [m[2], m[3], ...(m[4] ? [...m[4].matchAll(/:(\d+)/g)].map((x) => x[1]) : [])].filter(Boolean).map(Number);
-    for (const n of nums) {
-      checked++;
-      const L = lines[n - 1] ?? '';
-      const isTestFile = file.startsWith('tests/') || file.startsWith('e2e/');
-      const ok = isTestFile ? /^\s*(it|test|describe)(\.\w+)?\(/.test(L) || /\b(it|test)\(/.test(L) : L.trim().length > 0;
-      if (!ok) { out.push(`BAD LINE ${k}: ${file}:${n} -> ${L.trim().slice(0, 80)}`); bad++; }
-    }
-  }
-}
-// src line refs like "l.191"
-for (const [k, v] of Object.entries(EV)) {
-  const f = v.match(/(src\/[\w./-]+\.tsx?)/); if (!f) continue;
-  for (const m of v.matchAll(/(\w+)\(\) l\.(\d+)/g)) {
-    checked++;
-    const L = readFileSync(`${REPO}/${f[1]}`, 'utf8').split('\n')[Number(m[2]) - 1] ?? '';
-    if (!L.includes(m[1])) { out.push(`BAD FN REF ${k}: ${f[1]} l.${m[2]} expected ${m[1]} got: ${L.trim().slice(0, 70)}`); bad++; }
-  }
-}
-out.push(`evidence refs checked=${checked} problems=${bad}`);
+// Evidence references are resolved through STABLE ANCHORS (anchors.mjs + data/anchors.json: token-canonical line text + occurrence,
+// never the absolute line number). A moved or reformatted-around line passes; an edited, deleted, duplicated or uncited one fails,
+// and so does an unreadable or malformed registry.
+const { registry, error } = loadRegistry();
+const r = registry ? checkAll(EV, registry, REPO) : { out: [`BAD REGISTRY cannot read data/anchors.json: ${error}`], checked: 0, bad: 1, drift: 0 };
+out.push(...r.out);
+out.push(`evidence refs checked=${r.checked} problems=${r.bad}`);
+out.push(`cited line numbers that differ from the recorded ones (informational, not a problem): ${r.drift}`);
 console.log(out.join('\n'));
+if (r.bad) process.exitCode = 1;

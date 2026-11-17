@@ -3,3 +3,5 @@ dist
 test-results
 playwright-report
 Screenshot *.png
+unit-results.json
+e2e-results.json

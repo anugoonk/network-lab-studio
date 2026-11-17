@@ -25,7 +25,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
+      # machine-readable results feed the test-inventory gate (F-6): a lost, renamed, skipped or emptied test file fails the build job
+      - name: Unit tests
+        run: npm test -- --reporter=default --reporter=json --outputFile.json=unit-results.json
+      - name: Unit test inventory and minimum count
+        run: |
+          node ci/verify-test-inventory-selftest.mjs
+          node ci/verify-test-inventory.mjs check unit unit-results.json
       - run: npm run build
         env:
           VITE_BASE: /network-lab-studio/
@@ -62,6 +68,8 @@ jobs:
             console.log('::notice title=E2E results::' + line);
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### ' + line + '\n');
           "
+      - name: E2E test inventory and minimum count
+        run: node ci/verify-test-inventory.mjs check e2e e2e-results.json
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -72,9 +80,47 @@ jobs:
             e2e-results.json
           retention-days: 7
 
+  # Certification-audit integrity gate (read-only verification; plain Node, no npm install, no secrets, no write access).
+  # fetch-depth 0: the evidence anchors read the blob of commit 3c9aed7 (e2e/endpoint-routing.spec.ts) and the determinism
+  # check rebuilds the registry from commit e23e00c; a shallow clone contains neither, and the steps then fail (never skip).
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Required history is present
+        run: |
+          git cat-file -e 3c9aed7^{commit}
+          git cat-file -e e23e00c^{commit}
+      - name: Reproducibility (matrices, scores, evidence index, recompute, QC incl. anchors, MANIFEST)
+        run: node certification-audit/scripts/verify.mjs
+      - name: Evidence anchors resolve
+        run: |
+          out=$(node certification-audit/scripts/anchors.mjs check)
+          echo "$out"
+          case "$out" in *"anchors checked=248 problems=0"*) ;; *) echo "::error::anchor check did not report 248 anchors / 0 problems"; exit 1 ;; esac
+      - name: Anchor self-tests (a SKIP is a failure)
+        run: |
+          out=$(node certification-audit/scripts/anchors-selftest.mjs)
+          echo "$out" | tail -n 5
+          if echo "$out" | grep -E '^SKIP|FAIL' ; then echo "::error::anchor self-test skipped or failed a scenario"; exit 1; fi
+          echo "$out" | grep -E '^[0-9]+/[0-9]+ anchor self-tests passed$' | awk -F'[ /]' '{ if ($1 != $2 || $1 < 1) exit 1 }'
+      - name: Anchor registry is deterministic (rebuilt from e23e00c, must equal data/anchors.json)
+        run: |
+          node certification-audit/scripts/anchors.mjs build --at e23e00c --out "$RUNNER_TEMP/anchors.rebuilt.json"
+          cmp "$RUNNER_TEMP/anchors.rebuilt.json" certification-audit/data/anchors.json
+      - name: Audit run left the working tree unchanged
+        run: test -z "$(git status --porcelain)"
+
   deploy:
-    needs: [build, e2e]
-    # no status function here, so GitHub also requires build and e2e to have succeeded
+    # audit joins the gate: a failed certification audit also blocks a production deploy
+    needs: [build, e2e, audit]
+    # no status function here, so GitHub also requires build, e2e and audit to have succeeded
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
