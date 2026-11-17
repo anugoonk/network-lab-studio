@@ -25,7 +25,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
+      # machine-readable results feed the test-inventory gate (F-6): a lost, renamed, skipped or emptied test file fails the build job
+      - name: Unit tests
+        run: npm test -- --reporter=default --reporter=json --outputFile.json=unit-results.json
+      - name: Unit test inventory and minimum count
+        run: |
+          node ci/verify-test-inventory-selftest.mjs
+          node ci/verify-test-inventory.mjs check unit unit-results.json
       - run: npm run build
         env:
           VITE_BASE: /network-lab-studio/
@@ -62,6 +68,8 @@ jobs:
             console.log('::notice title=E2E results::' + line);
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### ' + line + '\n');
           "
+      - name: E2E test inventory and minimum count
+        run: node ci/verify-test-inventory.mjs check e2e e2e-results.json
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
