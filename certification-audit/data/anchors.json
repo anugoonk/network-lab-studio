@@ -1,0 +1,2274 @@
+{
+ "schema": 2,
+ "normalization": "token-v1",
+ "note": "Identity of each cited location = token-canonical line text + occurrence; `line` is informational. Rebuild deliberately with: node certification-audit/scripts/anchors.mjs build --at <commit>",
+ "anchors": [
+  {
+   "key": "s.l2",
+   "file": "src/core/network.ts",
+   "line": 191,
+   "symbol": "l2Domain",
+   "text": "export function l2Domain (",
+   "sha256": "d1fe7b88cd7a88ebcae34a4af9f5e7be9c29fb269e21f86f7682c6d2b477c062",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l2",
+   "file": "src/core/network.ts",
+   "line": 81,
+   "symbol": "portCarries",
+   "text": "export function portCarries ( dev : Device , i : Iface , v : number ) : boolean {",
+   "sha256": "10d1ab9ede76093d0b756895a69131687e9c4c584a1b69219973244f769ec3b4",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l2",
+   "file": "src/core/network.ts",
+   "line": 78,
+   "symbol": "allowsVlan",
+   "text": "export const allowsVlan = ( i : Iface , v : number ) : boolean => i . trunkAllowed === null || i . trunkAllowed . includes ( v ) ;",
+   "sha256": "090cf757655110285e8f87cf0b2f0986f3af131bf1d95d053f7fc58ea6a82f29",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 101,
+   "text": "it ( 'the /24 wins over the /16 for a destination both cover, whatever order they were configured in' , ( ) => {",
+   "sha256": "6a33aeda8bbd369444578bc08d2c7786ac22a5e68c9aef4dfb36522762d4f3a2",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 110,
+   "text": "it ( 'a destination only the /16 covers follows the /16' , ( ) => {",
+   "sha256": "190116daa729e91da39dd9eed0cf8ebda60037fc9962a714a251270b77b5d97f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 116,
+   "text": "it ( 'with three overlapping routes (/0, /16, /24) each destination takes its longest match' , ( ) => {",
+   "sha256": "da06105afa2a982fb95ac1204293c0a295f306662811219ab67d6a74d67161a2",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 127,
+   "text": "it ( 'a static route more specific than a connected subnet wins over the connected route (prefix length before route source)' , ( ) => {",
+   "sha256": "7441a5835402244ab5f111f40533d08fe1985372704b13685763cee15f6436c3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 140,
+   "text": "it ( 'a connected route beats a static route of the same prefix length' , ( ) => {",
+   "sha256": "d336e729b2a9162eda5c5b61f699e7f54b54017984862b35fd30055d50ec76b9",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 147,
+   "text": "it ( 'no matching route: R1 answers Destination Net Unreachable and the ping fails' , ( ) => {",
+   "sha256": "8448939718c1bf47b67acfd3b101a05202ece3c8398e3ca6fe36aa5075fc7575",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 158,
+   "text": "it ( 'when the more specific route cannot be installed (next-hop subnet down), the less specific route takes over' , ( ) => {",
+   "sha256": "66f03ca2499c54e332cc71f46ed8c47298af5ce5d0dc47228d25e5332c5dd157",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3lpm",
+   "file": "tests/route-selection.test.ts",
+   "line": 174,
+   "text": "it ( 'is deterministic: the same Lab gives the same decisions, also after export → import' , ( ) => {",
+   "sha256": "df8fd1d807663e6ab1093b0d95d6d487a13ed31d2ce97d251b2744b016fa70d3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3host",
+   "file": "tests/route-selection.test.ts",
+   "line": 189,
+   "text": "it ( 'a /32 is preferred over the /24 and the /16 for exactly that host; its neighbours keep the /24' , ( ) => {",
+   "sha256": "c2340c3a0bfbfb76c0601aaf1f955cde32b9f0d145d5a8aca9d92133af9ee55a",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3host",
+   "file": "tests/route-selection.test.ts",
+   "line": 200,
+   "text": "it ( 'show ip route lists the host route as a /32 static entry; running-config keeps it' , ( ) => {",
+   "sha256": "246fc80e30ecf937ee3de978fdb146ff34beca8370e53c2b0c7ed4a2897aca8a",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3host",
+   "file": "tests/route-selection.test.ts",
+   "line": 210,
+   "text": "it ( 'a host route with an unreachable next hop is configured but not installed: the host falls back to the /24' , ( ) => {",
+   "sha256": "d75e6c106fca07a4729d9d67efa3a0b1e791eb5b6dd58ca7cad37bfd3d068908",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3host",
+   "file": "tests/route-selection.test.ts",
+   "line": 217,
+   "text": "it ( 'a host route whose mask does not match the address, or whose next hop is not an IPv4 address, is rejected and changes nothing' , ( ) => {",
+   "sha256": "59ed5035ea776c93441b11b26900792638ffcb59f8d09df176b3426f616665c5",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 65,
+   "text": "it ( 'shutdown on an up/up port prints exactly one %LINK-5-CHANGED with the full interface name, and the port really goes down' , ( ) => {",
+   "sha256": "9633c8d4d3d45f01bf2333d564c77ec2f425c61a7e3804c133d98411bf8f6ecb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 73,
+   "text": "it ( 'no shutdown that brings the link back up prints exactly one %LINK-3-UPDOWN … up, and the port is up/up again' , ( ) => {",
+   "sha256": "2c87e8ff40a2aaab1cd37002f6e45d3b10d646504326246c848ef5df1d28b936",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 81,
+   "text": "it ( 'names the interface the way IOS does: abbreviations expand, sub-interfaces keep the .id, SVIs are VlanN, switch ports keep their type' , ( ) => {",
+   "sha256": "66c3739b776b4e773eb315c7f32b83bb265b13a20592312c97d706a5e6b2d26c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 92,
+   "text": "it ( 'every message follows %FACILITY-SEVERITY-MNEMONIC: LINK-5 for the administrative change, LINK-3 for the up/down event' , ( ) => {",
+   "sha256": "0a1f5b2183b2ea4fbcafe5a5c332b13e5f0d91aac5060316fcc912473f43f687",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 109,
+   "text": "it ( 'only shutdown / no shutdown produce %LINK messages: other interface commands and show commands print none' , ( ) => {",
+   "sha256": "3b15ecd872244d4d3dbc06a2cc3e32aefeaa60b489a85ab04833c74f5a196aaf",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 118,
+   "text": "it ( 'is deterministic: the same commands on the same Lab print the same messages' , ( ) => {",
+   "sha256": "716c269af2e49ec9565dc692ed330602b1c6f6030b3df75805ef8d7499da5456",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.q3link",
+   "file": "tests/link-messages.test.ts",
+   "line": 125,
+   "text": "it ( 'AOS-CX does not print IOS %LINK messages on shutdown / no shutdown' , ( ) => {",
+   "sha256": "b38658c21e79bc98346fe9beff015aef403fe7cde1443b9f90b222fb07182f5d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l3",
+   "file": "src/core/network.ts",
+   "line": 130,
+   "symbol": "l3Interfaces",
+   "text": "export function l3Interfaces ( lab : Lab , dev : Device ) : L3If [ ] {",
+   "sha256": "f9865ef808850231c63b20c1c75bbeff312d09773599dbff11577f094f03744c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l3",
+   "file": "src/core/network.ts",
+   "line": 462,
+   "symbol": "selectRoute",
+   "text": "function selectRoute ( lab : Lab , cur : Device , dstIp : string ) : Selected | { fail : string ; kind : 'general' | 'noroute' } {",
+   "sha256": "bbb10f68003afac5d7ce8c7db50464511e6c650eaf5243aa61af4e683c3a449b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l3",
+   "file": "src/core/network.ts",
+   "line": 532,
+   "symbol": "deliver",
+   "text": "function deliver ( lab : Lab , from : Device , dstIp : string , maxSteps = 16 ) : DeliverOk | DeliverFail {",
+   "sha256": "e08b72a1eb6fd7909943be9428072d9acaffbb4c55f38987206c829e9043407d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.ping",
+   "file": "src/core/network.ts",
+   "line": 711,
+   "symbol": "ping",
+   "text": "export function ping ( lab : Lab , srcId : string , dstIp : string ) : PingResult {",
+   "sha256": "320d76f58e900b85d0e3841bf0358f09160e1ec1b6d12fa8cc6dcca63a48da69",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.ping",
+   "file": "src/core/network.ts",
+   "line": 624,
+   "symbol": "trace",
+   "text": "export function trace ( lab : Lab , srcId : string , dstIp : string , maxTtl = TRACE_DEFAULT_MAX_TTL ) : TraceResult {",
+   "sha256": "4b8cb17fcc8fb354568add6d14d9b09982d34c116bf00b5c4bed0cd7698ed1fa",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.link",
+   "file": "src/core/network.ts",
+   "line": 35,
+   "symbol": "linkStatus",
+   "text": "export function linkStatus ( lab : Lab , link : Link ) : LinkStatus {",
+   "sha256": "8932591ad1db0f6186b6df281b2b363d7920ebf054a7b2dbdd150789a9a99ee7",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.link",
+   "file": "src/core/network.ts",
+   "line": 57,
+   "symbol": "portLine",
+   "text": "export function portLine ( lab : Lab , dev : Device , iface : Iface ) : PortLine {",
+   "sha256": "e9110192348cf28b6ed98930e8f79cdbc66f93903843af3c550f88f7098bac81",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l2t",
+   "file": "src/core/l2tables.ts",
+   "line": 50,
+   "symbol": "macTable",
+   "text": "export function macTable ( lab : Lab , sw : Device ) : MacEntry [ ] {",
+   "sha256": "6cbfd1f5930d8d1b3ae8c09c16b4ab3e2eeb5593a942ac0fd60912a714f66bc8",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l2t",
+   "file": "src/core/l2tables.ts",
+   "line": 74,
+   "symbol": "arpTable",
+   "text": "export function arpTable ( lab : Lab , dev : Device ) : ArpEntry [ ] {",
+   "sha256": "86b10913d8abd00f257f127d84d2e8547b1dfa022a17739bfcf0d7f082231184",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.l2t",
+   "file": "src/core/l2tables.ts",
+   "line": 103,
+   "symbol": "duplicateIps",
+   "text": "export function duplicateIps ( lab : Lab ) : DupIp [ ] {",
+   "sha256": "cf1965fb91d270439cb614a28e95adaf7f4238f7950f4685356fc551a75ab5fc",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.ip",
+   "file": "src/core/ip.ts",
+   "line": 18,
+   "symbol": "isValidMask",
+   "text": "export function isValidMask ( s : string ) : boolean {",
+   "sha256": "c84a7a52ac6b899f86c81bae7f8bf5a80a8a0f2247c5880d87444bfa5de932a9",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.ip",
+   "file": "src/core/ip.ts",
+   "line": 46,
+   "symbol": "isHostAddress",
+   "text": "export function isHostAddress ( ip : string , mask : string ) : boolean {",
+   "sha256": "5890d171a5b9735694748042af74f26f5763d60a1f75c274c44ad63a4f057712",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.ip",
+   "file": "src/core/ip.ts",
+   "line": 57,
+   "symbol": "subnetsOverlap",
+   "text": "export function subnetsOverlap ( ip1 : string , m1 : string , ip2 : string , m2 : string ) : boolean {",
+   "sha256": "ef3c6166658a74760cf65dbeba2863d4b8555ebfd0a1d325cd25dbcee1aec0e4",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.ip",
+   "file": "src/core/ip.ts",
+   "line": 72,
+   "symbol": "parseCidr",
+   "text": "export function parseCidr ( text : string ) : { ip : string ; mask : string ; prefix : number } | null {",
+   "sha256": "90b198525859d64de70322552c1e6aea0fcb0c553795ad3bb6111af4d813924f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.trunkchk",
+   "file": "src/core/trunkcheck.ts",
+   "line": 42,
+   "symbol": "nativeVlanMismatches",
+   "text": "export function nativeVlanMismatches ( lab : Lab ) : NativeVlanMismatch [ ] {",
+   "sha256": "f5c26b4973bd091d86c704df37df2aa3eaf10b93cb7b9a72bc978e768209fbd0",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.trunkchk",
+   "file": "src/core/trunkcheck.ts",
+   "line": 70,
+   "symbol": "cdpMismatchLog",
+   "text": "export function cdpMismatchLog ( before : Lab , after : Lab , deviceId : string ) : string [ ] {",
+   "sha256": "b20aa88ba61f7758cf2aa01c5d26558b482f2cb547f51d23c141ab2c778fda3a",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.chal",
+   "file": "src/core/challenge.ts",
+   "line": 79,
+   "symbol": "evaluateCheck",
+   "text": "export function evaluateCheck ( lab : Lab , check : Check ) : CheckResult {",
+   "sha256": "e291ac72a103d62f0d82e2a1add0ba101c251b34588d7736a67162898006fdcb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.persist",
+   "file": "src/core/persist.ts",
+   "line": 216,
+   "symbol": "validateLab",
+   "text": "export function validateLab ( data : unknown ) : ParseResult {",
+   "sha256": "8c98c0bf2b35207f0a57c75b7537793f367bc997a69f3977ec25834a34a7c18e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.persist",
+   "file": "src/core/persist.ts",
+   "line": 242,
+   "symbol": "serializeExport",
+   "text": "export function serializeExport ( lab : Lab ) : string {",
+   "sha256": "d4a16444427eecf41ae4628a9e9b90f2e631e0237bfe7d383e2d38bcb1048eac",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.persist",
+   "file": "src/core/persist.ts",
+   "line": 246,
+   "symbol": "parseImport",
+   "text": "export function parseImport ( text : string ) : ParseResult {",
+   "sha256": "f639aca4c7d33181a87cd5d2215df331ea03fbde714d34c08ed214b7b65be454",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.persist",
+   "file": "src/core/persist.ts",
+   "line": 229,
+   "symbol": "withoutTransient",
+   "text": "export function withoutTransient ( lab : Lab ) : Lab {",
+   "sha256": "3a045af872a36ddeeeea82336c13fa271b5ee5d57136c39b4be642ebd6f0ab38",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.secret",
+   "file": "src/core/secret.ts",
+   "line": 17,
+   "symbol": "md5",
+   "text": "export function md5 ( data : Uint8Array ) : Uint8Array {",
+   "sha256": "95c688bf382b27c83f722947e027af8b238a95b75d1cab45a001ad4fad1ac57d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.secret",
+   "file": "src/core/secret.ts",
+   "line": 65,
+   "symbol": "md5crypt",
+   "text": "export function md5crypt ( password : string , salt : string ) : string {",
+   "sha256": "2bd63125ae0d28eb41ccd9d26ad9bafb64c537ea9c9c72039c3af982b5264603",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.secret",
+   "file": "src/core/secret.ts",
+   "line": 102,
+   "symbol": "hashType5",
+   "text": "export function hashType5 ( password : string , salt : string = newSalt ( ) ) : string {",
+   "sha256": "cdcae6d8cead62d934c35a84f378ea3f98155e72384b6df9d40b8464a5e47126",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.secret",
+   "file": "src/core/secret.ts",
+   "line": 107,
+   "symbol": "verifyType5",
+   "text": "export function verifyType5 ( password : string , stored : string ) : boolean {",
+   "sha256": "b4a82c1b0dbb8a47f003312cf46c542ab2fdbc6df56c02873e04e49a9fec8d95",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.enable",
+   "file": "src/core/cli/cisco.ts",
+   "line": 23,
+   "symbol": "setEnableSecret",
+   "text": "function setEnableSecret ( c : Ctx , secret : string ) : RunResult {",
+   "sha256": "3d418238359c625f89dd2392c398279036c81096dd697189cf9d6af8f9d3b7cf",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.credin",
+   "file": "src/core/cli/engine.ts",
+   "line": 53,
+   "symbol": "redactLine",
+   "text": "export function redactLine ( vendor : Vendor , line : string ) : string {",
+   "sha256": "4d3ea93d773242da51e02505ac7282365d96d2feecb218d6eb35e84f5b739c40",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.credin",
+   "file": "src/core/cli/engine.ts",
+   "line": 407,
+   "symbol": "answerPrompt",
+   "text": "function answerPrompt ( lab : Lab , deviceId : string , rawLine : string ) : ExecResult {",
+   "sha256": "1ed99cc43e3266d9bf0dc181fe9f8a019ae3239219af2aadb4eb5e9dfa44ec0d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.credin",
+   "file": "src/core/cli/engine.ts",
+   "line": 429,
+   "symbol": "executeLine",
+   "text": "export function executeLine ( lab : Lab , deviceId : string , rawLine : string ) : ExecResult {",
+   "sha256": "49a136251a02472d87b7d6e303d6ce846d23b7faca2f9a80dfdabf1f94a8c44a",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan",
+   "file": "tests/cli.test.ts",
+   "line": 61,
+   "text": "it ( 'switch: create VLAN, set access VLAN, show vlan brief' , ( ) => {",
+   "sha256": "8e0dc3afba0dd8d205ec1be34c83c5797683239e41edf7417817fe78bf4401d3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan",
+   "file": "tests/network.test.ts",
+   "line": 54,
+   "text": "it ( 'moves only PC-10 access port to VLAN 20: link stays up but ping fails; back to VLAN 10 recovers' , ( ) => {",
+   "sha256": "4a64c2ed5e7eb54aa1498dc5b8281db01d24747daf7526c17b06292bdd1f4d3b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan",
+   "file": "tests/network.test.ts",
+   "line": 72,
+   "text": "it ( 'a VLAN that does not exist on the switch blocks forwarding' , ( ) => {",
+   "sha256": "d318ce42ae95472928a08c17b144c9824a12506d075046cd256f7b40e67d9aa0",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan",
+   "file": "tests/l3.test.ts",
+   "line": 27,
+   "text": "it ( 'VLANs stay isolated without a router path' , ( ) => {",
+   "sha256": "bc8079c0a12a05a308ec771f999891b0cf87db6c10d1785c0393f2e1485a8b48",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan",
+   "file": "e2e/app.spec.ts",
+   "line": 75,
+   "text": "test ( 'moving PC-10 to VLAN 20 breaks ping while link stays up; moving back recovers' , async ( { page } ) => {",
+   "sha256": "b7d206c9eb5222dcabfeac7b2e0bc81929e462cc943ed91ad864a472c640b1f1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan1",
+   "file": "tests/cli.test.ts",
+   "line": 81,
+   "text": "it ( 'VLAN 1 cannot be deleted; invalid vlan id / interface are errors' , ( ) => {",
+   "sha256": "fe5942e5ebe75f1847afaf4ac7704db6549173cecf4d4ce6fdceee3ba75c9192",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.vlan1",
+   "file": "tests/cli-batch2.test.ts",
+   "line": 90,
+   "text": "it ( 'returns the port to VLAN 1 — show vlan brief, running-config and the simulation all follow' , ( ) => {",
+   "sha256": "c8a7bf4738b70331abc9f6c4543e3603b265669306223409ea75c0b1c695d05c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.reserved",
+   "file": "tests/reserved-vlans.test.ts",
+   "line": 26,
+   "text": "it ( 'shows the four rows with IOS names and status act/unsup, no ports' , ( ) => {",
+   "sha256": "8d178a5ae0973074bb0ce6d53b80eb0d69c7014db002c6151f39767e3a528218",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.reserved",
+   "file": "tests/reserved-vlans.test.ts",
+   "line": 64,
+   "text": "it ( 'cannot be deleted (IOS: %Default VLAN n may not be deleted.) and the state is unchanged' , ( ) => {",
+   "sha256": "d618a4f5a68aeca62050d56aedf1195c667a99e9110f1955ab2e1f765c9c88f3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.reserved",
+   "file": "tests/audit-phase-a.test.ts",
+   "line": 140,
+   "text": "it ( 'vlan 1002-1005 and switchport access vlan 1002-1005 are rejected; 1001 and 1006 work' , ( ) => {",
+   "sha256": "3d590d0ca20a08edaf251d3183efed72e148c12a0e3457cd299d21665addb326",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "tests/l3.test.ts",
+   "line": 38,
+   "text": "it ( 'removing VLAN 20 from the allowed list on one side breaks only VLAN 20' , ( ) => {",
+   "sha256": "9131e062f92cf51299394a297ee4c22287af2491212a088f87989aeabc3c1e00",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "tests/l3.test.ts",
+   "line": 50,
+   "text": "it ( 'Aruba trunk allowed list is enforced too' , ( ) => {",
+   "sha256": "a5eb65839b74b26e58046b3f8be6dffd071d3eaae0ad02f4bf9c8573092130ba",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "tests/l3.test.ts",
+   "line": 62,
+   "text": "it ( 'turning one end into an access port drops tagged frames' , ( ) => {",
+   "sha256": "b04a8c5fb6a13a1c5087cf4598d57b06bb5ad4bf9d639afdd27fad607da2af0d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "tests/l3.test.ts",
+   "line": 89,
+   "text": "it ( 'show interfaces trunk / show vlan reflect the trunk' , ( ) => {",
+   "sha256": "a7d06c34cccf11c4730a6975b8eec368026c5a19354249bbfb6334599b720f9e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "tests/l3.test.ts",
+   "line": 103,
+   "text": "it ( 'running-config shows trunk commands' , ( ) => {",
+   "sha256": "8a5662569b847bdcd792b98f9046e8d55da1c24230adc5e68e192a7b43375e3f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "tests/challenge.test.ts",
+   "line": 131,
+   "text": "it ( 'trunk-vlan follows allowed lists on Cisco and Aruba and treats access ports as not carrying' , ( ) => {",
+   "sha256": "fd3dc278ee57ce6dbd894ceb0d62d71085bac370e2ec915a38899ff10e3a853d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trunk",
+   "file": "e2e/app.spec.ts",
+   "line": 339,
+   "text": "test ( 'trunk allowed-vlan change on SW1 breaks VLAN 20 only; Inspector explains; fix with add' , async ( { page } ) => {",
+   "sha256": "bd2bc441b426181159a599942aa19e8e1700196fae99f3e7758000af52f12bf6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.native",
+   "file": "tests/l3.test.ts",
+   "line": 70,
+   "text": "it ( 'native VLAN: untagged frames follow the native VLAN, and a mismatch leaks VLANs' , ( ) => {",
+   "sha256": "335fead74bbdbec9f8513a58eff13e95389ff0ccb6e77a44a8558d471037456f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.native",
+   "file": "tests/native-vlan.test.ts",
+   "line": 68,
+   "text": "it ( 'no mismatch while both trunk ends use the same native VLAN' , ( ) => {",
+   "sha256": "1aaedd46bfb150215a3f9c2440aa90cc7a620af66acd69a0856f096d607104f3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.native",
+   "file": "tests/native-vlan.test.ts",
+   "line": 167,
+   "text": "it ( 'cdpMismatchLog is silent for routers/PCs and for mismatches on other switches' , ( ) => {",
+   "sha256": "4fd6ea2410d840205d1c7e1c093f87dfaebf740aa674aeb3d84164973cf4fc63",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.native",
+   "file": "e2e/native-vlan.spec.ts",
+   "line": 4,
+   "text": "test ( 'native VLAN mismatch on the SW1–SW2 trunk appears in the Inspector and disappears when fixed' , async ( { page } ) => {",
+   "sha256": "143fab29e0415daeb84989b1d63b32c070f19a98121ecf25624f7b02eca206ed",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.intervlan",
+   "file": "tests/l3.test.ts",
+   "line": 114,
+   "text": "it ( 'can be built from scratch with the CLI' , ( ) => {",
+   "sha256": "aac23b5bdba4fa7f31b006e7c7b15f3aed37304080150958f0682003ad8f9b3b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.intervlan",
+   "file": "tests/l3.test.ts",
+   "line": 156,
+   "text": "it ( 'no interface removes a sub-interface; physical ports cannot be deleted' , ( ) => {",
+   "sha256": "b2d8cb85f2f635e1fabff092ea2427857951aa0c5cb7ecd4f0f51311f24dfca2",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.intervlan",
+   "file": "e2e/app.spec.ts",
+   "line": 385,
+   "text": "test ( 'Aruba SVI makes SW2 the gateway; Cisco L2 switch rejects static routes' , async ( { page } ) => {",
+   "sha256": "0c891babdf20c6757cd87aaad7f96f4aa61cfc062f64929a0f691f013acd3961",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.intervlan",
+   "file": "e2e/app.spec.ts",
+   "line": 410,
+   "text": "test ( 'router-on-a-stick: sub-interface prompt, encapsulation required before IP' , async ( { page } ) => {",
+   "sha256": "5f88fe0619af0f6f1f23c4bee7ce9f64b2542dba17a96e71caa7681957e8a8f8",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.svi",
+   "file": "tests/l3.test.ts",
+   "line": 257,
+   "text": "it ( 'SVI goes down when its VLAN has no active port, and recovers' , ( ) => {",
+   "sha256": "9b0e98c27a56c2af416627d428e1133d894cab390931f261c0017e7aa1186b91",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.svi",
+   "file": "tests/l3.test.ts",
+   "line": 268,
+   "text": "it ( 'interface vlan on Aruba requires the VLAN to exist; shutdown works' , ( ) => {",
+   "sha256": "7311d7d202f4391a84421c3f44f8d8aa4e59acd89ca4ec007821dae0d963f2dd",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.svi",
+   "file": "tests/l3.test.ts",
+   "line": 278,
+   "text": "it ( 'Cisco L2 switch SVI is a management address: pingable, and uses ip default-gateway' , ( ) => {",
+   "sha256": "d666d615b0d13845cfc458d113412e115dc8d1301a3d642c0051d7c6704e71cf",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.svi",
+   "file": "tests/l3.test.ts",
+   "line": 294,
+   "text": "it ( 'a Cisco L2 switch never forwards: using it as a PC gateway fails with an explanation' , ( ) => {",
+   "sha256": "e0a5ccc10d953ebc38c0714a47e65a54751fa58ca6ca92cb26b30fc684617cc6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.svi",
+   "file": "tests/l3.test.ts",
+   "line": 303,
+   "text": "it ( 'SVI in a VLAN that is not on the trunk is unreachable and explained' , ( ) => {",
+   "sha256": "89a67fbfcbb14c6064e91ca1e9aa74cb5d108153348c21dd6b170193cde0643c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.svi",
+   "file": "tests/l3.test.ts",
+   "line": 311,
+   "text": "it ( 'SVI overlap and bad address are rejected' , ( ) => {",
+   "sha256": "dbafe2c2f138eb2d8cb45fc783d48119d09ccd9b940dbe53f00692da749f7794",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.routed",
+   "file": "tests/l3.test.ts",
+   "line": 321,
+   "text": "it ( 'a routed port with an IP is an L3 interface; L2 ports refuse ip address' , ( ) => {",
+   "sha256": "7b2c30a6a9f63e9471a36daa9eaf4f2e06239f2a57a965a8ac6a27b311a3278b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.routed",
+   "file": "tests/l3.test.ts",
+   "line": 332,
+   "text": "it ( 'no routing refuses while an IP is set; vlan trunk on a routed port is refused' , ( ) => {",
+   "sha256": "d08a7c45df17935998259a4639ab5ff11b3a2fb0092efa1db8537e4bc8e6d9fa",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.routed",
+   "file": "tests/campus3.test.ts",
+   "line": 23,
+   "text": "it ( 'uses /31 routed links and SVI gateways' , ( ) => {",
+   "sha256": "8e773f05932be81d7194be227560ab546bee59bc6c2dfe33bbc1f8bdf85aea77",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.routed",
+   "file": "tests/samples.test.ts",
+   "line": 141,
+   "text": "it ( 'router and L3 switch ping each other over a routed /30, in both directions' , ( ) => {",
+   "sha256": "b0c2bc35e918f019e749c92afbc820e581a8921b5d91df7ca54037c3a8a780b5",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "tests/l3.test.ts",
+   "line": 165,
+   "text": "it ( 'missing route on R1 breaks the forward path; missing return route breaks the reply' , ( ) => {",
+   "sha256": "622d579e9ef9a47c0c6439ba8621dce0a0f3c13358d415b5e3b97538c336bad1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "tests/l3.test.ts",
+   "line": 182,
+   "text": "it ( 'a static route whose next hop is not on a connected subnet is not installed' , ( ) => {",
+   "sha256": "4a87add72192ba380c80adc26bc1b4f676a4ce37072dc2a301a5c18df9232de9",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "tests/l3.test.ts",
+   "line": 192,
+   "text": "it ( 'wrong next-hop address (nobody owns it) is reported' , ( ) => {",
+   "sha256": "a3fed56a95e4da9a50fb6b606ea997144f0bed978521fd5c829d39aa52ff4755",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "tests/l3.test.ts",
+   "line": 206,
+   "text": "it ( 'validates network/mask consistency and duplicates replace' , ( ) => {",
+   "sha256": "84bbec3612209932412daec8681b660d1e6d9bae4d335e913150fcf7e797ade3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "tests/l3.test.ts",
+   "line": 217,
+   "text": "it ( 'Aruba static routes use prefix notation and route (AOS-CX is L3-capable)' , ( ) => {",
+   "sha256": "6af4ac6e64e927575bfa3f08fdf4fcbde5b0904f2748d4a4522913e2f49604e1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "tests/campus3.test.ts",
+   "line": 70,
+   "text": "it ( 'show ip route on Core-1 lists the connected /31 links and the static routes' , ( ) => {",
+   "sha256": "bb8c1432b245b1a4eada6e5c3985b59c4206f2c8e6249b9a9e807a1c81debf0c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.static",
+   "file": "e2e/app.spec.ts",
+   "line": 366,
+   "text": "test ( 'static/default route removal shows a return-path failure, restore fixes it' , async ( { page } ) => {",
+   "sha256": "c3212fb6d027d29e1de001902aba3520c4860cb924859237078deacba2e742fb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.default",
+   "file": "tests/l3.test.ts",
+   "line": 200,
+   "text": "it ( 'default route S* is shown on R2' , ( ) => {",
+   "sha256": "1d3096b7e23f378d52f032961eb7ed3284f2328f90373b75843cdcb075ead91e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.default",
+   "file": "e2e/app.spec.ts",
+   "line": 366,
+   "text": "test ( 'static/default route removal shows a return-path failure, restore fixes it' , async ( { page } ) => {",
+   "sha256": "c3212fb6d027d29e1de001902aba3520c4860cb924859237078deacba2e742fb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ping",
+   "file": "tests/network.test.ts",
+   "line": 21,
+   "text": "it ( 'PC-01 pings PC-10 and the gateway at start' , ( ) => {",
+   "sha256": "68b0182ab8293cf36b0ec715879fbbe888dcbffafde86c345b31e75220061376",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ping",
+   "file": "tests/network.test.ts",
+   "line": 150,
+   "text": "it ( 'removing a cable changes ping immediately' , ( ) => {",
+   "sha256": "a218d97d0411ea7da2ee5510005bcdcdb7d8b48fa3053792c09fea060eeab767",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ping",
+   "file": "tests/audit-phase-a.test.ts",
+   "line": 77,
+   "text": "it ( 'no router crossed: TTL=128 however many switches are in the path' , ( ) => {",
+   "sha256": "7f1ef68b40ec21c6939aa9f22f5496da93666b7bd088c5a6a3d7ac0ea9ab006e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ping",
+   "file": "tests/audit-phase-a.test.ts",
+   "line": 194,
+   "text": "it ( 'a routing loop is still reported as a timeout, not as net unreachable' , ( ) => {",
+   "sha256": "9bdd0e3c1d6c82e3a579a4d50fe3a4181f4908fe2f1b2e984db112baa7730e37",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ping",
+   "file": "e2e/app.spec.ts",
+   "line": 26,
+   "text": "test ( 'sample lab → ping → shutdown uplink on SW2 → ping fails → no shutdown → ping works' , async ( { page } ) => {",
+   "sha256": "2daf3e41c71e37b5e1d88cfd74ccd4a72da103985e9ee585ca47276cdc44d421",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ping",
+   "file": "e2e/app.spec.ts",
+   "line": 99,
+   "text": "test ( 'wrong gateway keeps same-subnet ping but breaks cross-subnet' , async ( { page } ) => {",
+   "sha256": "b736e78acc6d6f8d9627dce43396c9e2d59d0ccbf09a8b9e17918775b76ac336",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trace",
+   "file": "tests/traceroute.test.ts",
+   "line": 118,
+   "text": "it ( '1. PC → Router → PC: gateway, then the destination' , ( ) => {",
+   "sha256": "11ab07653c78b5ea27e7416932d84a22d6e003c8f9bdafdfb39f8a2d39bfd199",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trace",
+   "file": "tests/traceroute.test.ts",
+   "line": 223,
+   "text": "it ( '12. routing loop: R1 and R2 alternate until the hop limit; bounded' , ( ) => {",
+   "sha256": "0890b855ab44332199ad97c871a53fc6a1cbd0d3ef642dd80dd02f92286474e1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trace",
+   "file": "tests/endpoint-devices.test.ts",
+   "line": 92,
+   "text": "it ( 'each new device reaches another subnet through a router (gateway) and tracert shows the router hop' , ( ) => {",
+   "sha256": "d251fb94241dedd54ea96ee4cd38e458cbce0ac36d6f1df122279cf158ab3bf6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.trace",
+   "file": "e2e/endpoint-routing.spec.ts",
+   "line": 147,
+   "text": "test ( 'tracert across the router: first hop is the default gateway, last hop is the destination' , async ( ) => {",
+   "sha256": "d502254a45c6871b9dc643bb4beb3f1904602916137f72aa97dbfa7d1487ba45",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.arp",
+   "file": "tests/l2tables.test.ts",
+   "line": 79,
+   "text": "it ( 'a PC sees its gateway and VLAN peers; an isolated PC sees nothing' , ( ) => {",
+   "sha256": "0dc3961582de92466e8793d93a36e7a86d399f629ca7f115e38b8c7dcbeea61b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.arp",
+   "file": "tests/l2tables.test.ts",
+   "line": 90,
+   "text": "it ( 'Aruba show arp lists SVI neighbours with the physical port they were learned on' , ( ) => {",
+   "sha256": "3966b5b8cbc4e03f41d4d413bdd2a19f7054a2f8695c179e6bf23f697d00f257",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.arp",
+   "file": "tests/samples.test.ts",
+   "line": 42,
+   "text": "it ( 'the symptoms can be traced with the new tools (MAC table / ARP)' , ( ) => {",
+   "sha256": "72cefc333badfcf570f28e980bdaa17aff695b81f1cb1bcd307071a9a3223e54",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.arp",
+   "file": "e2e/l2.spec.ts",
+   "line": 48,
+   "text": "test ( 'MAC table and ARP table commands answer from the live topology' , async ( { page } ) => {",
+   "sha256": "fff3627203884b1326bd749355e935533d5e789315dfe2c8193130640956b65b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.arp",
+   "file": "e2e/endpoint-routing.spec.ts",
+   "line": 164,
+   "text": "test ( 'arp -a after communicating: gateway and the local peer are listed, the remote host is not; identical to the engine' , async ( ) => {",
+   "sha256": "1c1f823f53b056b5717b54bef748ef078757cb5a2008a0a9fef21733d37f6a8a",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.mac",
+   "file": "tests/l2tables.test.ts",
+   "line": 29,
+   "text": "it ( 'SW1 learns PC-A locally in VLAN 10, PC-C through the trunk, and R1 in both VLANs on its trunk' , ( ) => {",
+   "sha256": "f483c6e2f2b151968f1180e452702e4061747f69b0bea69a108717705ebfddf3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.mac",
+   "file": "e2e/l2.spec.ts",
+   "line": 48,
+   "text": "test ( 'MAC table and ARP table commands answer from the live topology' , async ( { page } ) => {",
+   "sha256": "fff3627203884b1326bd749355e935533d5e789315dfe2c8193130640956b65b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.dup",
+   "file": "tests/l2tables.test.ts",
+   "line": 120,
+   "text": "it ( 'IOS prints %IP-4-DUPADDR naming the other device MAC when a conflicting address is configured' , ( ) => {",
+   "sha256": "6ef6ac5f9704558c2708f6b4712669e39285058b847247cac947fdcc0ea884f1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.dup",
+   "file": "tests/l2tables.test.ts",
+   "line": 128,
+   "text": "it ( 'Windows ipconfig marks a duplicate address' , ( ) => {",
+   "sha256": "e6b5269dd47b187bddd6aba2fcd34b5a126a2e98fef22a19acbf945f2dff0573",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.dup",
+   "file": "tests/challenge.test.ts",
+   "line": 165,
+   "text": "it ( 'no-dup-ip flips when two hosts in one VLAN share an address' , ( ) => {",
+   "sha256": "381d40da95d66ceae5923fa4618fc6d8a590d28edf28efc87b48338b77d8e068",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.dup",
+   "file": "tests/cli-batch2.test.ts",
+   "line": 160,
+   "text": "it ( 'cable unplugged: Media disconnected, no address lines; duplicate IP is flagged' , ( ) => {",
+   "sha256": "1cf2b837e5eb1335f8f12fd82a6ca5bc32ef8c994842a43df4ba5029306f1c74",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.dup",
+   "file": "e2e/l2.spec.ts",
+   "line": 20,
+   "text": "test ( 'duplicate IP: badge on both nodes, listed in the Inspector, gone after the fix' , async ( { page } ) => {",
+   "sha256": "a56ff64ba426d2038e3c79ae6775e561569b15914b7ff68ff000768f3c36847f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.dup",
+   "file": "e2e/challenges-more.spec.ts",
+   "line": 39,
+   "text": "test ( 'Challenge 2: the duplicate IP is visible on the canvas and solvable through the UI' , async ( { page } ) => {",
+   "sha256": "23adba425f9892a4ec347b837ab490915d9a8014ad6b49b811443294df676d58",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipval",
+   "file": "tests/cli.test.ts",
+   "line": 49,
+   "text": "it ( 'router rejects bad mask, overlapping subnet and switchport commands' , ( ) => {",
+   "sha256": "0cddf9600b8e4bc65cfb6bbb08eabf466ebfc2bac815e8ab611eedad6c0ccbbb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipval",
+   "file": "tests/l3.test.ts",
+   "line": 311,
+   "text": "it ( 'SVI overlap and bad address are rejected' , ( ) => {",
+   "sha256": "dbafe2c2f138eb2d8cb45fc783d48119d09ccd9b940dbe53f00692da749f7794",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipval",
+   "file": "tests/l3.test.ts",
+   "line": 321,
+   "text": "it ( 'a routed port with an IP is an L3 interface; L2 ports refuse ip address' , ( ) => {",
+   "sha256": "7b2c30a6a9f63e9471a36daa9eaf4f2e06239f2a57a965a8ac6a27b311a3278b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipval",
+   "file": "e2e/app.spec.ts",
+   "line": 113,
+   "text": "test ( 'invalid IP config is rejected with a message' , async ( { page } ) => {",
+   "sha256": "72bb60424c4dc7d648f320df507fea1aa8e415d20ae156fa3b4eee225c4754b8",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "tests/network.test.ts",
+   "line": 80,
+   "text": "it ( 'wrong gateway still allows same-subnet ping' , ( ) => {",
+   "sha256": "9b86ebade5dcdfdbcf07827609819cc464b8bbc640b662a08049ef413dbc7948",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "tests/network.test.ts",
+   "line": 116,
+   "text": "it ( 'wrong gateway on PC-01 breaks cross-subnet ping only' , ( ) => {",
+   "sha256": "6db035e142a8e9dab7a54d827b87cdda97223ea0dd08c511456701803b48e7ec",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "tests/network.test.ts",
+   "line": 125,
+   "text": "it ( 'missing gateway is reported' , ( ) => {",
+   "sha256": "e528198b71e9dd687aca18ca4be8534eb208d407d175753f063bcad5988d62b0",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "tests/network.test.ts",
+   "line": 133,
+   "text": "it ( 'fails on the return path when the far PC has no gateway (one-way)' , ( ) => {",
+   "sha256": "d9534570525f2dde35e5735bf6d70e29aec2a334fe07be85e13a14d079f61827",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "tests/l3.test.ts",
+   "line": 278,
+   "text": "it ( 'Cisco L2 switch SVI is a management address: pingable, and uses ip default-gateway' , ( ) => {",
+   "sha256": "d666d615b0d13845cfc458d113412e115dc8d1301a3d642c0051d7c6704e71cf",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "tests/l3.test.ts",
+   "line": 294,
+   "text": "it ( 'a Cisco L2 switch never forwards: using it as a PC gateway fails with an explanation' , ( ) => {",
+   "sha256": "e0a5ccc10d953ebc38c0714a47e65a54751fa58ca6ca92cb26b30fc684617cc6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "e2e/app.spec.ts",
+   "line": 99,
+   "text": "test ( 'wrong gateway keeps same-subnet ping but breaks cross-subnet' , async ( { page } ) => {",
+   "sha256": "b736e78acc6d6f8d9627dce43396c9e2d59d0ccbf09a8b9e17918775b76ac336",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.gw",
+   "file": "e2e/endpoint-routing.spec.ts",
+   "line": 180,
+   "text": "test ( 'missing default gateway: remote ping fails with \"General failure\", tracert cannot leave the subnet, local ping still works' , async ( ) => {",
+   "sha256": "541baf7ad6bc895cdbf72d6a905fbd1222e1faf285dffb922a54d99f816a9551",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipconfig",
+   "file": "tests/cli-batch2.test.ts",
+   "line": 136,
+   "text": "it ( 'host name, MAC (the one other hosts see in arp -a), DHCP No, static addressing' , ( ) => {",
+   "sha256": "09bc1c9a02aa883b2062a29bebfc1406c092be9d128a796f00244bccf51f35ae",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipconfig",
+   "file": "tests/cli-batch2.test.ts",
+   "line": 173,
+   "text": "it ( 'plain ipconfig is unchanged; unknown switch is rejected; read-only' , ( ) => {",
+   "sha256": "852ed0d2cde385b32a256780870805dd209b2f4ef768207e5f33a725f177e43b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipconfig",
+   "file": "tests/network.test.ts",
+   "line": 186,
+   "text": "it ( 'terminal ping and ipconfig use the same data' , ( ) => {",
+   "sha256": "873f1af44eb94ee861f4481aefc4a4dcc2f137fe5a99aaf3af8ea08f8cfab972",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipconfig",
+   "file": "e2e/endpoint-devices.spec.ts",
+   "line": 100,
+   "text": "test ( 'a camera pings a PC through a Catalyst 2960 and the PC pings it back; ipconfig shows its settings' , async ( { page } ) => {",
+   "sha256": "bb49ab206df2ce2f46bd885b69f43f96102d18fdc0cde2690a7d0a685b4cd63b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ipconfig",
+   "file": "e2e/endpoint-routing.spec.ts",
+   "line": 204,
+   "text": "test ( 'existing PC behaviour is unchanged: PC-01 ipconfig / ping / tracert / arp match the engine, and the endpoints print the same format' , async ( ) => {",
+   "sha256": "3aee166659ff5c6b87e3c4934635dea2050169b21d79758c61a0c0f214f64257",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.showif",
+   "file": "tests/cli.test.ts",
+   "line": 37,
+   "text": "it ( 'router: IP address + no shutdown change interface state and show output' , ( ) => {",
+   "sha256": "e312677b5f20371c7b7352af743c4a9f24de9a64c3939b22ac938691a06a9b4b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.showif",
+   "file": "tests/cli.test.ts",
+   "line": 70,
+   "text": "it ( 'switch: shutdown shows disabled in show interfaces status' , ( ) => {",
+   "sha256": "40950b69312471fb21bf967a4faf845733b5a33ca761162ee18a26c23a4f90f4",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.showif",
+   "file": "tests/cli.test.ts",
+   "line": 134,
+   "text": "it ( 'shutdown reflects in show interface brief' , ( ) => {",
+   "sha256": "071cd5ae37fb8ddc7ed9f964b61ed6fcdf0dd07cad7152f5b2559dc0b029e748",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.showif",
+   "file": "tests/cli-batch2.test.ts",
+   "line": 54,
+   "text": "it ( 'show interfaces lists SVIs first, then every port (with sub-interfaces after their parent on a router)' , ( ) => {",
+   "sha256": "bcc1d4be49a93328ec6d05832786f77e5831b2bbc9cf6ec36b5b3a46e7585b6c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.showif",
+   "file": "tests/cli-batch2.test.ts",
+   "line": 76,
+   "text": "it ( 'invalid syntax is rejected; existing show interfaces status / trunk still work; abbreviation works' , ( ) => {",
+   "sha256": "77d3168eb1351d943d7f8fbeb612a3a06d9bb8fcd9ee71e042ef3df4a3d5b26b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.showif",
+   "file": "tests/l3.test.ts",
+   "line": 145,
+   "text": "it ( 'show ip interface brief lists sub-interfaces; running-config prints encapsulation' , ( ) => {",
+   "sha256": "7ee6ac278828dc2c502e04c36c1a1b57fb94969c60f51441275b92b40e66741e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.link",
+   "file": "tests/network.test.ts",
+   "line": 30,
+   "text": "it ( 'breaks PC-01 → PC-10 but keeps the gateway, and recovers after no shutdown' , ( ) => {",
+   "sha256": "d995c6d3d45ea03273fcf9dc09d88a695225a8cc52df24ca7db13df70d060d8e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.link",
+   "file": "tests/network.test.ts",
+   "line": 45,
+   "text": "it ( 'shutting the Cisco side of the uplink has the same effect' , ( ) => {",
+   "sha256": "e6455ca2559aee1815463b653b2455e0f9ad78b3bc66007423ec75f9bd6152ce",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.link",
+   "file": "tests/network.test.ts",
+   "line": 150,
+   "text": "it ( 'removing a cable changes ping immediately' , ( ) => {",
+   "sha256": "a218d97d0411ea7da2ee5510005bcdcdb7d8b48fa3053792c09fea060eeab767",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.link",
+   "file": "tests/challenge.test.ts",
+   "line": 60,
+   "text": "it ( 'link-up fails when the port is shut down or uncabled' , ( ) => {",
+   "sha256": "dc05e7947eba103e9006f3ddde3fee6ff85322353ee043e21588188341a6e1f4",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.link",
+   "file": "tests/challenge.test.ts",
+   "line": 145,
+   "text": "it ( 'port-admin reads the administrative state' , ( ) => {",
+   "sha256": "b40eee7caac499c094e4e50156083304e975e73d9bb029dddd8b0012f135a5fe",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.link",
+   "file": "e2e/app.spec.ts",
+   "line": 26,
+   "text": "test ( 'sample lab → ping → shutdown uplink on SW2 → ping fails → no shutdown → ping works' , async ( { page } ) => {",
+   "sha256": "2daf3e41c71e37b5e1d88cfd74ccd4a72da103985e9ee585ca47276cdc44d421",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "tests/cli.test.ts",
+   "line": 20,
+   "text": "it ( 'hostname changes the prompt and the device name' , ( ) => {",
+   "sha256": "0eef864c5afb210080ed97e46daf7078cbde47f84dca89bac91a1f7d2d3a512b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "tests/cli.test.ts",
+   "line": 98,
+   "text": "it ( 'write memory fills startup-config' , ( ) => {",
+   "sha256": "bba5ace21a3220f8a7c934329f461cacb269622cadcffd254f7f2af615d9f542",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "tests/challenge.test.ts",
+   "line": 117,
+   "text": "it ( 'config-line looks at the real running-config (Cisco and Aruba), ignoring indentation' , ( ) => {",
+   "sha256": "694097b67d50a9fdca6d520aa05efdd4f328951fdcf436949978a5b473b9b8e6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "tests/persist.test.ts",
+   "line": 10,
+   "text": "it ( 'round-trips names, positions, cables, config and ping results' , ( ) => {",
+   "sha256": "05e48914e1078762ed4519e268bc220386d760c54c1fc999007ae8334de388bf",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "e2e/safety.spec.ts",
+   "line": 14,
+   "text": "test ( 'copy running-config puts the real config on the clipboard (Cisco and Aruba); hosts have no such button' , async ( { page , context } ) => {",
+   "sha256": "7f7162c80bd82cb67737da3ebd5b6fffc89ccc3e8b34a7b1a3e5ba103b5b96ce",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "e2e/app.spec.ts",
+   "line": 216,
+   "text": "test ( 'reload keeps names, positions, cables, config and ping results' , async ( { page } ) => {",
+   "sha256": "3f30a70af6eba9f2913ac7887f612a2621e6c813dcaf1f113ae07959cf7af1cb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.config",
+   "file": "e2e/app.spec.ts",
+   "line": 234,
+   "text": "test ( 'export / import round-trip, invalid file is rejected, New Lab asks for confirmation' , async ( { page } ) => {",
+   "sha256": "a2f725a2d86a1c9145aed64dc710a8373b9bebcd80cb1e0cc3744d70b7165c5e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 11,
+   "text": "it ( 'walks user → priv → config → config-if with matching prompts' , ( ) => {",
+   "sha256": "1a9f4e2c31f484e30d2df9c6ccdcd7b78fb0805142b7d4dedce911f7cdb3089b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 27,
+   "text": "it ( 'configure terminal in user mode is an error and config is unchanged' , ( ) => {",
+   "sha256": "1561f2a4698c0e6aa32a3feee15acad3a98c99b0b74998756ce5c41b8098c88a",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 89,
+   "text": "it ( 'supports abbreviations and shows ambiguity' , ( ) => {",
+   "sha256": "dc1aecb103b7d3e51eae2da468a958d61b3f75b891b866f1a69480e204946385",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 182,
+   "text": "it ( 'lists commands valid in the current mode only' , ( ) => {",
+   "sha256": "4cc604f7d3c55514ed1b3be84af11360b5e12801d4091f93aa1abdfcaa7b8cc7",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 192,
+   "text": "it ( 'completes the next token' , ( ) => {",
+   "sha256": "ba44b4a199e46c7ffc8a27ad9a19940a5d730e4e1efb03f91a2af1818ad8aa98",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 209,
+   "text": "it ( 'has unique ids and valid syntax' , ( ) => {",
+   "sha256": "2284f112ff4a1494267010ab5d9b5dc2221e09b72a2f9092b1ba680ba85b421f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cli",
+   "file": "tests/cli.test.ts",
+   "line": 214,
+   "text": "it ( `${spec.id} on ${kind}: \"${exampleFor(spec, kind)}\"` , ( ) => {",
+   "sha256": "be05b9ae5f34ec58fe203e2c7cffa2152b6e11ab6c46220d7e324033235c2b32",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "tests/challenge.test.ts",
+   "line": 12,
+   "text": "it ( 'starts broken: only the checks that do not depend on a fault pass' , ( ) => {",
+   "sha256": "6f94b89edf20ca1d005d67a72adac7dc3acfccb7ce27a57933dcb4bd283c8b35",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "tests/challenge.test.ts",
+   "line": 30,
+   "text": "it ( 'fixing the real faults through the CLI makes every check pass, one at a time' , ( ) => {",
+   "sha256": "ea04476a8ea272148eeca8bae810420a82fcccb059a55a3ec1ede7e61e8b84db",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "tests/challenge.test.ts",
+   "line": 46,
+   "text": "it ( 'result detail never reveals the cause' , ( ) => {",
+   "sha256": "098c655682c66dfa7b6965fc7303cf58d3e523aff4bc715dd51dc00279e3efcc",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "tests/campus3.test.ts",
+   "line": 93,
+   "text": "it ( 'fixing the faults one at a time through the CLI unlocks the checks in order' , ( ) => {",
+   "sha256": "499bf118089015abf619701b1ac256a285c571771744349cfe412ced986e6f17",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "e2e/challenge.spec.ts",
+   "line": 19,
+   "text": "test ( 'challenge sample: Check shows real results, fixing faults turns them green' , async ( { page } ) => {",
+   "sha256": "2f4aa3cd67c4ef54d59f89e2ee6c3e59a57dd4f4e9363f1a3b71fb6e86a95fe0",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "e2e/challenge.spec.ts",
+   "line": 56,
+   "text": "test ( 'instructor creates a challenge, adds a check, and it survives reload' , async ( { page } ) => {",
+   "sha256": "e632a0fa50086385c2289d7d3d1413606ce390a2c5dba15566a73eb7d94cc7c8",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "e2e/challenges-more.spec.ts",
+   "line": 24,
+   "text": "test ( 'the Challenge menu lists the seven challenges and opens each one' , async ( { page } ) => {",
+   "sha256": "5a3737cde45ca8e8c9c90b4d6ada2b095b43bb64370e84c94d162e3813ce108e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "e2e/challenges-more.spec.ts",
+   "line": 92,
+   "text": "test ( 'instructor: the start state is captured on creation, can be re-captured, and drives the learner Reset' , async ( { page } ) => {",
+   "sha256": "029e17de007f4e38088743b4dfb9bef81b93e9a630362e507d42d79f214c3894",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "e2e/l2.spec.ts",
+   "line": 68,
+   "text": "test ( 'challenge editor can add a config-line, a route and a no-duplicate check, which then pass/fail against the real lab' , async ( { page } ) => {",
+   "sha256": "45f6f7639433224bc247c26e49423cac2d67a43bfb782eeb06dedb459b88f7ba",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.chal",
+   "file": "e2e/hints-tab.spec.ts",
+   "line": 8,
+   "text": "test ( 'hints are revealed one at a time and can be authored' , async ( { page } ) => {",
+   "sha256": "0c31a9ff5c8bb416e44399b3aef3d6582f317ed54d091e734422945b66bac73f",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.addrchal",
+   "file": "tests/samples.test.ts",
+   "line": 151,
+   "text": "describe ( 'Challenge 5: addressing faults' , ( ) => {",
+   "sha256": "0e91aae82b6969d578de1d49cda0786cf3a079771f096b712cf1aef245a22083",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.campus3",
+   "file": "tests/campus3.test.ts",
+   "line": 13,
+   "text": "it ( 'has the 3-tier layout: 7 devices, 9 cables, every link up, no duplicate IP' , ( ) => {",
+   "sha256": "c707f5b53b228a5e0aa19d5d6d588a612ba33339804356d9f46d4d1283066973",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.campus3",
+   "file": "tests/campus3.test.ts",
+   "line": 93,
+   "text": "it ( 'fixing the faults one at a time through the CLI unlocks the checks in order' , ( ) => {",
+   "sha256": "499bf118089015abf619701b1ac256a285c571771744349cfe412ced986e6f17",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.campus3",
+   "file": "e2e/campus3.spec.ts",
+   "line": 3,
+   "text": "test ( 'Campus 3 Tier sample: opens from Lab Manager and the guide pings work in the Console' , async ( { page } ) => {",
+   "sha256": "ebfc4608f17e592b9207b007ef18842ff4b7cfc4e3cc33f8d9391cf223dde1ac",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.diagram",
+   "file": "tests/device-capability.test.ts",
+   "line": 146,
+   "text": "it ( 'diagram: a firewall between two PCs in one subnet does not forward' , ( ) => {",
+   "sha256": "229a94f1665dfae4c85378f7391c3ee2fe1a1c8be3209552d0a8deefb53bec74",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.diagram",
+   "file": "tests/diagram-devices.test.ts",
+   "line": 59,
+   "text": "it ( 'refuse CLI commands and leave the Lab unchanged (no fake CLI)' , ( ) => {",
+   "sha256": "829e8f3978bf3718232ed2e5140c8b2c8d9e78f140da3a6b1ba52858de2a4da1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.diagram",
+   "file": "tests/diagram-devices.test.ts",
+   "line": 73,
+   "text": "it ( 'two PCs cabled through a patch panel cannot ping; the same PCs on a 2960 can' , ( ) => {",
+   "sha256": "590a0c0f2bcb6097197aaf95c2940722479cbce03cacb9263b771d7d1f7b9741",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.diagram",
+   "file": "tests/diagram-devices.test.ts",
+   "line": 91,
+   "text": "it ( 'the Internet cloud gives no Internet: a PC behind an ISP router cabled to the cloud cannot reach 8.8.8.8' , ( ) => {",
+   "sha256": "cb11a06575b1031cb159e2b8c8046f2a27b3ce886181096edb8129aae748f7f7",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.diagram",
+   "file": "tests/diagram-devices.test.ts",
+   "line": 109,
+   "text": "it ( 'rack and UPS have no network ports: a cable to them is refused' , ( ) => {",
+   "sha256": "5dd7eb95a8af970f448242ebfa655d370a0bb7723ebbbbd9eb18b852b9c74da6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.diagram",
+   "file": "e2e/diagram-devices.spec.ts",
+   "line": 104,
+   "text": "test ( 'no forwarding through a patch panel: two PCs cabled through it cannot ping' , async ( { page } ) => {",
+   "sha256": "ad1030b688e0e19cb7b3bd4b345fcf399fd9d5bed5d5fe3f73b7a6eaaa610215",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.endpoint",
+   "file": "tests/endpoint-devices.test.ts",
+   "line": 74,
+   "text": "it ( 'each new device pings a PC through a Catalyst 2960 (both directions) and its terminal works' , ( ) => {",
+   "sha256": "c6dea6bc88fdbe354836fd0a2596a7e80e59bb401caa760152fb274d9368e751",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.endpoint",
+   "file": "tests/endpoint-devices.test.ts",
+   "line": 92,
+   "text": "it ( 'each new device reaches another subnet through a router (gateway) and tracert shows the router hop' , ( ) => {",
+   "sha256": "d251fb94241dedd54ea96ee4cd38e458cbce0ac36d6f1df122279cf158ab3bf6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.endpoint",
+   "file": "tests/endpoint-devices.test.ts",
+   "line": 112,
+   "text": "it ( 'VLAN rules apply as for a PC: a device in another access VLAN is not reachable' , ( ) => {",
+   "sha256": "2dea4b48a02f9aa0e785c37f3cae45776b941950fd8ebe3dc6f9675e6dfd43a7",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.endpoint",
+   "file": "tests/device-capability.test.ts",
+   "line": 136,
+   "text": "it ( 'partial: a server is a working IP host (ping both ways) — only its services are missing' , ( ) => {",
+   "sha256": "0367ab228e089e0fb3dcff994d22e736a96783c0a24cf358de316c564e57d84c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.endpoint",
+   "file": "e2e/endpoint-devices.spec.ts",
+   "line": 100,
+   "text": "test ( 'a camera pings a PC through a Catalyst 2960 and the PC pings it back; ipconfig shows its settings' , async ( { page } ) => {",
+   "sha256": "bb49ab206df2ce2f46bd885b69f43f96102d18fdc0cde2690a7d0a685b4cd63b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.loop",
+   "file": "tests/network.test.ts",
+   "line": 159,
+   "text": "it ( 'a layer-2 loop does not hang the engine' , ( ) => {",
+   "sha256": "5e19f7085df7788ba10b66200c9263af208795dbf8300001633345db9a2585f2",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.loop",
+   "file": "tests/traceroute.test.ts",
+   "line": 223,
+   "text": "it ( '12. routing loop: R1 and R2 alternate until the hop limit; bounded' , ( ) => {",
+   "sha256": "0890b855ab44332199ad97c871a53fc6a1cbd0d3ef642dd80dd02f92286474e1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ttl",
+   "file": "tests/audit-phase-a.test.ts",
+   "line": 77,
+   "text": "it ( 'no router crossed: TTL=128 however many switches are in the path' , ( ) => {",
+   "sha256": "7f1ef68b40ec21c6939aa9f22f5496da93666b7bd088c5a6a3d7ac0ea9ab006e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.ttl",
+   "file": "tests/audit-phase-a.test.ts",
+   "line": 104,
+   "text": "it ( 'failed pings carry no reply TTL' , ( ) => {",
+   "sha256": "47f3f123ee5e23932639a6c7d6278e7393c6acb87240b1cd08fedebcc44b2c43",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.syslog",
+   "file": "tests/l2tables.test.ts",
+   "line": 120,
+   "text": "it ( 'IOS prints %IP-4-DUPADDR naming the other device MAC when a conflicting address is configured' , ( ) => {",
+   "sha256": "6ef6ac5f9704558c2708f6b4712669e39285058b847247cac947fdcc0ea884f1",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.syslog",
+   "file": "tests/native-vlan.test.ts",
+   "line": 150,
+   "text": "it ( 'no CDP message on Cisco ↔ Aruba links and never on Aruba' , ( ) => {",
+   "sha256": "a9234164bb59a58e9b4af7611bfb4feb0820372d15b242bdeec8d26ca9ddde66",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.syslog",
+   "file": "tests/native-vlan.test.ts",
+   "line": 167,
+   "text": "it ( 'cdpMismatchLog is silent for routers/PCs and for mismatches on other switches' , ( ) => {",
+   "sha256": "4fd6ea2410d840205d1c7e1c093f87dfaebf740aa674aeb3d84164973cf4fc63",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.topo",
+   "file": "tests/network.test.ts",
+   "line": 9,
+   "text": "it ( 'has the devices, cables and addressing from the brief' , ( ) => {",
+   "sha256": "a4088abac59c943b48cb2d64e5baefc325148926a20c086e3aa670a768450710",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.topo",
+   "file": "e2e/app.spec.ts",
+   "line": 124,
+   "text": "test ( 'add a new PC from the palette, cable it to a free port, set VLAN + IP, ping' , async ( { page } ) => {",
+   "sha256": "9a3593dfdd0a9f50c11092781a7cc60837571d20334a36335513adc2e444277b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.topo",
+   "file": "e2e/app.spec.ts",
+   "line": 161,
+   "text": "test ( 'drag a device from the palette onto the canvas; rename; delete' , async ( { page } ) => {",
+   "sha256": "e3921159391fc056c4b9d34cbfea33b864c6a37ca526f50c534fb0faa2d14c37",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.topo",
+   "file": "e2e/app.spec.ts",
+   "line": 174,
+   "text": "test ( 'drag a cable between two devices, choose ports, and select a link' , async ( { page } ) => {",
+   "sha256": "b0677bc5fedccbd60befb13a155962b4b5f39d9320b113ce592527278d291455",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.topo",
+   "file": "e2e/devices.spec.ts",
+   "line": 21,
+   "text": "test ( 'palette shows all 19 devices once; each of the 10 network devices can be dragged, selected, renamed and deleted' , async ( { page } ) => {",
+   "sha256": "f3d037e3fe2d0d4baec134672438a8c68fefab1b27461a4051468c530ac36f78",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.range",
+   "file": "tests/range.test.ts",
+   "line": 15,
+   "text": "it ( 'applies each following interface command to every port, and the prompt shows the range' , ( ) => {",
+   "sha256": "a5a7bde033644213fa0d10c31dd84780942e82dda562096a16d5eecdb2d31498",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.range",
+   "file": "tests/range.test.ts",
+   "line": 172,
+   "text": "it ( 'works through a range: every port gets the VLAN' , ( ) => {",
+   "sha256": "b3ae75d3a87f6e66bc70a260acdeb3e5194f77a3c8dd51278d018fb6f95c45de",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.range",
+   "file": "e2e/features2.spec.ts",
+   "line": 21,
+   "text": "test ( 'interface range: one command configures several ports and the prompt shows the range' , async ( { page } ) => {",
+   "sha256": "275a23154a689503fd272c5987b9e822226d80a1985958e979a153ebfc024d48",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.range",
+   "file": "e2e/features2.spec.ts",
+   "line": 35,
+   "text": "test ( 'interface range on AOS-CX' , async ( { page } ) => {",
+   "sha256": "2ed7fbe63f1a2b78adbe6f58f02ab43f210415a062895f2983bdd806ec40283c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.cdp",
+   "file": "src/core/cli/cdp.ts",
+   "line": 25,
+   "symbol": "neighbors",
+   "text": "function neighbors ( lab : Lab , dev : Device ) : Neighbor [ ] {",
+   "sha256": "75ae8eed198607d6b105ab5a88e0f79259e20828dfd9aed13f14a46c4d773c0c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.cdp",
+   "file": "src/core/cli/cdp.ts",
+   "line": 43,
+   "symbol": "entryAddress",
+   "text": "function entryAddress ( lab : Lab , { peer , remotePort } : Neighbor ) : string | undefined {",
+   "sha256": "16dfc486b0c6cc4ba246bc266159d9292cb03e655519d2785b8a3f51a32b9b63",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "s.cdp",
+   "file": "src/core/cli/cdp.ts",
+   "line": 53,
+   "symbol": "showCdpNeighbors",
+   "text": "export function showCdpNeighbors ( lab : Lab , dev : Device , version ? : ( peer : Device ) => string ) : string [ ] {",
+   "sha256": "f46eb6aeaabff83f6019a24c2a08084d0db07b44ff7de694ecc07a0dfc2db167",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/secret.test.ts",
+   "line": 21,
+   "text": "it ( 'MD5 matches the RFC 1321 test suite' , ( ) => {",
+   "sha256": "818b1985699561a28b35147b37fae75b71f6eb94f55a9cf035373ca899e7ee18",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/secret.test.ts",
+   "line": 35,
+   "text": "it ( 'verifies only the right password, and rejects malformed stored values' , ( ) => {",
+   "sha256": "7e994c5ac0f6777040b939a16b7c042d96d9edbf1480fc6d3a68d20b880beb63",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/secret.test.ts",
+   "line": 45,
+   "text": "it ( 'new hashes use a random 4-character salt, never contain the password, and verify' , ( ) => {",
+   "sha256": "1ce8b728c3862601f38a3897b6bb6c38c3a291d6e4f4dd4f427123c914578452",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 51,
+   "text": "it ( 'enters Privileged EXEC directly, with no prompt and no security state' , ( ) => {",
+   "sha256": "d71aeef835420b20c67cdd4e60835ccafc8be6a266731975a2e445c59679eaf6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 63,
+   "text": "it ( 'asks Password:, accepts the right secret and enters Privileged EXEC; the answer is masked and not kept' , ( ) => {",
+   "sha256": "3c37dceb4fa2309065195b65b11e2499155d9077ed9e0849c49189d19f4945ec",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 78,
+   "text": "it ( 'a wrong secret re-prompts; after the simulator limit it stays in User EXEC with a message that contains no input' , ( ) => {",
+   "sha256": "8c2c26a0dc2dacbee0dbec6d8d96096e01ae1c87014e8e3b23dafbe2e9363464",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 96,
+   "text": "it ( 'the right secret after wrong ones still works, the attempt count restarts at each enable, and case matters' , ( ) => {",
+   "sha256": "823bcb4588ccea147082badb63a8a3dd6da67534988c945fae203243f4284425",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 106,
+   "text": "it ( 'disable returns to User EXEC and the next enable asks again; an empty answer counts as a wrong one' , ( ) => {",
+   "sha256": "d0576c03a8adf35dc277cff5aa29d71ce30b6fa3249b993198a640c0908cae4e",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 116,
+   "text": "it ( 'a password answer is never a command: commands, ? and Tab do nothing while the prompt waits' , ( ) => {",
+   "sha256": "cd6f361eecf4abb306123b1962f7f510619e3c1c155261dab703313b7c86c0a3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 129,
+   "text": "it ( 'works the same on the Catalyst switch and the ISP router' , ( ) => {",
+   "sha256": "0a14b4851e6b5abc68335f8aa59021352eb63aa8378874f3bd93f84c4205ca04",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 139,
+   "text": "it ( 'running-config shows only \"enable secret 5 $1$…\" (a hash of the secret), also after write memory' , ( ) => {",
+   "sha256": "3227461a1af0ee45af3faff1130227638626964c0af00e9f29799e6e9eb69ae7",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 151,
+   "text": "it ( 'enable secret 0 <clear> hashes like the plain form; enable secret 5 <hash> keeps the hash; bad hashes and the history mask are refused' , ( ) => {",
+   "sha256": "fb603d58fc1d283b30c5dbc7356771b8c57ea5b0b515f27155cd580cbbc51082",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 166,
+   "text": "it ( 'no enable secret removes it: the line disappears and enable is direct again' , ( ) => {",
+   "sha256": "e6bd0c560b276f98e7bffb21d1de29b356781b46c6bd0cbbf0aca7f9e455b582",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 175,
+   "text": "it ( 'non-Cisco CLIs do not accept enable secret' , ( ) => {",
+   "sha256": "39dcb7dc9029fc3271d46c94ec361155a8cd60b116aa40ba8c0386cc463d6d36",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 183,
+   "text": "it ( 'history, echo and errors are masked for the command, its abbreviations, typos, help and do/no forms' , ( ) => {",
+   "sha256": "19beaa84e59255f9f7d5b3de6731120fce0905c1fa5888ecf4ebdbd02bfffa87",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 200,
+   "text": "it ( 'redaction leaves ordinary lines alone and masks the secret argument for every vendor (fix1)' , ( ) => {",
+   "sha256": "188a756babc225197a5596fffb5132bbc5f95bafa9715d50ccba9c15c17795bd",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 205,
+   "text": "it ( 'localStorage and the workspace hold the hash, never the secret or a pending prompt; reload drops the prompt' , ( ) => {",
+   "sha256": "2ef17efe0333e8c55299566b711f8f33225521cddb9ee4a25a01162335c0d7aa",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 224,
+   "text": "it ( 'export → import keeps the secret working; a pending prompt in a file is dropped' , ( ) => {",
+   "sha256": "84d2ca58ffd83d5c53e7bc78db3090c1928c7d399ff701eaa4a71e04ba96aa3c",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 242,
+   "text": "it ( 'a file cannot smuggle a clear-text or non-Cisco enable secret' , ( ) => {",
+   "sha256": "19bd79ab69665c2fd668468e5080a5d7eacfabce8b41dd08068d331b6dec59d9",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 252,
+   "text": "it ( 'randomised: 40 random secrets through set / enable / wrong answers / show / export never appear anywhere visible' , ( ) => {",
+   "sha256": "3df665e453b32cade06d3c3e8524720c11ee6aea1580c12f0a66d7d49a26d358",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secret",
+   "file": "tests/enable-secret.test.ts",
+   "line": 269,
+   "text": "it ( 'sample Labs (no security field) validate, export and import byte-identically, and enable is unchanged' , ( ) => {",
+   "sha256": "f8f2ba64b0f1d76db1d89141d8a5cb309188b6c7cd5484e7cdafd61637f096ed",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 39,
+   "text": "it . each ( [ 'cisco' , 'aruba' , 'pc' , 'generic' ] as const ) ( '%s: secret arguments masked, ordinary lines untouched' , ( v ) => {",
+   "sha256": "ad5dedc88062a471ca705d65ab2380a7ef21657d56c155777563e430acf460eb",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 49,
+   "text": "it . each ( KINDS ) ( '%s: engine result, history, Lab, export and storage hold no raw secret' , ( kind ) => {",
+   "sha256": "9e38af1d06320b6ff4be2e8c005afcc0ee5b7f36937699c5dfb27dea36b3eee6",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 72,
+   "text": "it . each ( NO_SUPPORT ) ( '%s: the command is still rejected, creates no secret, and is masked in the history' , ( kind ) => {",
+   "sha256": "81b1655ebd96f52dada260be0ed12a6f9d876da9b94e70c6050e8935b6840ddd",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 82,
+   "text": "it . each ( NO_CLI ) ( '%s (no CLI): the rejection echoes the line masked, not raw' , ( kind ) => {",
+   "sha256": "29ebec677783f22c1b11ac62843a995af6e1859367619d74aba584b8dab0f2a5",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 92,
+   "text": "it . each ( KINDS ) ( '%s: transcript lines and history are masked' , ( kind ) => {",
+   "sha256": "55e4fb0e28d676d1bd3b35a8322b045d871504aaee73d446bb3d48b78fa35c31",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 106,
+   "text": "it . each ( [ 'cisco-router' , 'cisco-switch' , 'isp-router' ] as const ) ( '%s: set, disable, Password:, wrong then right still work' , ( kind ) => {",
+   "sha256": "8ada4a984e9cf91fef8f5d68f7e4d98dacc6681328cc19f0be439b8d45d2315b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secfix",
+   "file": "tests/enable-secret-all-devices.test.ts",
+   "line": 121,
+   "text": "it ( 'ordinary commands on every vendor still run and keep their own text in history' , ( ) => {",
+   "sha256": "b9108cc224637bcdc98cdfa1b70d2dcb1305d2f26183cad0a0817c2f3bc512c7",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secretE2E",
+   "file": "e2e/enable-secret.spec.ts",
+   "line": 8,
+   "text": "test ( 'enable secret: hidden Password: prompt, wrong then right answer, nothing of the secret on screen, in history or storage' , async ( { page } ) => {",
+   "sha256": "b726d8a7fc5173871e93b3daad3e8d8d75b6b7ebb518a007f64424199287ddf8",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.secretE2E",
+   "file": "e2e/enable-secret-unsupported.spec.ts",
+   "line": 11,
+   "text": "test ( 'enable secret typed on Aruba and PC: rejected, and the raw secret is absent from screen, history, storage, export and after reload' , async ( { page } ) => {",
+   "sha256": "bd24415aeadbc6ab1a20f80af2f557aa8daaa970dbb3ca448057bfb3a37b5936",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 50,
+   "text": "it ( 'shows one directly connected router with correct local and remote ports, without a fake holdtime' , ( ) => {",
+   "sha256": "6e7f775b289e41696c4815768d93b946f3e83a4a469fb05f83a40ee79e699614",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 56,
+   "text": "it ( 'orients ports from either end and for reversed link endpoints' , ( ) => {",
+   "sha256": "bc940976c2d023eb6cb6170d0346880adb1d53f06d2d6b6d95194ceb8639bc06",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 103,
+   "text": "it ( 'does not infer operational up from just the local admin state' , ( ) => {",
+   "sha256": "c0a077ecca7f43e053d332310a0061250c16b4471b5ed7d75e256357eecb6388",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 111,
+   "text": "it ( 'removes disconnected peers immediately and discovers the actual peer after reconnecting' , ( ) => {",
+   "sha256": "bf6998457c5bbc4fd6b263988b9fef5fe5412932c573178bc8120c9b99671ac3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 121,
+   "text": "for ( const kind of unsupported ) it ( `excludes ${kind} even on an up physical link` , ( ) => {",
+   "sha256": "ea42f2ae6c7278308e3823c46a13a9c79cea7d900b408c99d73fd95268ad5df5",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 131,
+   "text": "it ( 'does not discover a Cisco router across a patch panel' , ( ) => {",
+   "sha256": "942b022196a0f18a82b73957494547c45961982ca9a07d5d7c94683db6f1aa0b",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 147,
+   "text": "it ( 'detail shows only the connected port address and reuses the existing simulated version' , ( ) => {",
+   "sha256": "b2594d2dc5bef3298dfd1e75b8bf8e872f74167cb96c0dd3d42f687f58e28472",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 158,
+   "text": "it ( 'omits IP rather than inventing one, including when another disconnected port has an IP' , ( ) => {",
+   "sha256": "ec24dbe6e65e027c68dc63620cd788f88b61f76aa5fdbd85216356403c081dbd",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 188,
+   "text": "it ( 'returns a clear empty list with no invented neighbor data' , ( ) => {",
+   "sha256": "9a9cfbec385459cef2c8b54627191b56a3b6167f53a85c3b53c41a42e8b3294d",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 197,
+   "text": "it ( 'is deterministic across repeat execution and Lab export/import without persisting discovery state' , ( ) => {",
+   "sha256": "409bc12c711a1186af683b9b8ddb79bfcc7d09de4559edda47b2269847b65543",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 219,
+   "text": "it ( 'uses privileged EXEC and existing do/help/Tab/abbreviation handling without changing config context' , ( ) => {",
+   "sha256": "cec8ff7f7f9f5daa2672b543a52c3eb6b96446140f320de574ddeb34d018bd43",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "tests/cdp.test.ts",
+   "line": 237,
+   "text": "it ( 'rejects unsupported arguments, CDP config, LLDP, logging, and non-Cisco command sources' , ( ) => {",
+   "sha256": "a84811347fc0a9be5ee9b2b314dfa13b242c7775e5729073b6fb37a7e98230e3",
+   "occurrence": 1,
+   "of": 1
+  },
+  {
+   "key": "t.cdp",
+   "file": "e2e/cdp.spec.ts",
+   "line": 6,
+   "text": "test ( 'Cisco CDP summary/detail reach the console and a peer shutdown removes the neighbor' , async ( { page } ) => {",
+   "sha256": "c2be8e651f91f4f319338b41e41b1666bcaa9e4e68f806cdcc25226f0990a0d8",
+   "occurrence": 1,
+   "of": 1
+  }
+ ]
+}

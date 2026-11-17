@@ -83,7 +83,7 @@ INV_OUT=/tmp/inventory.json PROBE_OUT=/tmp/probe.json npx vitest run -c certific
 ## 6. Rules for future updates
 - **Never edit `data/expected-scores.json` to make a check pass.** If a recomputation differs, report the discrepancy.
 - A change to a status is a change to `scripts/model.mjs`, followed by `gen.mjs` (regenerate the matrices), then update the published figures in the gap analysis **and** `expected-scores.json` in the same change, with the reason recorded.
-- Evidence references must keep passing `qc.mjs`. A renamed or moved test or source line is a QC failure, not something to silence.
+- Evidence references must keep passing `qc.mjs`. A renamed, edited, deleted or duplicated cited test or source line is a QC failure, not something to silence. (Since CERT-P0-1b-EVIDENCE, §10, a cited line that merely MOVED is not a failure: references are resolved by content, not by line number.)
 - These files and the reports stay uncommitted unless the project owner approves committing them.
 
 ## 7. CERT-Q3 update record (2026-11-13)
@@ -165,3 +165,36 @@ Verified-only floor unchanged (CCNA v1.1 13.7, v2.0 6.8, N+ 16.0); item counts C
 **Unchanged:** `gen.mjs`, `qc.mjs`, `evidx.mjs`, `recompute-from-matrices.mjs`, `verify.mjs`, formulas, weights, relevance, objective IDs, phase mappings, the historical `inventory.json`, `probe.json` (still shows `enable secret` rejected at `dcbf4cb`), `test-titles.txt`, `evidence-grep.txt`.
 
 **Verification:** see the final run recorded in the project checkpoint (Section O). No application code or tests were changed; nothing was committed, pushed, merged or deployed.
+
+## 10. CERT-P0-1b-EVIDENCE: stable evidence anchors (2026-11-17)
+
+**Problem.** The evidence strings in `scripts/model.mjs` cite code as `path:NN` and `name() l.NN`. `qc.mjs` used to check that the cited line number still held a test header (tests) or any non-empty line / the function name (source). Any reformatting or added line above a citation therefore broke QC although the evidence was unchanged, and CERT-P0-1b.1 had to keep the cited lines of `persist.ts` and `engine.ts` at their old positions to keep QC green.
+
+**Design.** Every cited location is now identified by what is there, not where it is (`scripts/anchors.mjs`, registry `data/anchors.json`, 248 anchors, one per reference `qc.mjs` checks):
+
+| Field | Meaning |
+|---|---|
+| `text` | the cited line in TOKEN-CANONICAL form (below): lexed as JavaScript/TypeScript and re-printed as its tokens joined by one space |
+| `sha256` | hash of `text` (a hand-edited registry entry is detected) |
+| `occurrence` / `of` | which of the `of` identical lines of the file is the cited one |
+| `symbol` | for `name() l.NN` citations: the function name, which must occur in `text` |
+| `line` | the line number when recorded. **Informational only**: never an identity, never a pass/fail input; QC prints how many cited numbers have drifted |
+
+**Token-canonical form (`token-v1`).** Whitespace BETWEEN tokens is insignificant (indentation, spacing around punctuation), but string, template and regular-expression literals are kept verbatim (`"a b"` is not `"ab"`), whitespace that separates two tokens is never deleted (`const a` is not `consta`, `a in b` is not `ain b`, `a++ + b` is not `a+ ++b`), any other character (zero-width space, soft hyphen, replacement character, control characters) is a token of its own so an invisible change cannot hide, and a semicolon is a token (`x = 1` and `x = 1;` differ, deliberately). Comments are dropped. Lines over 20,000 characters are compared by an exact hash; files over 5 MB are refused. An earlier draft of this change removed ALL whitespace before comparing; the review in CERT-P0-1b-EVIDENCE-R2 showed that this made six different kinds of change compare equal (identifier boundary, string, template and regex content, keyword boundary, `in` operator), so it was replaced.
+
+**Resolution is fail-closed.** An anchor resolves only if the file exists, the entry is internally consistent, and exactly `of` lines have identical text, the path is a plain relative `src|tests|e2e` `.ts/.tsx` file (no `..`, no absolute path, no link leaving the repository), and the registry itself is well-formed (schema 2, hex hashes, no duplicates, bounded numbers). Edited, deleted, renamed or duplicated (ambiguous) cited code, a missing file, a citation without an anchor, or an anchor no longer cited are all QC problems. Moved lines, added code above, comment-only edits elsewhere and whitespace/indentation changes are not.
+
+**Scope and compatibility.** The evidence TEXT in `model.mjs`, both matrices, `scores.json`, the evidence index and every score are unchanged, so no coverage figure moved (`verify.mjs` checks 1–3 stay byte-identical). The line numbers in the evidence text are historical metadata for the commit named beside them. `qc.mjs` still prints `evidence refs checked=248 problems=0` (the same 248 references) and still needs commit `3c9aed7` for the one cited e2e file that exists only there.
+
+**Commands.**
+```
+node certification-audit/scripts/qc.mjs                    # includes the anchor check
+node certification-audit/scripts/anchors.mjs check         # anchors only
+node certification-audit/scripts/anchors-selftest.mjs      # 73 adversarial scenarios on a temp mini-repo; writes only to a temp dir it removes
+node certification-audit/scripts/anchors.mjs build --at e23e00c --out <file>   # re-derive the registry from that commit's blobs
+```
+`data/anchors.json` was derived from the tree at commit `e23e00c` (identical tree to `59a4c3f`, production) and is byte-reproducible from either commit with `build --at`. Rebuild it deliberately, from a commit at which the cited numbers are valid, and review the diff: a rebuild that changes an anchor changes what the evidence points at. Adding a citation to `model.mjs` requires adding its anchor.
+
+**Files changed:** new `scripts/anchors.mjs`, `scripts/anchors-selftest.mjs`, `data/anchors.json`; `scripts/qc.mjs` (reference check replaced; counts, IDs and weights unchanged); this README; `MANIFEST.sha256` (refreshed for exactly these files, hashes of the LF blobs). **Unchanged:** `model.mjs`, `gen.mjs`, `evidx.mjs`, `recompute-from-matrices.mjs`, `verify.mjs`, the probes and all other data files.
+
+**Score reconciliation (CCNA v1.1 19.9 / 29.2 vs 20.5 / 30.8).** Not a defect. 19.9 / 29.2 is the state after CERT-Q4a (2026-11-13, CDP evidence, `950fb0c`); 20.5 / 30.8 is the state after CERT-P0-1a (2026-11-16, `51251c0`), which changed exactly one item, CCNA v1.1 5.3 (device access control with local passwords) MISSING → PARTIAL. Re-running the unchanged `gen.mjs` on a copy of `model.mjs` with only that item set back to MISSING gives 19.87 / 29.17; the committed model gives 20.47 / 30.84. v2.0 and Network+ are unaffected by 5.3 (v2.0 17.4 / 19.6; N+ 20.7 / 28.4).
