@@ -28,11 +28,12 @@ import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import { useStore } from '../store';
 import { DeviceIcon } from './DeviceIcon';
 import { DRAG_MIME } from './Palette';
+import { connectClick, modeFlags, type CanvasMode } from '../ui/canvasMode';
 import type { DeviceKind } from '../core/types';
 import { tx } from '../i18n';
 import { SimBadge } from './SimBadge';
 
-function DeviceNode({ id, selected }: NodeProps) {
+function DeviceNode({ id, selected, isConnectable }: NodeProps) {
   const d = useStore((s) => s.lab.devices.find((x) => x.id === id));
   const openConsole = useStore((s) => s.openConsole);
   const dup = useStore((s) => duplicateIpsCached(s.lab).find((x) => x.members.some((m) => m.deviceId === id)));
@@ -56,7 +57,7 @@ function DeviceNode({ id, selected }: NodeProps) {
         <div className="node-dup" title={tx('IP {0} ซ้ำกับอุปกรณ์อื่นใน L2 เดียวกัน', dup.ip)} data-testid={`dup-${d.name}`}>{tx('⚠ IP ซ้ำ')}</div>
       )}
       {p.portNames.length > 0 && (
-        <Handle type="source" position={Position.Right} id="c" className="node-handle" title={tx('ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย')} />
+        <Handle type="source" position={Position.Right} id="c" className="node-handle" title={tx('ลากจุดนี้ไปยังอุปกรณ์อื่นเพื่อต่อสาย')} isConnectable={isConnectable} />
       )}
     </div>
   );
@@ -97,7 +98,8 @@ function CableEdge({ id, source, target, selected }: EdgeProps) {
   const pa = { x: a.x + ux * off, y: a.y + uy * off };
   const pb = { x: b.x - ux * off, y: b.y - uy * off };
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  const color = st.up ? '#2f6b86' : '#c62828';
+  // UP keeps its original colour #2f6b86 through --link-up and DOWN its original #c62828 through --link-down (styles.css); UP is NOT --teal (#2f6f8f)
+  const color = st.up ? 'var(--link-up)' : 'var(--link-down)';
   const trunkOf = (deviceId: string, port: string) => {
     const d = getDevice(lab, deviceId);
     return !!(d && getIface(d, port)?.trunk && !(isAruba(d.kind) && getIface(d, port)?.routed));
@@ -248,6 +250,20 @@ export function Canvas() {
   const openConnect = useStore((s) => s.openConnect);
   const deleteSelection = useStore((s) => s.deleteSelection);
   const fitNonce = useStore((s) => s.fitNonce);
+  const mode = useStore((s) => s.canvasMode);
+  const labEpoch = useStore((s) => s.labEpoch);
+  const say = useStore((s) => s.say);
+  const setMode = useStore((s) => s.setCanvasMode);
+  const flags = modeFlags(mode);
+  const modeButtons: [CanvasMode, string, string][] = [
+    ['select', tx('เลือก'), tx('โหมดเลือก: คลิกเพื่อเลือก ลากเพื่อย้ายอุปกรณ์')],
+    ['pan', tx('เลื่อน'), tx('โหมดเลื่อน: ลากเพื่อเลื่อนพื้นที่ทำงาน อุปกรณ์จะไม่ถูกย้าย')],
+    ['connect', tx('ลากสาย'), tx('โหมดเชื่อมสาย: คลิกอุปกรณ์ต้นทาง แล้วคลิกอุปกรณ์ปลายทาง')],
+  ];
+  // Connect mode: the device clicked first (UI only); the second click opens the usual Connect dialog
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  // a palette device is being dragged over the canvas (UI only)
+  const [dropActive, setDropActive] = useState(false);
   const flow = useReactFlow();
   // `flow` changes identity as nodes are added, so effects must not depend on it (they would re-fit on every drop).
   const flowRef = useRef(flow);
@@ -298,7 +314,53 @@ export function Canvas() {
 
   const onConnect = useCallback((c: Connection) => openConnect(c.source, c.target), [openConnect]);
 
+  // a pending first device is forgotten when the mode changes, when a different Lab is loaded or the Lab is replaced
+  // (labEpoch changes then; device ids such as d3 repeat from Lab to Lab) and when that device disappears
+  useEffect(() => setConnectFrom(null), [mode, labEpoch]);
+  useEffect(() => {
+    if (connectFrom !== null && !lab.devices.some((d) => d.id === connectFrom)) setConnectFrom(null);
+  }, [lab.devices, connectFrom]);
+
+  const onNodeClick = useCallback(
+    (id: string) => {
+      select({ type: 'device', id });
+      if (mode !== 'connect') return;
+      // devices without network ports (rack, UPS) can never be a cable end: same rule as the Connect dialog (ifaces.length > 0)
+      const hasPorts = (lab.devices.find((d) => d.id === id)?.ifaces.length ?? 0) > 0;
+      const r = connectClick(connectFrom, id, hasPorts);
+      if (r.kind === 'ignore') say('error', tx('อุปกรณ์นี้ไม่มีพอร์ตสำหรับเชื่อมสาย'));
+      else if (r.kind === 'start') setConnectFrom(r.source);
+      else {
+        setConnectFrom(null);
+        if (r.kind === 'finish') openConnect(r.source, r.target);
+      }
+    },
+    [mode, connectFrom, lab.devices, select, openConnect, say],
+  );
+
+  // Highlight the canvas only for a device dragged from the palette (not for files or text)
+  const isDeviceDrag = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes(DRAG_MIME);
+  const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    if (isDeviceDrag(e)) setDropActive(true);
+  };
+  const onDragLeave = (e: DragEvent) => {
+    // leaving a child element fires dragleave too (and Chrome gives no relatedTarget): only the pointer being outside counts
+    const r = e.currentTarget.getBoundingClientRect();
+    if (!(e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom)) setDropActive(false);
+  };
+  useEffect(() => {
+    const off = () => setDropActive(false);
+    window.addEventListener('dragend', off);
+    window.addEventListener('drop', off);
+    return () => {
+      window.removeEventListener('dragend', off);
+      window.removeEventListener('drop', off);
+    };
+  }, []);
+
   const onDrop = (e: DragEvent) => {
+    setDropActive(false);
     const kind = e.dataTransfer.getData(DRAG_MIME) as DeviceKind;
     if (!kind || !(kind in PROFILES)) return;
     e.preventDefault();
@@ -322,13 +384,22 @@ export function Canvas() {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
+      if (e.key === 'Escape') setConnectFrom(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [deleteSelection]);
 
   return (
-    <div className="canvas" onDrop={onDrop} onDragOver={(e) => e.preventDefault()} data-testid="canvas">
+    <div
+      className={dropActive ? 'canvas drop-active' : 'canvas'}
+      data-mode={mode}
+      data-drop-active={dropActive ? 'true' : 'false'}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      data-testid="canvas"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -338,9 +409,14 @@ export function Canvas() {
         onConnect={onConnect}
         connectionMode={ConnectionMode.Loose}
         isValidConnection={(c) => c.source !== c.target}
-        onNodeClick={(_, n) => select({ type: 'device', id: n.id })}
+        nodesDraggable={flags.nodesDraggable}
+        nodesConnectable={flags.nodesConnectable}
+        onNodeClick={(_, n) => onNodeClick(n.id)}
         onEdgeClick={(_, e) => select({ type: 'link', id: e.id })}
-        onPaneClick={() => select(null)}
+        onPaneClick={() => {
+          select(null);
+          setConnectFrom(null);
+        }}
         deleteKeyCode={null}
         fitView={startedWithDevices.current}
         fitViewOptions={{ padding: 0.15, maxZoom: FIT_MAX_ZOOM }}
@@ -353,6 +429,23 @@ export function Canvas() {
         <PacketAnimation />
       </ReactFlow>
       <AnimToggle />
+      {/* mode switch lives on the canvas (not in the toolbar): the toolbar keeps its four groups and its single row */}
+      <div className="mode-switch" role="group" aria-label={tx('โหมดพื้นที่ทำงาน')} data-testid="mode-group">
+        {modeButtons.map(([m, label, hint]) => (
+          <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m} title={hint} data-testid={`mode-${m}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {mode !== 'select' && (
+        <div className="mode-hint" data-testid="mode-hint" role="status">
+          {mode === 'pan'
+            ? tx('โหมดเลื่อน: ลากเพื่อเลื่อนพื้นที่ทำงาน อุปกรณ์จะไม่ถูกย้าย')
+            : connectFrom
+              ? tx('เลือกอุปกรณ์ปลายทางเพื่อเชื่อมสาย (Esc เพื่อยกเลิก)')
+              : tx('โหมดเชื่อมสาย: คลิกอุปกรณ์ต้นทาง แล้วคลิกอุปกรณ์ปลายทาง')}
+        </div>
+      )}
       {lab.devices.length === 0 && (
         <div className="empty-hint">
           <b>{tx('Lab ว่างเปล่า')}</b>

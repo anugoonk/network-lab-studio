@@ -30,6 +30,8 @@
   --pill: #5b9fc7;
   --ok: #1a8f4c;
   --bad: #c62828;
+  --link-up: #2f6b86; /* stroke of a network link that is UP: kept at its original value, deliberately NOT --teal (#2f6f8f) */
+  --link-down: #c62828; /* stroke of a network link that is DOWN: kept at its original value */
   --warn: #b26a00;
   --focus: #1f6fd1; /* 4.9:1 on white */
   --focus-on-dark: #8cc4ff; /* 8.6:1 on --nav */
@@ -274,6 +276,18 @@ table.files input[type='checkbox'] { width: auto; }
 .link-badge.bad { background: var(--bad); }
 .empty-hint { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); pointer-events: none; padding: 40px; }
 .react-flow__controls { box-shadow: none; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+/* UI-03: drop target while a palette device is dragged over the canvas, and the three interaction modes */
+.canvas.drop-active { outline: 3px dashed var(--teal); outline-offset: -9px; background: #f2f8fb; }
+.canvas.drop-active .react-flow { background: #f2f8fb; }
+.canvas[data-mode='pan'] .react-flow__pane, .canvas[data-mode='pan'] .react-flow__node { cursor: grab; }
+.canvas[data-mode='pan'] .react-flow__pane.dragging, .canvas[data-mode='pan'] .react-flow__node:active { cursor: grabbing; }
+.canvas[data-mode='connect'] .react-flow__node { cursor: crosshair; }
+.canvas[data-mode='connect'] .node-handle { width: 16px !important; height: 16px !important; box-shadow: 0 0 0 3px rgb(232 117 10 / 35%); }
+.mode-switch { position: absolute; top: 8px; left: 8px; z-index: 6; display: flex; gap: 2px; padding: 2px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.mode-switch button { height: 26px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font-size: var(--fs-sm); cursor: pointer; }
+.mode-switch button:hover { background: var(--surface-2); border-color: var(--border); }
+.mode-switch button[aria-pressed='true'] { background: var(--primary-soft); border-color: #bcd5e3; color: var(--teal-dark); font-weight: 600; }
+.mode-hint { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); z-index: 5; max-width: calc(100% - 120px); pointer-events: none; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 3px 12px; font-size: var(--fs-sm); color: var(--text); text-align: center; }
 
 /* ── right panel ── */
 .right { width: var(--right-w); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-1); overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0; min-height: 0; }
