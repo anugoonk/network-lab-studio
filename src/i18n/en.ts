@@ -1040,4 +1040,13 @@ export const EN: Record<string, string> = {
   "คัดลอกไม่สำเร็จ — เบราว์เซอร์นี้ไม่รองรับการคัดลอกอัตโนมัติ ให้เลือกข้อความตัวอย่างแล้วกด Ctrl+C": "Copy failed — this browser does not support copying from the page. Select the example text and press Ctrl+C",
   "คัดลอกไม่สำเร็จ — ให้เลือกข้อความตัวอย่างแล้วกด Ctrl+C": "Copy failed — select the example text and press Ctrl+C",
   "ปิดบังรหัสผ่านที่พบในประวัติคำสั่ง {0} บรรทัด": "Masked passwords found in the command history: {0} line(s)",
+  "โหมดพื้นที่ทำงาน": "Canvas mode",
+  "เลือก": "Select",
+  "เลื่อน": "Pan",
+  "ลากสาย": "Cable",
+  "โหมดเลือก: คลิกเพื่อเลือก ลากเพื่อย้ายอุปกรณ์": "Select mode: click to select, drag to move devices",
+  "โหมดเลื่อน: ลากเพื่อเลื่อนพื้นที่ทำงาน อุปกรณ์จะไม่ถูกย้าย": "Pan mode: drag to move the view; devices are not moved",
+  "โหมดเชื่อมสาย: คลิกอุปกรณ์ต้นทาง แล้วคลิกอุปกรณ์ปลายทาง": "Cable mode: click the first device, then the second device",
+  "เลือกอุปกรณ์ปลายทางเพื่อเชื่อมสาย (Esc เพื่อยกเลิก)": "Click the second device to connect the cable (Esc to cancel)",
+  "อุปกรณ์นี้ไม่มีพอร์ตสำหรับเชื่อมสาย": "This device has no network ports, so it cannot be cabled",
 };

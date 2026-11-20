@@ -35,6 +35,7 @@ import { emptyHistory, reconcileCli, recordChange, redoStep, undoStep, type Hist
 import { applyStart, captureStart, emptyChallenge, evaluateChallenge, type ChallengeReport } from './core/challenge';
 import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
 import { tx } from './i18n';
+import type { CanvasMode } from './ui/canvasMode';
 import type { PaletteCategory } from './ui/paletteCatalog';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
@@ -101,6 +102,9 @@ interface State {
   paletteSimOnly: boolean;
   rightOpen: boolean;
   hideLabels: boolean;
+  /** UI only (not saved, not exported): interaction mode of the canvas (UI-03) */
+  canvasMode: CanvasMode;
+  setCanvasMode: (mode: CanvasMode) => void;
   transcripts: Record<string, TermLine[]>;
   pendingInput: { deviceId: string; text: string; n: number } | null;
   lastPing: PingResult | null;
@@ -332,6 +336,7 @@ export const useStore = create<State>((set, get) => {
     paletteSimOnly: false,
     rightOpen: true,
     hideLabels: false,
+    canvasMode: 'select',
     transcripts: {},
     pendingInput: null,
     lastPing: null,
@@ -467,6 +472,7 @@ export const useStore = create<State>((set, get) => {
     toggleLeft: () => set({ leftPanel: get().leftPanel === null ? 'menu' : null }),
     toggleRight: () => set({ rightOpen: !get().rightOpen }),
     toggleHideLabels: () => set({ hideLabels: !get().hideLabels }),
+    setCanvasMode: (canvasMode) => set({ canvasMode }),
     select: (selection) => set({ selection }),
     openConsole: (deviceId) => set({ selection: { type: 'device', id: deviceId }, rightTab: 'console', rightOpen: true, view: 'lab' }),
     say: (kind, text) => set({ notice: { kind, text } }),
