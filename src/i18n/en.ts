@@ -1049,4 +1049,12 @@ export const EN: Record<string, string> = {
   "โหมดเชื่อมสาย: คลิกอุปกรณ์ต้นทาง แล้วคลิกอุปกรณ์ปลายทาง": "Cable mode: click the first device, then the second device",
   "เลือกอุปกรณ์ปลายทางเพื่อเชื่อมสาย (Esc เพื่อยกเลิก)": "Click the second device to connect the cable (Esc to cancel)",
   "อุปกรณ์นี้ไม่มีพอร์ตสำหรับเชื่อมสาย": "This device has no network ports, so it cannot be cabled",
+  "Console ด้านล่าง": "Console (bottom panel)",
+  "ปรับความสูง Console": "Resize Console",
+  "ย่อ Console": "Collapse Console",
+  "ขยาย Console": "Expand Console",
+  "ยังไม่ได้เลือกอุปกรณ์": "No device selected",
+  "Console แสดงที่แผงด้านล่างของพื้นที่ทำงาน — ใช้ได้พร้อมกับแผงนี้ และข้อความที่พิมพ์ค้างไว้จะไม่หาย": "The Console is shown in the panel at the bottom of the workspace — you can use it together with this panel, and a half-typed line is kept",
+  "แท็บแผงขวา": "Right panel tabs",
+  "คำเตือน {0} รายการ": "{0} warning(s)",
 };

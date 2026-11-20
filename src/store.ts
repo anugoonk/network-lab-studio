@@ -36,6 +36,7 @@ import { applyStart, captureStart, emptyChallenge, evaluateChallenge, type Chall
 import type { Challenge, DeviceKind, Endpoint, Guide, Lab } from './core/types';
 import { tx } from './i18n';
 import type { CanvasMode } from './ui/canvasMode';
+import { clampDockHeight, loadDockPrefs, saveDockPrefs } from './ui/layout';
 import type { PaletteCategory } from './ui/paletteCatalog';
 
 export type Selection = { type: 'device' | 'link'; id: string } | null;
@@ -105,6 +106,12 @@ interface State {
   /** UI only (not saved, not exported): interaction mode of the canvas (UI-03) */
   canvasMode: CanvasMode;
   setCanvasMode: (mode: CanvasMode) => void;
+  /** UI only (UI-04; not saved in a Lab, not exported): the bottom Console dock — open/collapsed and its height in px.
+   *  Remembered in localStorage under its own key (src/ui/layout.ts) */
+  dockOpen: boolean;
+  dockHeight: number;
+  setDockOpen: (open: boolean) => void;
+  setDockHeight: (px: number) => void;
   transcripts: Record<string, TermLine[]>;
   pendingInput: { deviceId: string; text: string; n: number } | null;
   lastPing: PingResult | null;
@@ -225,6 +232,9 @@ function initial(): { lab: Lab; savedSig: string | null; activeId: string; updat
 }
 
 const init = initial();
+const dockInit = loadDockPrefs();
+/** remember the dock's open/height in its own localStorage key (never part of a Lab) */
+const persistDock = (s: { dockOpen: boolean; dockHeight: number }) => void saveDockPrefs({ open: s.dockOpen, height: s.dockHeight });
 
 function download(filename: string, text: string) {
   const blob = new Blob([text], { type: 'application/json' });
@@ -337,6 +347,8 @@ export const useStore = create<State>((set, get) => {
     rightOpen: true,
     hideLabels: false,
     canvasMode: 'select',
+    dockOpen: dockInit.open,
+    dockHeight: dockInit.height,
     transcripts: {},
     pendingInput: null,
     lastPing: null,
@@ -425,7 +437,11 @@ export const useStore = create<State>((set, get) => {
         .sort((a, b) => b.updatedAt - a.updatedAt);
     },
     setView: (view) => set({ view }),
-    setRightTab: (rightTab) => set({ rightTab, rightOpen: true }),
+    // the Console lives in the bottom dock: choosing the Console tab opens the dock
+    setRightTab: (rightTab) => {
+      set(rightTab === 'console' ? { rightTab, rightOpen: true, dockOpen: true } : { rightTab, rightOpen: true });
+      if (rightTab === 'console') persistDock(get());
+    },
     setLeftPanel: (leftPanel) => set({ leftPanel }),
     setMenuSection: (menuSection) => set({ menuSection }),
     setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
@@ -473,8 +489,19 @@ export const useStore = create<State>((set, get) => {
     toggleRight: () => set({ rightOpen: !get().rightOpen }),
     toggleHideLabels: () => set({ hideLabels: !get().hideLabels }),
     setCanvasMode: (canvasMode) => set({ canvasMode }),
+    setDockOpen: (dockOpen) => {
+      set({ dockOpen });
+      persistDock(get());
+    },
+    setDockHeight: (px) => {
+      set({ dockHeight: clampDockHeight(px) });
+      persistDock(get());
+    },
     select: (selection) => set({ selection }),
-    openConsole: (deviceId) => set({ selection: { type: 'device', id: deviceId }, rightTab: 'console', rightOpen: true, view: 'lab' }),
+    openConsole: (deviceId) => {
+      set({ selection: { type: 'device', id: deviceId }, rightTab: 'console', rightOpen: true, dockOpen: true, view: 'lab' });
+      persistDock(get());
+    },
     say: (kind, text) => set({ notice: { kind, text } }),
     clearNotice: () => set({ notice: null }),
     openConnect: (a, b) => set({ connectDialog: { a, b } }),
@@ -580,8 +607,10 @@ export const useStore = create<State>((set, get) => {
         selection: { type: 'device', id: deviceId },
         rightTab: 'console',
         rightOpen: true,
+        dockOpen: true,
         view: 'lab',
       });
+      persistDock(get());
     },
     runPing: (srcId, ip) => {
       const r = ping(get().lab, srcId, ip);

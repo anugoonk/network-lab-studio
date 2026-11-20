@@ -16,19 +16,37 @@ export function Console() {
   const deviceId = sel?.type === 'device' ? sel.id : null;
   const device = deviceId ? getDevice(lab, deviceId) : undefined;
 
+  const epoch = useStore((s) => s.labEpoch);
   const [value, setValue] = useState('');
   const [histPos, setHistPos] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const lines = (deviceId && transcripts[deviceId]) || [];
 
-  useEffect(() => {
-    setValue('');
-    setHistPos(null);
-  }, [deviceId]);
+  // UI-04: this component stays mounted in the bottom dock, so the line being typed and the ↑/↓ position are kept for each
+  // device while another device or tab is shown. Device ids repeat from Lab to Lab, so a different Lab starts clean.
+  const kept = useRef<{ epoch: number; id: string | null; drafts: Record<string, { value: string; histPos: number | null }> }>({ epoch, id: null, drafts: {} });
+  useLayoutEffect(() => {
+    const k = kept.current;
+    if (k.epoch !== epoch) {
+      k.epoch = epoch;
+      k.id = null;
+      k.drafts = {};
+    }
+    if (k.id) k.drafts[k.id] = { value, histPos };
+    const d = deviceId ? k.drafts[deviceId] : undefined;
+    setValue(d?.value ?? '');
+    // a remembered ↑/↓ position is only valid while that history entry still exists
+    setHistPos(d?.histPos != null && d.histPos < (device?.cli.history.length ?? 0) ? d.histPos : null);
+    k.id = deviceId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceId, epoch]);
 
+  // text sent with "Put in Console" (Command Library) is applied once; it must not come back after the line was edited or run
+  const appliedN = useRef(0);
   useEffect(() => {
-    if (pending && pending.deviceId === deviceId) {
+    if (pending && pending.deviceId === deviceId && pending.n !== appliedN.current) {
+      appliedN.current = pending.n;
       setValue(pending.text);
       setHistPos(null);
       inputRef.current?.focus();

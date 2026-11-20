@@ -2,11 +2,11 @@ import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
 import { Canvas, fitLab } from './components/Canvas';
 import { CommandLibrary } from './components/CommandLibrary';
-import { Console } from './components/Console';
+import { ConsoleDock } from './components/ConsoleDock';
 import { DetailsPanel } from './components/DetailsPanel';
 import { ConfirmDeleteDialog, ConfirmDialog, ConnectDialog } from './components/Dialogs';
 import { FileManager } from './components/FileManager';
-import { Inspector } from './components/Inspector';
+import { Inspector, useInspectorWarningCount } from './components/Inspector';
 import { Icon, LogoMark } from './components/Icons';
 import { LeftDock } from './components/LeftDock';
 import { Palette } from './components/Palette';
@@ -188,31 +188,70 @@ function CenterColumn() {
   return (
     <div className="center">
       <Canvas />
+      <ConsoleDock />
       {!paletteInMenu && <Palette layout="bar" />}
     </div>
+  );
+}
+
+/** shown in the right panel while its Console tab is active: the Console itself lives in the bottom dock (UI-04) */
+function ConsoleRedirect() {
+  const open = useStore((s) => s.dockOpen);
+  const setOpen = useStore((s) => s.setDockOpen);
+  return (
+    <section className="card" data-testid="console-redirect">
+      <p className="muted">{tx('Console แสดงที่แผงด้านล่างของพื้นที่ทำงาน — ใช้ได้พร้อมกับแผงนี้ และข้อความที่พิมพ์ค้างไว้จะไม่หาย')}</p>
+      <button onClick={() => setOpen(!open)} data-testid="console-redirect-toggle">{open ? tx('ย่อ Console') : tx('ขยาย Console')}</button>
+    </section>
   );
 }
 
 function RightPanel() {
   const tab = useStore((s) => s.rightTab);
   const setTab = useStore((s) => s.setRightTab);
+  const warnings = useInspectorWarningCount();
   const tabs: [RightTab, string][] = [
     ['details', tx('รายละเอียด')],
     ['console', 'Console'],
     ['inspector', 'Lab Inspector'],
   ];
+  // ←/→/Home/End move between the tabs (every tab stays reachable with Tab)
+  const onTabKey = (e: React.KeyboardEvent) => {
+    // relative to the tab that has focus (normally the selected one)
+    const focused = tabs.findIndex(([k]) => document.activeElement?.id === `rtab-${k}-tab`);
+    const i = focused >= 0 ? focused : tabs.findIndex(([k]) => k === tab);
+    const next = e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    setTab(tabs[next][0]);
+    document.getElementById(`rtab-${tabs[next][0]}-tab`)?.focus();
+  };
   return (
     <aside className="right" aria-label={tx('แผงรายละเอียด')}>
-      <div className="right-tabs" role="tablist">
+      <div className="right-tabs" role="tablist" aria-label={tx('แท็บแผงขวา')} onKeyDown={onTabKey}>
         {tabs.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)} data-testid={`rtab-${k}`}>
+          <button
+            key={k}
+            id={`rtab-${k}-tab`}
+            role="tab"
+            aria-selected={tab === k}
+            aria-controls="right-tabpanel"
+            className={tab === k ? 'active' : ''}
+            onClick={() => setTab(k)}
+            data-testid={`rtab-${k}`}
+          >
             {label}
+            {k === 'inspector' && warnings > 0 && (
+              <span className="tab-badge" role="img" aria-label={tx('คำเตือน {0} รายการ', warnings)} title={tx('คำเตือน {0} รายการ', warnings)} data-testid="inspector-badge">
+                {warnings}
+              </span>
+            )}
           </button>
         ))}
       </div>
-      <div className="right-body">
+      <div className="right-body" id="right-tabpanel" role="tabpanel" aria-labelledby={`rtab-${tab}-tab`} data-testid="right-tabpanel">
         {tab === 'details' && <DetailsPanel />}
-        {tab === 'console' && <Console />}
+        {tab === 'console' && <ConsoleRedirect />}
         {tab === 'inspector' && <Inspector />}
       </div>
     </aside>
@@ -290,6 +329,7 @@ export default function App() {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return; // the Lab behind an open dialog is not edited
       const k = e.key.toLowerCase();
       const st = useStore.getState();
       if (st.view !== 'lab') return;

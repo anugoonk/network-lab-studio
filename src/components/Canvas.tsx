@@ -383,6 +383,8 @@ export function Canvas() {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      // a modal dialog is open: its own keys apply (Esc closes it); the canvas selection behind it must not be deleted
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
       if (e.key === 'Escape') setConnectFrom(null);
     };

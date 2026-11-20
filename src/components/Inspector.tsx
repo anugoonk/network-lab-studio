@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { duplicateIpsCached } from '../core/l2tables';
 import { getDevice } from '../core/lab';
 import { allAddresses, l3Interfaces, linkStatus, type PingResult } from '../core/network';
@@ -79,6 +79,12 @@ function NativeVlanMismatches() {
       <p className="muted small">{tx('ข้อนี้เป็นการตรวจของ simulator — forwarding ไม่เปลี่ยน และ simulator ไม่แก้ค่าให้อัตโนมัติ')}</p>
     </section>
   );
+}
+
+/** number of warnings the Lab Inspector lists (duplicate IPs + native VLAN mismatches) — shown as the badge on its tab */
+export function useInspectorWarningCount(): number {
+  const lab = useStore((s) => s.lab);
+  return useMemo(() => duplicateIpsCached(lab).length + nativeVlanMismatches(lab).length, [lab]);
 }
 
 export function Inspector() {

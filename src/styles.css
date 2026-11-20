@@ -473,3 +473,22 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .palette-is-list .palette-simonly:focus-visible { outline-color: var(--focus-on-dark); }
 /* canvas: full-simulation nodes carry no visible mark (kept for screen readers, test ids and data-sim) */
 .sim-badge.on-node.sim-quiet { width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* UI-04: bottom Console dock (shares the centre column with the canvas, never overlaps it) and Inspector tab badge */
+.console-dock { flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; max-height: 60%; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-1); overflow: hidden; }
+.console-dock-resize { flex-shrink: 0; height: 10px; cursor: ns-resize; background: var(--surface-2); border-bottom: 1px solid var(--border); touch-action: none; }
+.console-dock-resize::after { content: ''; display: block; width: 44px; height: 3px; margin: 3px auto; border-radius: 2px; background: var(--muted); opacity: 0.7; }
+.console-dock-resize:hover, .console-dock-resize:focus-visible { background: var(--surface-3); }
+.console-dock-bar { flex-shrink: 0; background: var(--surface-2); }
+.console-dock.open .console-dock-bar { border-bottom: 1px solid var(--border); }
+.console-dock-toggle { width: 100%; display: flex; align-items: center; gap: var(--sp-2); height: 34px; padding: 0 var(--sp-2); background: transparent; border: none; border-radius: 0; text-align: left; color: var(--text); font-size: var(--fs-md); }
+.console-dock-toggle:hover { background: var(--surface-3); }
+.console-dock-toggle .chev { display: inline-flex; transition: transform 0.15s; color: var(--muted); transform: rotate(180deg); }
+.console-dock-toggle .chev.open { transform: none; }
+.console-dock-device { color: var(--muted); font-weight: 400; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.console-dock-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px; }
+.console-dock-body[hidden] { display: none; }
+.console-dock .console-wrap { min-height: 0; height: 100%; }
+/* the standalone Console panel wants a tall log (min-height 340px); inside the dock the log fills whatever height the dock has, so the input line stays in view */
+.console-dock .console-log { min-height: 0; max-height: none; }
+.right-tabs .tab-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: #8a5200; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }

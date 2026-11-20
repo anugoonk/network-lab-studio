@@ -1,8 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { portInUse } from '../core/lab';
 import { SAMPLES } from '../core/sample';
 import { useStore } from '../store';
 import { tx } from '../i18n';
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Shared frame of the modal dialogs (UI-04): moves focus into the dialog when it opens (the element marked
+ * `data-autofocus`, else the first control), keeps Tab / Shift+Tab inside it, closes it with Esc, and gives focus back to
+ * whatever had it before. Rendered only while the dialog is open, so its effect runs exactly once per opening.
+ */
+export function ModalFrame({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
+  const root = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const items = () => Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((x) => x.getClientRects().length > 0);
+    (el.querySelector<HTMLElement>('[data-autofocus]') ?? items()[0] ?? el).focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const list = items();
+      if (list.length === 0) {
+        e.preventDefault();
+        el.focus();
+        return;
+      }
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement;
+      if (!(active instanceof Node) || !el.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      if (opener && opener.isConnected && opener !== document.body) opener.focus();
+    };
+  }, []);
+  return (
+    <div className="modal-back" role="dialog" aria-modal="true" aria-label={label}>
+      <div className="modal" ref={root} tabIndex={-1}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function ConnectDialog() {
   const dlg = useStore((s) => s.connectDialog);
@@ -73,8 +133,7 @@ export function ConnectDialog() {
   };
 
   return (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-label={tx('เชื่อมสาย')}>
-      <div className="modal">
+    <ModalFrame label={tx('เชื่อมสาย')} onClose={close}>
         <h3>{tx('เชื่อมสาย Ethernet')}</h3>
         <p className="muted small">{tx('เลือกพอร์ตต้นทางและปลายทางให้ชัดเจน พอร์ตที่มีสายแล้วเลือกไม่ได้')}</p>
         <div className="grid2">
@@ -96,8 +155,7 @@ export function ConnectDialog() {
           <button onClick={close}>{tx('ยกเลิก')}</button>
           <button className="primary" onClick={submit} data-testid="connect-submit">{tx('เชื่อมสาย')}</button>
         </div>
-      </div>
-    </div>
+    </ModalFrame>
   );
 }
 
@@ -109,16 +167,14 @@ export function ConfirmDialog() {
   if (!p || !dirty) return null;
   const what = p.kind === 'new' ? tx('สร้าง Lab ใหม่ (ว่างเปล่า)') : p.kind === 'sample' ? tx('เปิด {0} {1}', SAMPLES[p.which].challenge ? tx('โจทย์') : 'Sample Lab', SAMPLES[p.which].title) : tx('นำเข้าไฟล์ {0}', p.fileName);
   return (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-label={tx('ยืนยัน')}>
-      <div className="modal">
+    <ModalFrame label={tx('ยืนยัน')} onClose={cancel}>
         <h3>{tx('แทนที่งานปัจจุบัน?')}</h3>
         <p>{tx('งานปัจจุบันมีการแก้ไขที่')}{' '}<b>{tx('ยังไม่ได้ Export')}</b>{' '}{tx('การ{0}จะแทนที่งานนี้', what)}</p>
         <div className="modal-actions">
-          <button onClick={cancel} data-testid="confirm-cancel">{tx('ยกเลิก')}</button>
+          <button onClick={cancel} data-autofocus data-testid="confirm-cancel">{tx('ยกเลิก')}</button>
           <button className="danger" onClick={ok} data-testid="confirm-ok">{tx('แทนที่')}</button>
         </div>
-      </div>
-    </div>
+    </ModalFrame>
   );
 }
 
@@ -132,8 +188,7 @@ export function ConfirmDeleteDialog() {
     .filter((r) => ids.includes(r.id))
     .map((r) => r.name);
   return (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-label={tx('ยืนยันการลบ')}>
-      <div className="modal">
+    <ModalFrame label={tx('ยืนยันการลบ')} onClose={cancel}>
         <h3>{tx('ลบ {0} Lab?', ids.length)}</h3>
         <ul className="small" data-testid="delete-names">
           {names.map((n, i) => (
@@ -142,10 +197,9 @@ export function ConfirmDeleteDialog() {
         </ul>
         <p>{tx('การลบไม่สามารถกู้คืนได้ (ถ้าต้องการเก็บไว้ ให้ Export ก่อน)')}</p>
         <div className="modal-actions">
-          <button onClick={cancel} data-testid="confirm-delete-cancel">{tx('ยกเลิก')}</button>
+          <button onClick={cancel} data-autofocus data-testid="confirm-delete-cancel">{tx('ยกเลิก')}</button>
           <button className="danger" onClick={ok} data-testid="confirm-delete-ok">{tx('ลบ')}</button>
         </div>
-      </div>
-    </div>
+    </ModalFrame>
   );
 }
