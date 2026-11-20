@@ -8,6 +8,7 @@
    "tests/audit-phase-a.test.ts": 16,
    "tests/autosave.test.ts": 3,
    "tests/campus3.test.ts": 10,
+   "tests/canvas-mode.test.ts": 11,
    "tests/cdp.test.ts": 33,
    "tests/challenge.test.ts": 18,
    "tests/cli-batch2.test.ts": 15,
@@ -45,12 +46,13 @@
    "tests/traceroute.test.ts": 25,
    "tests/workspace.test.ts": 19
   },
-  "total": 972
+  "total": 983
  },
  "e2e": {
   "files": {
    "e2e/app.spec.ts": 17,
    "e2e/campus3.spec.ts": 1,
+   "e2e/canvas-modes.spec.ts": 22,
    "e2e/cdp.spec.ts": 1,
    "e2e/challenge.spec.ts": 2,
    "e2e/challenges-more.spec.ts": 5,
@@ -76,6 +78,6 @@
    "e2e/undo.spec.ts": 4,
    "e2e/workspace-ui.spec.ts": 9
   },
-  "total": 143
+  "total": 165
  }
 }
