@@ -35,7 +35,7 @@ for (const [w, h, tier] of WIDTHS) {
       await open(page, w, h);
       expect(await hScroll(page)).toBeLessThanOrEqual(0);
       await expect(page.locator('.app')).toHaveAttribute('data-tier', tier);
-      for (const id of ['tab-lab', 'tab-library', 'tab-manager', 'lang-th', 'lang-en', 'btn-undo', 'btn-redo', 'btn-connect', 'btn-fit', 'toggle-left', 'toggle-right', 'menu-toggle']) {
+      for (const id of ['tab-lab', 'tab-library', 'tab-manager', 'lang-th', 'lang-en', 'btn-undo', 'btn-redo', 'btn-connect', 'btn-fit', 'toggle-left', 'toggle-right', ...(tier === 'narrow' || tier === 'compact' ? [] : ['menu-toggle'])]) {
         const b = await box(page, id);
         expect(b, id).not.toBeNull();
         expect(b.x, id).toBeGreaterThanOrEqual(0);
@@ -116,19 +116,29 @@ test.describe('drawers (plan §5)', () => {
     });
   }
 
-  test('768px: the left menu is a drawer over the canvas; Esc inside it closes it and returns focus', async ({ page }) => {
+  test('768px: no rail; the left menu is a drawer opened from the toolbar, floats over the canvas, and Esc closes it and returns focus', async ({ page }) => {
     await open(page, 768, 1024);
     const before = await box(page, 'canvas');
-    await page.getByTestId('menu-toggle').click();
-    await expect(page.getByTestId('menu-toggle')).toHaveAttribute('aria-expanded', 'true');
-    const menu = await box(page, 'left-dock');
-    expect(menu.width).toBe(56); // the dock keeps its rail width: the expanded menu floats
-    expect((await box(page, 'canvas')).width).toBe(before.width);
+    await expect(page.getByTestId('menu-toggle')).toBeHidden(); // no 56px rail in this tier
+    expect((await box(page, 'left-dock')).width).toBe(0);
+    await page.getByTestId('toggle-left').click();
+    await expect(page.getByTestId('toggle-left')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('menu-toggle')).toBeVisible();
     await expect.poll(async () => (await page.locator('.dock .menu').boundingBox())!.width, { message: 'the expanded menu reaches its full width (it animates)' }).toBeGreaterThan(200);
+    expect((await box(page, 'canvas')).width).toBe(before.width); // floats: the canvas is not squeezed
+    expect(await hScroll(page)).toBeLessThanOrEqual(0);
     await page.getByTestId('menu-nodes').focus();
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('menu-toggle')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('toggle-left')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('menu-toggle')).toBeHidden();
     await expect(page.getByTestId('toggle-left')).toBeFocused();
+  });
+
+  test('1024px keeps the rail: the left menu button is visible and the centre column starts after it', async ({ page }) => {
+    await open(page, 1024, 768);
+    await expect(page.getByTestId('menu-toggle')).toBeVisible();
+    expect((await box(page, 'left-dock')).width).toBe(56);
+    expect((await box(page, 'canvas')).x).toBeGreaterThan(60);
   });
 
   test('Esc with focus on the canvas side does NOT close a drawer (it only closes the drawer that has focus)', async ({ page }) => {
@@ -306,12 +316,13 @@ test.describe('keyboard and focus (SR-WS-16)', () => {
   for (const [w, h] of [[1024, 768], [390, 844]] as const) {
     test(`${w}px: the controls that open drawers show a 2px focus ring and report their state`, async ({ page }) => {
       await open(page, w, h);
-      for (const id of ['toggle-left', 'toggle-right', 'btn-fit', 'menu-toggle']) {
+      for (const id of ['toggle-left', 'toggle-right', 'btn-fit', ...(w >= 1024 ? ['menu-toggle'] : [])]) {
         await page.getByTestId(id).focus();
         expect(await outline(page, id), id).toBe('solid 2px');
       }
       await expect(page.getByTestId('toggle-right')).toHaveAttribute('aria-pressed', 'false');
-      await expect(page.getByTestId('menu-toggle')).toHaveAttribute('aria-expanded', 'false');
+      if (w >= 1024) await expect(page.getByTestId('menu-toggle')).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.getByTestId('toggle-left')).toHaveAttribute('aria-pressed', 'false');
     });
   }
 
@@ -322,5 +333,252 @@ test.describe('keyboard and focus (SR-WS-16)', () => {
     await expect(page.getByTestId('btn-more')).toHaveCount(0);
     await expect(page.getByTestId('compact-note')).toHaveCount(0);
     await expect(page.getByTestId('btn-sample2').locator('.icon')).toBeHidden(); // text-only, as before UI-05
+  });
+});
+
+// ── UI-05 remediation: Console width at 768–1023px (plan §5 "console เต็มความกว้าง") and contrast measured from COMPUTED colours ──
+// "Full width" = the whole workspace container (.main): with no rail in this tier nothing sits beside the centre column.
+
+async function openDock(page: Page) {
+  const t = page.getByTestId('dock-toggle');
+  if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
+  await expect(page.getByTestId('console-dock')).toHaveClass(/open/);
+}
+const mainBox = async (page: Page) => (await page.locator('.main').boundingBox())!;
+
+test.describe('Console width (SR-WS-15, plan §5)', () => {
+  for (const [w, h] of [[390, 844], [700, 900], [768, 1024], [900, 800], [1023, 768]] as const) {
+    test(`${w}px: the open Console dock spans the whole workspace (same x and width as .main), the canvas too, with no overflow`, async ({ page }) => {
+      await open(page, w, h);
+      await openDock(page);
+      const main = await mainBox(page);
+      const dock = await box(page, 'console-dock');
+      const canvas = await box(page, 'canvas');
+      expect(Math.abs(dock.x - main.x), 'dock x').toBeLessThanOrEqual(1);
+      expect(Math.abs(dock.width - main.width), `dock width ${dock.width} vs workspace ${main.width}`).toBeLessThanOrEqual(1);
+      expect(Math.abs(canvas.width - main.width), 'canvas width').toBeLessThanOrEqual(1);
+      expect(dock.x + dock.width).toBeLessThanOrEqual(w);
+      expect(await hScroll(page)).toBeLessThanOrEqual(0);
+    });
+  }
+
+  test('768px: a floating drawer does not change the Console width, and the dock can still be resized with the keyboard', async ({ page }) => {
+    await open(page, 768, 1024);
+    await openDock(page);
+    const before = await box(page, 'console-dock');
+    await page.getByTestId('toggle-right').click();
+    await expect(page.getByTestId('right-tabpanel')).toBeVisible();
+    expect((await box(page, 'console-dock')).width).toBe(before.width);
+    await page.getByTestId('toggle-right').click();
+    await page.getByTestId('dock-resize').focus();
+    await page.keyboard.press('ArrowUp');
+    await expect.poll(async () => (await box(page, 'console-dock')).height).toBeGreaterThan(before.height);
+  });
+
+  for (const [w, h] of [[1024, 768], [1280, 800], [1500, 900]] as const) {
+    test(`${w}px (rail / side panels beside the centre column): the Console is the centre-column width, narrower than the workspace — unchanged`, async ({ page }) => {
+      await open(page, w, h);
+      await openDock(page);
+      const main = await mainBox(page);
+      const dock = await box(page, 'console-dock');
+      const canvas = await box(page, 'canvas');
+      expect(dock.x).toBeGreaterThan(main.x + 50);
+      expect(dock.width).toBeLessThan(main.width - 50);
+      expect(Math.abs(dock.width - canvas.width)).toBeLessThanOrEqual(1);
+    });
+  }
+});
+
+/** every visible text and every text-input boundary on screen, measured from computed colours (alpha composited over the real backgrounds) */
+async function scan(page: Page) {
+  return page.evaluate(() => {
+    type C = { r: number; g: number; b: number; a: number };
+    const parse = (c: string): C | null => {
+      const m = c.match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+      return { r: p[0], g: p[1], b: p[2], a: p[3] ?? 1 };
+    };
+    const over = (f: C, b: C): C => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+    const bgOf = (el: Element | null): C => {
+      const chain: C[] = [];
+      for (let e = el; e; e = e.parentElement) {
+        const c = parse(getComputedStyle(e).backgroundColor);
+        if (c && c.a > 0) { chain.push(c); if (c.a >= 1) break; }
+      }
+      let base: C = { r: 255, g: 255, b: 255, a: 1 };
+      for (const c of chain.reverse()) base = over(c, base);
+      return base;
+    };
+    const lin = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    const L = (c: C) => 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+    const cr = (a: C, b: C) => { const [x, y] = [L(a), L(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const vis = (el: Element) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0'; };
+    const id = (el: Element) => el.getAttribute('data-testid') ?? el.tagName.toLowerCase() + '.' + String(el.className).trim().split(/\s+/).join('.');
+    const text: string[] = [];
+    const borders: string[] = [];
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+      if (el.closest('svg') || !vis(el)) continue;
+      const cs = getComputedStyle(el);
+      const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? '').trim().length > 0);
+      if (own && !(el as HTMLButtonElement).disabled && !el.closest('[disabled]') && el.tagName !== 'OPTION') {
+        const bg = bgOf(el);
+        const ratio = cr(over(parse(cs.color)!, bg), bg);
+        const size = parseFloat(cs.fontSize);
+        const large = size >= 24 || (size >= 18.66 && parseInt(cs.fontWeight) >= 700);
+        if (ratio < (large ? 3 : 4.5)) text.push(`${id(el)} "${(el.textContent ?? '').trim().slice(0, 20)}" ${ratio.toFixed(2)}:1`);
+      }
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName) && !['hidden', 'checkbox', 'radio', 'file'].includes((el as HTMLInputElement).type)) {
+        // a borderless input inside a bordered box (palette / manager search) is judged by that box
+        let box: Element = el;
+        for (let i = 0; i < 2 && parseFloat(getComputedStyle(box).borderTopWidth) === 0 && box.parentElement; i++) box = box.parentElement;
+        const bcs = getComputedStyle(box);
+        const outside = bgOf(box.parentElement);
+        const bc = parse(bcs.borderTopColor);
+        const bRatio = parseFloat(bcs.borderTopWidth) > 0 && bc && bc.a > 0 ? cr(over(bc, outside), outside) : 0;
+        const fRatio = cr(bgOf(box), outside);
+        if (Math.max(bRatio, fRatio) < 3) borders.push(`${id(el)} border ${bRatio.toFixed(2)}:1 fill ${fRatio.toFixed(2)}:1`);
+      }
+    }
+    return { text, borders };
+  });
+}
+
+test.describe('Contrast from computed colours (SR-WS-16, plan §3)', () => {
+  const expectClean = async (page: Page, where: string) => {
+    const r = await scan(page);
+    expect(r.text, `${where}: text below its threshold`).toEqual([]);
+    expect(r.borders, `${where}: input boundary below 3:1`).toEqual([]);
+  };
+
+  test('Lab view: language switch (TH active), toolbar, search, lab-name input, challenge select', async ({ page }) => {
+    await open(page, 1500, 900);
+    await expectClean(page, 'lab');
+  });
+
+  test('English mode: the active EN language button', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('nls.lang', 'en'));
+    await open(page, 1500, 900);
+    await expect(page.getByTestId('lang-en')).toHaveClass(/active/);
+    await expectClean(page, 'lab (EN)');
+  });
+
+  test('left menu Add list with a pressed category and the pressed simulation filter (white on the accent fill)', async ({ page }) => {
+    await open(page, 1500, 900);
+    await page.getByTestId('menu-toggle').click();
+    if (!(await page.getByTestId('submenu-add').isVisible())) await page.getByTestId('menu-add').click(); // the Add section may already be open
+    await expect(page.getByTestId('submenu-add')).toBeVisible();
+    const cat = page.locator('[data-testid="submenu-add"] .palette-cat').nth(1);
+    await cat.click();
+    await expect(cat).toHaveAttribute('aria-pressed', 'true');
+    const sim = page.locator('[data-testid="submenu-add"] .palette-simonly');
+    await sim.click();
+    await expect(sim).toHaveAttribute('aria-pressed', 'true');
+    await expectClean(page, 'menu-add list');
+  });
+
+  test('Guide view and Guide editor (the primary "Done" button), Challenge panel', async ({ page }) => {
+    await open(page, 1500, 900);
+    await page.getByTestId('menu-toggle').click();
+    await page.getByTestId('menu-guide').click();
+    await expectClean(page, 'guide view');
+    await page.getByTestId('guide-edit-toggle').click();
+    await expect(page.getByTestId('guide-editor')).toBeVisible();
+    await expectClean(page, 'guide editor');
+    await page.getByTestId('menu-challenge').click();
+    await expectClean(page, 'challenge panel');
+  });
+
+  test('Inspector, Connect dialog, Command Library and Lab Manager inputs and selects', async ({ page }) => {
+    await open(page, 1500, 900);
+    await page.getByTestId('rtab-inspector').click();
+    await expectClean(page, 'inspector');
+    await page.getByTestId('btn-connect').click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expectClean(page, 'connect dialog');
+    await page.keyboard.press('Escape');
+    await page.getByTestId('tab-library').click();
+    await expectClean(page, 'library');
+    await page.getByTestId('tab-manager').click();
+    await expectClean(page, 'manager');
+  });
+
+  test('narrow tiers: the open Inspector drawer and the toolbar menu at 768px, the 390px layout', async ({ page }) => {
+    await open(page, 768, 1024);
+    await page.getByTestId('toggle-right').click();
+    await expectClean(page, 'inspector drawer 768');
+    await page.getByTestId('btn-more').click();
+    await expectClean(page, 'toolbar menu 768');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectClean(page, '390');
+  });
+
+  test('keyboard focus is visible inside the Lab Manager search box (the box shows the ring)', async ({ page }) => {
+    await open(page, 1500, 900);
+    await page.getByTestId('tab-manager').click();
+    await page.getByTestId('manager-search').focus();
+    const ring = await page.locator('.search-box').evaluate((el) => `${getComputedStyle(el).outlineStyle} ${getComputedStyle(el).outlineWidth}`);
+    expect(ring).toBe('solid 2px');
+  });
+});
+
+// ── review round 2 (remediation): Guide / Challenge below 1024px, focus after choosing them, stale ⋯ menu, selected Nodes row ──
+test.describe('Guide and Challenge panels below 1024px', () => {
+  for (const [w, h] of [[768, 1024], [1023, 768], [390, 844]] as const) {
+    test(`${w}px: Guide opens from the left-panel button at a readable width inside the viewport; focus stays in the app; Esc closes it and returns focus`, async ({ page }) => {
+      await open(page, w, h);
+      await page.getByTestId('toggle-left').click();
+      await page.getByTestId('menu-guide').click();
+      await expect(page.getByTestId('guide-panel')).toBeVisible();
+      const g = await box(page, 'guide-panel');
+      expect(g.width, 'guide width').toBeGreaterThanOrEqual(Math.min(330, w - 20) - 1);
+      expect(g.x).toBeGreaterThanOrEqual(0);
+      expect(g.x + g.width).toBeLessThanOrEqual(w);
+      await expect(page.getByTestId('guide-title')).toBeVisible();
+      expect(await hScroll(page)).toBeLessThanOrEqual(0);
+      expect(await page.evaluate(() => document.activeElement?.tagName), 'focus is not lost to <body>').not.toBe('BODY');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('guide-panel')).toHaveCount(0);
+      await expect(page.getByTestId('toggle-left')).toBeFocused();
+    });
+
+    test(`${w}px: Challenge panel from the menu, and loading a Challenge from the ⋯ menu, are readable and inside the viewport`, async ({ page }) => {
+      await open(page, w, h);
+      await page.getByTestId('toggle-left').click();
+      await page.getByTestId('menu-challenge').click();
+      await expect(page.getByTestId('challenge-panel')).toBeVisible();
+      let c = await box(page, 'challenge-panel');
+      expect(c.width).toBeGreaterThanOrEqual(Math.min(330, w - 20) - 1);
+      expect(c.x + c.width).toBeLessThanOrEqual(w);
+      await page.getByTestId('toggle-left').click(); // close
+      await expect(page.getByTestId('challenge-panel')).toHaveCount(0);
+      await openFileMenuIfNeeded(page);
+      await page.getByTestId('select-challenge').selectOption({ index: 1 });
+      await expect(page.getByTestId('challenge-panel')).toBeVisible(); // a loaded Challenge opens its panel
+      c = await box(page, 'challenge-panel');
+      expect(c.width).toBeGreaterThanOrEqual(Math.min(330, w - 20) - 1);
+      expect(c.x + c.width).toBeLessThanOrEqual(w);
+    });
+  }
+
+  test('the ⋯ menu left open at 768px does not reappear after the window is widened and narrowed again', async ({ page }) => {
+    await open(page, 768, 1024);
+    await page.getByTestId('btn-more').click();
+    await expect(page.getByTestId('toolbar-more-menu')).toBeVisible();
+    await page.setViewportSize({ width: 1300, height: 900 });
+    await expect(page.getByTestId('btn-more')).toHaveCount(0);
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await expect(page.getByTestId('btn-more')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('toolbar-more-menu')).toHaveCount(0);
+  });
+
+  test('Nodes list: the hint of the selected row and the pressed controls on the dark menu keep their contrast (computed)', async ({ page }) => {
+    await open(page, 1500, 900);
+    await page.getByTestId('menu-toggle').click();
+    if (!(await page.getByTestId('submenu-nodes').isVisible())) await page.getByTestId('menu-nodes').click();
+    await page.getByTestId('node-row-PC-01').click();
+    await expect(page.getByTestId('node-row-PC-01')).toHaveClass(/active/);
+    const r = await scan(page);
+    expect(r.text).toEqual([]);
   });
 });

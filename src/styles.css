@@ -23,6 +23,9 @@
   --muted: #5f6e79; /* 5.0:1 on white */
   /* colour — meaning */
   --accent: #e8750a; /* orange: active place (tabs, menu), highlights */
+  --accent-fill: #b8520a; /* the accent as a FILL behind white text: 4.9:1 (--accent #e8750a itself is only 3.0:1 under white) */
+  --control-border: #7a8993; /* boundary of an input / select / textarea: 3.1:1 or more on every surface it sits on (WCAG 1.4.11) */
+  --control-border-on-dark: #7f8e99; /* the same, for a text input drawn on the dark navigation: 4.2:1 on --nav */
   --accent-text: #a64b00; /* the accent as TEXT on light surfaces: 5.8:1 on white (--accent itself is 3.0:1: fills, icons and large marks only) */
   --teal: #2f6f8f; /* primary actions, links */
   --teal-dark: #265a75;
@@ -83,7 +86,7 @@ button.primary:hover { background: var(--teal-dark); }
 button.danger { color: var(--bad); border-color: #e2b3b3; }
 button.danger:hover { background: #fdeeee; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role='button']:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-input, select { border: 1px solid var(--line); border-radius: var(--r-md); padding: 5px 8px; background: var(--surface); color: var(--text); width: 100%; }
+input, select { border: 1px solid var(--control-border); border-radius: var(--r-md); padding: 5px 8px; background: var(--surface); color: var(--text); width: 100%; }
 label { display: block; font-size: var(--fs-sm); color: var(--muted); margin: 8px 0 3px; }
 code { background: #eaeff3; padding: 1px 5px; border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 12.5px; }
 h2, h3, h4 { margin: 0 0 6px; }
@@ -155,6 +158,7 @@ h4 { font-size: var(--fs-base); }
 .node-row.active { background: rgb(255 255 255 / 14%); }
 .node-row .sq { width: 8px; height: 8px; background: #fff; flex-shrink: 0; }
 .node-row .menu-hint { margin: 0 0 0 auto; }
+.node-row.active .menu-hint { color: var(--nav-text); }
 
 /* ── Device Palette (UI-02): shared parts ── */
 .palette-item { display: flex; gap: 10px; align-items: center; padding: 5px; border-radius: var(--r-md); cursor: grab; }
@@ -163,7 +167,7 @@ h4 { font-size: var(--fs-base); }
 .palette-text { min-width: 0; }
 .palette-name { font-size: var(--fs-md); font-weight: 600; line-height: 1.25; }
 .palette-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.palette-search { display: flex; align-items: center; gap: 6px; height: var(--btn-h); padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--muted); flex: 1 1 180px; min-width: 140px; }
+.palette-search { display: flex; align-items: center; gap: 6px; height: var(--btn-h); padding: 0 4px 0 8px; border: 1px solid var(--control-border); border-radius: var(--r-md); background: var(--surface); color: var(--muted); flex: 1 1 180px; min-width: 140px; }
 .palette-search:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
 .palette-search input { border: none; padding: 0; height: 100%; background: transparent; outline: none; font-size: var(--fs-md); min-width: 0; }
 .palette-search input:focus-visible { outline: none; }
@@ -197,7 +201,7 @@ h4 { font-size: var(--fs-base); }
 
 /* list inside the left menu (dark) — opened with "Add a device" */
 .palette.palette-is-list { display: flex; flex-direction: column; gap: 6px; }
-.palette-is-list .palette-search { background: rgb(255 255 255 / 8%); border-color: var(--nav-line); color: var(--nav-muted); flex-basis: 100%; }
+.palette-is-list .palette-search { background: rgb(255 255 255 / 8%); border-color: var(--control-border-on-dark); color: var(--nav-muted); flex-basis: 100%; }
 .palette-is-list .palette-search input { color: var(--nav-text); }
 .palette-is-list .palette-search input::placeholder { color: var(--nav-muted); }
 .palette-is-list .palette-search:focus-within { outline-color: var(--focus-on-dark); }
@@ -205,7 +209,7 @@ h4 { font-size: var(--fs-base); }
 .palette-is-list .palette-clear:hover { background: var(--nav-hover); color: var(--nav-text); }
 .palette-is-list .palette-cat { background: transparent; border-color: var(--nav-line); color: var(--nav-text); }
 .palette-is-list .palette-cat:hover { background: var(--nav-hover); }
-.palette-is-list .palette-cat[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.palette-is-list .palette-cat[aria-pressed='true'] { background: var(--accent-fill); border-color: var(--accent); color: #fff; }
 .palette-is-list .palette-cat:focus-visible { outline-color: var(--focus-on-dark); }
 .palette-is-list .palette-group { margin-bottom: 4px; }
 .palette-is-list .palette-group-title { color: var(--nav-muted); margin: 6px 0 2px; }
@@ -221,7 +225,7 @@ h4 { font-size: var(--fs-base); }
 .guide-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: var(--nav); color: var(--nav-text); border-radius: 7px 7px 0 0; }
 .guide-head button { background: transparent; color: var(--nav-text); border-color: #5a636a; padding: 3px 8px; }
 .guide-head button:hover { background: var(--nav-hover); }
-.guide-head button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.guide-head button.primary { background: var(--accent-fill); border-color: var(--accent); color: #fff; }
 .spacer { flex: 1; }
 .guide-body { padding: 12px; overflow-y: auto; flex: 1; min-height: 0; font-size: 14px; line-height: 1.5; }
 .guide-title { margin: 0 0 10px; font-size: 16px; }
@@ -233,7 +237,7 @@ h4 { font-size: var(--fs-base); }
 .guide-links a { color: var(--teal); font-weight: 600; }
 .guide-empty { text-align: center; padding: 20px 6px; }
 .guide-edit label { margin-top: 10px; }
-.guide-edit textarea { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 13px; resize: vertical; }
+.guide-edit textarea { width: 100%; border: 1px solid var(--control-border); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 13px; resize: vertical; }
 .guide-edit-h { margin: 14px 0 6px; }
 .guide-edit-card { border: 1px solid var(--line); border-left: 3px solid var(--teal); border-radius: 6px; padding: 6px; margin-bottom: 8px; background: #fafcfd; }
 .guide-edit-card .row { margin-top: 0; margin-bottom: 4px; }
@@ -243,8 +247,9 @@ h4 { font-size: var(--fs-base); }
 /* ── Lab Manager (file manager) ── */
 .manager { flex: 1; overflow-y: auto; margin: var(--gutter); padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
 .manager-head h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
-.search-box { display: flex; align-items: center; gap: 8px; background: #f1f4f6; border-radius: 8px; padding: 4px 12px; margin: 12px 0; color: var(--muted); }
+.search-box { display: flex; align-items: center; gap: 8px; background: #f1f4f6; border: 1px solid var(--control-border); border-radius: 8px; padding: 3px 11px; margin: 12px 0; color: var(--muted); }
 .search-box input { border: none; background: transparent; padding: 8px 0; outline: none; }
+.search-box:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
 .manager-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
 .manager-tools button { display: inline-flex; align-items: center; gap: 6px; }
 .table-scroll.tall { max-height: none; }
@@ -439,7 +444,7 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .lang-switch { display: inline-flex; flex-shrink: 0; border: 1px solid rgb(255 255 255 / 28%); border-radius: var(--r-md); overflow: hidden; }
 .topbar .lang-switch button { border: none; border-radius: 0; background: transparent; color: var(--nav-text); height: 26px; padding: 0 10px; font-size: var(--fs-sm); font-weight: 700; }
 .topbar .lang-switch button:hover { background: var(--nav-hover); }
-.topbar .lang-switch button.active { background: var(--accent); color: #fff; }
+.topbar .lang-switch button.active { background: var(--accent-fill); color: #fff; box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* ── simulation-level badges + "simulation-capable only" filter (DEV-01B-1a) ── */
 :root {
@@ -470,7 +475,7 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 .palette-is-bar .palette-simonly span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* list (dark menu) */
 .palette-is-list .palette-simonly { background: transparent; color: var(--nav-text); border-color: var(--nav-line); }
-.palette-is-list .palette-simonly[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.palette-is-list .palette-simonly[aria-pressed='true'] { background: var(--accent-fill); border-color: var(--accent); color: #fff; }
 .palette-is-list .palette-simonly:focus-visible { outline-color: var(--focus-on-dark); }
 /* canvas: full-simulation nodes carry no visible mark (kept for screen readers, test ids and data-sim) */
 .sim-badge.on-node.sim-quiet { width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -531,3 +536,11 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 
 /* the Inter-VLAN button gained an icon for the icon-only tiers; at >=1280px the toolbar stays exactly as it was (text only) */
 @media (min-width: 1280px) { .tb-btn[data-testid="btn-sample2"] .icon { display: none; } }
+
+/* UI-05 remediation (plan §5, 768–1023): palette and Inspector are drawers — there is no rail, so the centre column (canvas + Console) spans the whole workspace.
+   The left menu / Guide / Challenge open from the toolbar's left-panel button and float over the canvas. */
+@media (max-width: 1023px) {
+  .dock { position: absolute; top: 0; bottom: 0; left: 0; width: 0; }
+  .dock:not(.expanded) > .menu { display: none; }
+  .dock > .guide { left: 0; width: min(var(--guide-w), calc(100vw - 2 * var(--gutter))); }
+}

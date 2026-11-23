@@ -108,6 +108,9 @@ function Toolbar() {
   const moreBtnRef = useRef<HTMLButtonElement>(null);
   const menuOpen = overflow && moreOpen;
   useEffect(() => {
+    if (!overflow) setMoreOpen(false);
+  }, [overflow]);
+  useEffect(() => {
     if (!menuOpen) return;
     const onDown = (e: PointerEvent) => {
       if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
@@ -397,6 +400,19 @@ export default function App() {
   useEffect(() => {
     if (drawers) useStore.setState({ rightOpen: false, leftPanel: null });
   }, [drawers]);
+  const leftPanel = useStore((s) => s.leftPanel);
+  useEffect(() => {
+    if (!drawers || (leftPanel !== 'guide' && leftPanel !== 'challenge')) return;
+    if (document.activeElement && document.activeElement !== document.body) {
+      // focus is still on a control that survived; only recover when it was lost (the menu button that was pressed is now hidden)
+      const a = document.activeElement as HTMLElement;
+      if (a.offsetParent !== null || a.getClientRects().length > 0) return;
+    }
+    const panel = document.querySelector<HTMLElement>('.dock > .guide');
+    if (!panel) return;
+    panel.setAttribute('tabindex', '-1');
+    panel.focus();
+  }, [drawers, leftPanel]);
   // the Console tab only points at the bottom dock; as a drawer it would hide the very dock it opened, so choosing it closes the drawer
   useEffect(() => {
     if (drawers && rightOpen && rightTab === 'console') useStore.setState({ rightOpen: false, rightTab: 'details' }); // back to Details, so the toggle opens a usable drawer next time

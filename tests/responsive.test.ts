@@ -114,6 +114,39 @@ describe('design tokens meet the plan §3 contrast rules', () => {
     expect(asText).toEqual(['.dirty']);
   });
 
+  it('white text on an orange fill uses --accent-fill (4.5:1), never the raw --accent (3.0:1)', () => {
+    expect(contrast('#ffffff', 'var(--accent-fill)')).toBeGreaterThanOrEqual(4.5);
+    expect(contrast('#ffffff', 'var(--accent)')).toBeLessThan(4.5);
+    // every rule that puts white text on an accent background must take the accessible fill token
+    const bad = [...CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter((m) => /(^|[;\s])color:\s*(#fff|#ffffff|white)\b/i.test(m[2]) && /(^|[;\s])background(-color)?:\s*var\(--accent\)/.test(m[2]))
+      .map((m) => m[1].trim());
+    expect(bad).toEqual([]);
+  });
+
+  it('the input / select / textarea boundary token is at least 3:1 on every surface a control sits on (WCAG 1.4.11)', () => {
+    for (const bg of ['surface', 'surface-2', 'bg', 'surface-3']) expect(contrast('var(--control-border)', `var(--${bg})`), bg).toBeGreaterThanOrEqual(3);
+    expect(contrast('var(--control-border)', '#fafcfd')).toBeGreaterThanOrEqual(3); // .guide-edit-card
+    expect(contrast('var(--line)', 'var(--surface)')).toBeLessThan(3); // --line stays the decorative divider colour
+    expect(contrast('var(--control-border-on-dark)', 'var(--nav)')).toBeGreaterThanOrEqual(3); // search box inside the dark left menu
+    expect(contrast('var(--nav-line)', 'var(--nav)')).toBeLessThan(3);
+  });
+
+  it('the base input rule, the palette search box, the Lab Manager search box and the Guide textarea all use --control-border', () => {
+    for (const sel of ['input, select', '.palette-search', '.search-box', '.guide-edit textarea']) {
+      const rule = [...CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) => m[1].trim() === sel);
+      expect(rule, sel).toBeDefined();
+      expect(rule![2], sel).toContain('border: 1px solid var(--control-border)');
+    }
+  });
+
+  it('below 1024px the rail is gone: the dock leaves the layout flow so the centre column is the whole workspace', () => {
+    const block = CSS.slice(CSS.indexOf('UI-05 remediation'));
+    expect(block).toContain('@media (max-width: 1023px)');
+    expect(block).toMatch(/\.dock \{[^}]*position: absolute[^}]*width: 0/);
+    expect(block).toMatch(/\.dock:not\(\.expanded\) > \.menu \{ display: none; \}/);
+  });
+
   it('a lowered token would be caught (negative control)', () => {
     expect(contrast('#8a8a8a', '#ffffff')).toBeLessThan(4.5);
   });
