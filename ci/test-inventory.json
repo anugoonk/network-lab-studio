@@ -40,6 +40,7 @@
    "tests/redaction-leaks.test.ts": 23,
    "tests/redaction-r2.test.ts": 51,
    "tests/reserved-vlans.test.ts": 11,
+   "tests/responsive.test.ts": 45,
    "tests/route-selection.test.ts": 12,
    "tests/samples.test.ts": 26,
    "tests/secret.test.ts": 9,
@@ -47,7 +48,7 @@
    "tests/traceroute.test.ts": 25,
    "tests/workspace.test.ts": 19
   },
-  "total": 993
+  "total": 1038
  },
  "e2e": {
   "files": {
@@ -75,11 +76,12 @@
    "e2e/l2.spec.ts": 3,
    "e2e/native-vlan.spec.ts": 1,
    "e2e/redaction.spec.ts": 3,
+   "e2e/responsive-a11y.spec.ts": 61,
    "e2e/robustness.spec.ts": 4,
    "e2e/safety.spec.ts": 5,
    "e2e/undo.spec.ts": 4,
    "e2e/workspace-ui.spec.ts": 9
   },
-  "total": 187
+  "total": 248
  }
 }
