@@ -46,11 +46,18 @@ const sviSchema = z.object({
   mask: maskStr.nullable(),
 });
 
-const routeSchema = z.object({
-  net: ipStr,
-  mask: z.string().refine((s) => s === '0.0.0.0' || isValidMask(s), tx('subnet mask ไม่ถูกต้อง')),
-  nextHop: ipStr,
-});
+const routeSchema = z
+  .object({
+    net: ipStr,
+    mask: z.string().refine((s) => s === '0.0.0.0' || isValidMask(s), tx('subnet mask ไม่ถูกต้อง')),
+    nextHop: ipStr.optional(),
+    iface: z
+      .string()
+      .max(64)
+      .regex(/^[A-Za-z0-9/.]+$/, tx('ชื่อ interface ของ static route ไม่ถูกต้อง'))
+      .optional(),
+  })
+  .refine((r) => r.nextHop !== undefined || r.iface !== undefined, tx('static route ต้องมี next hop หรือ interface อย่างน้อยหนึ่งอย่าง'));
 
 const deviceSchema = z.object({
   id: z.string().min(1),

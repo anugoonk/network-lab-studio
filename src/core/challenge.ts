@@ -3,7 +3,7 @@ import { ciscoRunningConfig } from './cli/cisco';
 import { duplicateIps } from './l2tables';
 import { getDevice, getIface, linkAt } from './lab';
 import { ipToString, maskToPrefix, networkOf, parseIp } from './ip';
-import { allowsVlan, l3Interfaces, linkStatus, ping } from './network';
+import { allowsVlan, l3Interfaces, linkStatus, ping, resolveStaticRoute } from './network';
 import { PROFILES } from './profiles';
 import type { Challenge, ChallengeStart, Check, Lab } from './types';
 import { tx } from '../i18n';
@@ -52,7 +52,7 @@ function prefixToMask(p: number): string {
   return ipToString(n);
 }
 
-/** installed route = connected network of an up interface, or a static route whose next hop is reachable through one */
+/** installed route = connected network of an up interface, or a static route that resolves (exit interface up, or next hop reachable — also through other routes) */
 export function hasRoute(lab: Lab, deviceId: string, net: string, prefix: number): boolean {
   const dev = getDevice(lab, deviceId);
   const want = parseIp(net);
@@ -60,12 +60,7 @@ export function hasRoute(lab: Lab, deviceId: string, net: string, prefix: number
   const up = l3Interfaces(lab, dev).filter((i) => i.up);
   const wantMask = prefixToMask(prefix);
   if (up.some((i) => maskToPrefix(i.mask) === prefix && networkOf(i.ip, i.mask) === networkOf(net, wantMask))) return true;
-  return dev.routes.some(
-    (r) =>
-      maskToPrefix(r.mask) === prefix &&
-      parseIp(r.net) === want &&
-      up.some((i) => parseIp(r.nextHop) !== null && networkOf(i.ip, i.mask) === networkOf(r.nextHop, i.mask)),
-  );
+  return dev.routes.some((r) => maskToPrefix(r.mask) === prefix && parseIp(r.net) === want && !('fail' in resolveStaticRoute(lab, dev, r, up)));
 }
 
 function runningConfigOf(lab: Lab, deviceId: string): string[] | null {

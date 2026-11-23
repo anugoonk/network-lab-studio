@@ -64,10 +64,19 @@ export interface Svi {
   mask: string | null;
 }
 
+/**
+ * Static route (SR-NET-12). At least one of nextHop / iface is set:
+ *  - nextHop only: via a next-hop address; a next hop that is not on a connected subnet is resolved through other routes (recursive, max 8 levels)
+ *  - iface only: exit-interface route — the destination is ARPed directly on that interface
+ *  - both: out of that interface, towards that next hop
+ * Labs saved before SR-NET-12 have nextHop and no iface and load unchanged.
+ */
 export interface StaticRoute {
   net: string;
   mask: string;
-  nextHop: string;
+  nextHop?: string;
+  /** canonical L3 interface name on this device: GigabitEthernet0/1, GigabitEthernet0/0.10 (Cisco), 1/1/1 (AOS-CX) */
+  iface?: string;
 }
 
 export interface Vlan {

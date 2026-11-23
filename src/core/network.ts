@@ -13,7 +13,7 @@
 import { maskToPrefix, sameSubnet, networkOf, parseIp } from './ip';
 import { getDevice, getIface, linkAt, peerOf, subName } from './lab';
 import { PROFILES, shortPort } from './profiles';
-import type { Device, Endpoint, Iface, Lab, Link } from './types';
+import type { Device, Endpoint, Iface, Lab, Link, StaticRoute } from './types';
 import { tx } from '../i18n';
 
 const isSwitch = (d: Device) => PROFILES[d.kind].isSwitch;
@@ -457,6 +457,83 @@ interface Selected {
   out: L3If;
   nextHop: string;
   role: 'destination' | 'gateway';
+  /** exit-interface route without a next hop: the destination itself is ARPed on `out` (implicit proxy ARP may answer) */
+  exit?: boolean;
+}
+
+// ───────────────────────── static routes: exit interface + recursive next hop (SR-NET-12) ─────────────────────────
+
+/** a next hop may be resolved through at most this many other static routes (the 9th level is refused) */
+export const MAX_ROUTE_RECURSION = 8;
+
+/**
+ * why a static route is not installed:
+ *  iface-down — its exit interface is missing, shut down or without link
+ *  next-hop   — its next hop is not reachable over any connected subnet or other installed route
+ *  loop       — resolving the next hop leads back to a route already used (including the route itself)
+ *  depth      — resolving the next hop needs more than MAX_ROUTE_RECURSION levels
+ */
+export type StaticRouteFail = 'iface-down' | 'next-hop' | 'loop' | 'depth';
+
+export interface StaticResolved {
+  /** interface the packet leaves through */
+  out: L3If;
+  /** address ARPed on `out`; null = the destination itself (exit-interface route without next hop) */
+  nextHop: string | null;
+  /** how many other static routes the next hop went through (0 = directly connected / exit interface) */
+  depth: number;
+}
+
+const prefixOf = (r: StaticRoute) => maskToPrefix(r.mask);
+
+/**
+ * Work limit of ONE resolution (resolveStaticRoute call): the number of next-hop lookups it may perform. Falling back to less specific
+ * routes can explore many chains of nested routes; a real Lab needs a handful of lookups (at most 9 for a chain of 8 levels), so
+ * running out means a pathological table and the route is refused as too deep — the cost is bounded instead of exponential.
+ */
+export const MAX_ROUTE_LOOKUPS = 200;
+
+function resolveHop(dev: Device, up: L3If[], nh: string, seen: StaticRoute[], budget: { left: number }): StaticResolved | { fail: StaticRouteFail } {
+  if (--budget.left < 0) return { fail: 'depth' };
+  let conn: L3If | null = null;
+  for (const i of up) if (sameSubnet(i.ip, nh, i.mask) && (!conn || maskToPrefix(i.mask) > maskToPrefix(conn.mask))) conn = i;
+  const connPrefix = conn ? maskToPrefix(conn.mask) : -1;
+  // static routes covering the next hop, most specific first
+  const statics = dev.routes.filter((r) => sameSubnet(r.net, nh, r.mask)).sort((x, y) => prefixOf(y) - prefixOf(x));
+  let fail: StaticRouteFail | null = null; // why the most specific refused candidate was refused
+  for (const st of statics) {
+    if (budget.left < 0) return { fail: fail ?? 'depth' }; // out of budget: stop exploring, keep the first reason
+    if (conn && connPrefix >= prefixOf(st)) break; // longest prefix wins; a connected network wins a tie
+    // the best remaining match is a route this resolution already went through: a recursive loop (also a route covering its own next hop)
+    if (seen.includes(st)) return { fail: 'loop' };
+    if (seen.length > MAX_ROUTE_RECURSION) { fail ??= 'depth'; continue; }
+    let res: StaticResolved | { fail: StaticRouteFail };
+    if (st.iface !== undefined) {
+      const o = up.find((i) => i.name === st.iface);
+      res = o ? { out: o, nextHop: st.nextHop ?? nh, depth: seen.length } : { fail: 'iface-down' };
+    } else {
+      res = st.nextHop === undefined ? { fail: 'next-hop' } : resolveHop(dev, up, st.nextHop, [...seen, st], budget);
+    }
+    if (!('fail' in res)) return res;
+    fail ??= res.fail; // a route that cannot be resolved is not installed, so the next less specific match is tried
+  }
+  if (conn) return { out: conn, nextHop: nh, depth: seen.length - 1 };
+  return { fail: fail ?? 'next-hop' };
+}
+
+/**
+ * Resolves one static route of `dev` to the interface and address a packet would use, or says why it is not installed.
+ * Only up/up interfaces count. A next hop on a connected subnet resolves exactly as before SR-NET-12.
+ */
+export function resolveStaticRoute(lab: Lab, dev: Device, r: StaticRoute, up: L3If[] = l3Interfaces(lab, dev).filter((i) => i.up)): StaticResolved | { fail: StaticRouteFail } {
+  if (r.iface !== undefined) {
+    const o = up.find((i) => i.name === r.iface);
+    return o ? { out: o, nextHop: r.nextHop ?? null, depth: 0 } : { fail: 'iface-down' };
+  }
+  if (r.nextHop === undefined) return { fail: 'next-hop' };
+  const direct = up.find((i) => sameSubnet(i.ip, r.nextHop!, i.mask));
+  if (direct) return { out: direct, nextHop: r.nextHop, depth: 0 };
+  return resolveHop(dev, up, r.nextHop, [r], { left: MAX_ROUTE_LOOKUPS });
 }
 
 function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: string; kind: 'general' | 'noroute' } {
@@ -481,17 +558,34 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
     return { fail: tx('{0} ของ {1} ไม่มีลิงก์ (Media disconnected) — {2}', o.name, cur.name, why), kind: 'general' };
   }
 
+  let exit = false;
   if (fwd) {
+    let refused: { r: StaticRoute; why: StaticRouteFail } | null = null;
     for (const r of cur.routes) {
       if (!sameSubnet(r.net, dstIp, r.mask)) continue;
       const prefix = maskToPrefix(r.mask);
       if (best && prefix <= best.prefix) continue; // connected wins ties, longer prefix wins
-      const via = usable.find((i) => sameSubnet(i.ip, r.nextHop, i.mask));
-      if (!via) continue; // next hop not reachable over a connected subnet → route not installed
-      best = { out: via, prefix, nextHop: r.nextHop, role: 'gateway' };
+      const res = resolveStaticRoute(lab, cur, r, usable);
+      if ('fail' in res) { // exit interface down / next hop not resolvable → route not installed
+        if (!refused || prefix > prefixOf(refused.r)) refused = { r, why: res.fail };
+        continue;
+      }
+      exit = res.nextHop === null;
+      best = { out: res.out, prefix, nextHop: res.nextHop ?? dstIp, role: exit ? 'destination' : 'gateway' };
     }
     if (!best) {
-      const hasStatic = cur.routes.some((r) => sameSubnet(r.net, dstIp, r.mask));
+      const hasStatic = refused !== null;
+      if (refused && refused.why !== 'next-hop') {
+        const r = refused.r;
+        const what = `${r.net}/${maskToPrefix(r.mask)}`;
+        const fail =
+          refused.why === 'iface-down'
+            ? tx('{0} มี static route ไป {1} แต่ interface {2} ไม่พร้อมใช้งาน (ไม่มี, shutdown หรือไม่มีลิงก์) จึงใช้ route นี้ไม่ได้', cur.name, what, r.iface ?? '')
+            : refused.why === 'loop'
+              ? tx('{0} มี static route ไป {1} แต่ next hop {2} วนกลับมาที่ route เดิม (recursive routing loop) จึงใช้ route นี้ไม่ได้', cur.name, what, r.nextHop ?? '')
+              : tx('{0} มี static route ไป {1} แต่ next hop {2} ต้อง resolve ผ่าน route อื่นเกิน {3} ระดับ จึงใช้ route นี้ไม่ได้', cur.name, what, r.nextHop ?? '', MAX_ROUTE_RECURSION);
+        return { fail, kind: 'noroute' };
+      }
       return {
         fail: hasStatic
           ? tx('{0} มี static route ไป {1} แต่ next hop ไม่อยู่ใน subnet ของ interface ที่ up/up จึงใช้ route นี้ไม่ได้', cur.name, dstIp)
@@ -499,7 +593,7 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
         kind: 'noroute',
       };
     }
-    return { out: best.out, nextHop: best.nextHop, role: best.role };
+    return { out: best.out, nextHop: best.nextHop, role: best.role, exit };
   }
 
   if (best) return { out: best.out, nextHop: best.nextHop, role: best.role };
@@ -517,6 +611,24 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
     };
   }
   return { out: via, nextHop: cur.gateway, role: 'gateway' };
+}
+
+/**
+ * Implicit proxy ARP for exit-interface routes (always on, not configurable — proxy-ARP configuration is out of scope):
+ * nobody on the link owns the destination address, so a forwarding device on the same link answers for it when it can
+ * route the destination out of a DIFFERENT interface. The first such device in link order answers.
+ */
+function proxyArpAnswer(lab: Lab, cur: Device, domain: ReturnType<typeof l2Domain>, dstIp: string) {
+  for (const r of domain) {
+    if (!r.ifc.up || r.ifc.deviceId === cur.id) continue;
+    const d = getDevice(lab, r.ifc.deviceId);
+    if (!d || !canForward(d)) continue;
+    const s = selectRoute(lab, d, dstIp);
+    if ('fail' in s) continue;
+    if (s.out.name === r.ifc.name) continue; // would go back out of the interface the request came in on
+    return r;
+  }
+  return undefined;
 }
 
 function pushPath(path: string[], ids: string[]) {
@@ -551,7 +663,8 @@ function deliver(lab: Lab, from: Device, dstIp: string, maxSteps = 16): DeliverO
     if (srcIp === null) srcIp = sel.out.ip;
 
     const domain = l2Domain(lab, sel.out);
-    const hit = domain.find((r) => r.ifc.ip === sel.nextHop && r.ifc.up);
+    let hit = domain.find((r) => r.ifc.ip === sel.nextHop && r.ifc.up);
+    if (!hit && sel.exit) hit = proxyArpAnswer(lab, cur, domain, dstIp);
     if (!hit) {
       return {
         ok: false,
@@ -565,7 +678,7 @@ function deliver(lab: Lab, from: Device, dstIp: string, maxSteps = 16): DeliverO
     }
     pushPath(path, [...hit.via, hit.ifc.deviceId]);
     const nh = getDevice(lab, hit.ifc.deviceId)!;
-    if (sel.nextHop === dstIp) return { ok: true, path, dstDeviceId: nh.id, srcIp, routed, hops };
+    if (hit.ifc.ip === dstIp) return { ok: true, path, dstDeviceId: nh.id, srcIp, routed, hops };
     if (!canForward(nh)) {
       return {
         ok: false,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { maskToPrefix, networkOf } from '../core/ip';
+import { maskToPrefix } from '../core/ip';
 import { formatVlanList, getDevice, linkAt, peerOf, subName } from '../core/lab';
-import { PORT_LINE_TH, l3Interfaces, linkStatus, portLine } from '../core/network';
+import { PORT_LINE_TH, l3Interfaces, linkStatus, portLine, resolveStaticRoute } from '../core/network';
 import { PROFILES, isAruba, shortPort } from '../core/profiles';
 import type { Device } from '../core/types';
 import { useStore } from '../store';
@@ -97,11 +97,11 @@ function L3Section({ device }: { device: Device }) {
           <table className="ports">
             <tbody>
               {device.routes.map((r) => {
-                const ok = up.some((i) => networkOf(i.ip, i.mask) === networkOf(r.nextHop, i.mask));
+                const ok = !('fail' in resolveStaticRoute(lab, device, r, up));
                 return (
-                  <tr key={`${r.net}/${r.mask}/${r.nextHop}`}>
+                  <tr key={`${r.net}/${r.mask}/${r.nextHop ?? ''}/${r.iface ?? ''}`}>
                     <td>{r.net === '0.0.0.0' && r.mask === '0.0.0.0' ? 'default (0.0.0.0/0)' : `${r.net}/${maskToPrefix(r.mask)}`}</td>
-                    <td>via {r.nextHop}</td>
+                    <td>{r.iface !== undefined ? `${r.iface}${r.nextHop ? ` via ${r.nextHop}` : ''}` : `via ${r.nextHop}`}</td>
                     <td><span className={`pill ${ok ? 'up' : 'down'}`}>{ok ? tx('ใช้งานได้') : tx('next hop ถึงไม่ได้')}</span></td>
                   </tr>
                 );

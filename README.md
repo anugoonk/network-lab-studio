@@ -170,7 +170,10 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 - **ตรวจ native VLAN ไม่ตรงกัน** บน trunk ที่ลิงก์ up (ทั้งสองฝั่งเป็น trunk): Lab Inspector แสดงทุกคู่ (Cisco/Aruba/ผสม); ถ้าเป็น Cisco switch ทั้งสองฝั่ง (CDP) คำสั่งที่ทำให้เกิด mismatch จะพิมพ์ `%CDP-4-NATIVE_VLAN_MISMATCH: …` หนึ่งครั้งบน console ของ switch ที่สั่ง (ของจริง CDP แจ้งซ้ำทุกนาทีบนทั้งสองตัว — simulator ไม่จำลองเวลา) · Aruba ไม่พิมพ์ข้อความ (ยังไม่พบหลักฐานข้อความของ AOS-CX) · ไม่เปลี่ยน forwarding (เฟรม untagged ยังข้ามไปอยู่คนละ VLAN ตามจริง) และไม่แก้ค่าให้อัตโนมัติ; ไม่ตรวจกรณี trunk ↔ access
 - **Router-on-a-stick**: sub-interface (`interface gi0/0.10` + `encapsulation dot1Q 10`) บน Cisco router
 - **SVI** (`interface vlan N`): บน Aruba AOS-CX ทำให้ switch route ระหว่าง VLAN ได้ (เป็น gateway ของ VLAN); บน Cisco 2960 (L2 switch) เป็น management IP เท่านั้น + `ip default-gateway` (ไม่ route ระหว่าง VLAN ตามของจริง)
-- **Static route / default route** บน Cisco router (`ip route net mask next-hop`) และ Aruba (`ip route a.b.c.d/len next-hop`); route จะใช้ได้ก็ต่อเมื่อ next hop อยู่ใน subnet ของ interface ที่ up/up; Aruba routed port ตั้ง IP ได้ (`routing` + `ip address`)
+- **Static route / default route** บน Cisco router (`ip route net mask next-hop`) และ Aruba (`ip route a.b.c.d/len next-hop`); Aruba routed port ตั้ง IP ได้ (`routing` + `ip address`)
+  - **Exit-interface route (SR-NET-12):** `ip route net mask <interface> [next-hop]` (Cisco) และ `ip route a.b.c.d/len <port>` (Aruba) — route ใช้ได้เมื่อ interface up/up และหายไปเมื่อ interface down; ถ้าไม่ระบุ next hop router จะ ARP หาปลายทางโดยตรงบนลิงก์นั้น และ router ข้างเคียงที่ route ปลายทางออกอีก interface หนึ่งได้จะตอบ ARP แทน (implicit proxy ARP เปิดเสมอ ตั้งค่าไม่ได้)
+  - **Recursive next hop (SR-NET-12):** next hop ที่ไม่อยู่ใน subnet ที่ต่อตรงจะถูก resolve ผ่าน route อื่น (static หรือ default) ลึกได้สูงสุด 8 ระดับ; ถ้าวนกลับมาที่ route เดิม (loop) หรือลึกเกิน route นั้นจะไม่ถูกติดตั้ง และ `ping` จะอธิบายเหตุผล
+  - **ข้อจำกัด:** exit interface เป็น port หรือ sub-interface เท่านั้น (ยังไม่รับ `Vlan N`/SVI), มี route เดียวต่อ prefix (คำสั่งใหม่แทนที่ของเดิม), ยังไม่มี `ip proxy-arp` ให้ตั้งค่า
 - การทดสอบ reachability ด้วย ICMP echo (`ping`) — คำนวณใหม่จาก topology + config ปัจจุบันทุกครั้ง: ตรวจสาย, admin state ของพอร์ตทั้งสองฝั่ง, VLAN/trunk/allowed/native ของแต่ละ switch (การ tag/untag ระหว่างลิงก์), sub-interface, SVI, routing table (connected + static) และเส้นทางขากลับ; ป้องกัน loop ด้วย visited set (และจำกัดจำนวน hop ของ routing)
 - PC ใน subnet เดียวกันสื่อสารกันโดยตรง; ปลายทางนอก subnet ต้องผ่าน default gateway ที่เป็นอุปกรณ์ L3 (router หรือ Aruba switch) บนลิงก์ที่เข้าถึงได้; อุปกรณ์ที่ไม่ใช่ L3 (PC, Cisco L2 switch) ไม่ส่งต่อแพ็กเก็ต
 - CLI แยกตามระบบปฏิบัติการ (Cisco IOS / Aruba AOS-CX / PC) ต่อ device ละ config, CLI mode และ command history; ย่อคำสั่งได้ (`conf t`, `int gi0/1`); `?` แสดงคำสั่งใน mode ปัจจุบัน; `do show ...` ใน config mode
@@ -179,7 +182,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 **ยังไม่รองรับ (ตั้งใจตัดออก)**
 
 - DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
-- IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), recursive next hop (next hop ต้องอยู่ใน subnet ที่ต่อตรง), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
+- IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
 - `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `reload`, `enable secret` / `line console` / `banner`
 - Cisco `show interfaces` / `show interfaces <name>` / `show interfaces vlan <id>` **มีแล้ว แต่แสดงเฉพาะสิ่งที่ simulator จำลอง** (สถานะ line/protocol พร้อม `(connected)`/`(notconnect)`/`(disabled)` บน Catalyst, ชนิด hardware + MAC, description, IPv4, VLAN ของ sub-interface) — ไม่มี MTU/bandwidth/counter/queue; PC `ipconfig /all` ก็เช่นกัน (ไม่มี DNS/WINS/NetBIOS, DHCP = No เสมอ)
 - Aruba AOS-CX `no vlan access` — ยังไม่มี (ยังยืนยันพฤติกรรมกับเอกสารทางการไม่ได้) ใช้ `vlan access 1` แทน
@@ -251,7 +254,11 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Global config, Interface config, Sub-interface config | `interface <interface>` | `interface GigabitEthernet0/1` | เข้า Interface Configuration ของพอร์ต router หรือ sub-interface (เช่น gi0/0.10 — สร้างให้อัตโนมัติ) |
 | Global config | `no interface <interface>` | `no interface GigabitEthernet0/0.10` | ลบ sub-interface (ลบพอร์ตจริงไม่ได้) |
 | Global config | `ip route <network> <route-mask> <next-hop>` | `ip route 172.16.0.0 255.255.255.0 10.0.0.2` | เพิ่ม static route ไปยังเครือข่ายปลายทางผ่าน next hop (default route = 0.0.0.0 0.0.0.0 <next-hop>) |
+| Global config | `ip route <network> <route-mask> <interface>` | `ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1` | เพิ่ม static route แบบ exit interface (ไม่ระบุ next hop): router จะ ARP หาปลายทางโดยตรงบนลิงก์นั้น และ route จะหายไปเมื่อ interface down |
+| Global config | `ip route <network> <route-mask> <interface> <next-hop>` | `ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1 10.0.0.2` | เพิ่ม static route ระบุทั้ง exit interface และ next hop |
 | Global config | `no ip route <network> <route-mask> <next-hop>` | `no ip route 172.16.0.0 255.255.255.0 10.0.0.2` | ลบ static route |
+| Global config | `no ip route <network> <route-mask> <interface>` | `no ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1` | ลบ static route แบบ exit interface |
+| Global config | `no ip route <network> <route-mask> <interface> <next-hop>` | `no ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1 10.0.0.2` | ลบ static route ที่ระบุทั้ง exit interface และ next hop |
 | Interface config, Sub-interface config, VLAN interface config | `shutdown` | `shutdown` | ปิดพอร์ต/sub-interface/SVI (administratively down) — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
 | Interface config, Sub-interface config, VLAN interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (router ทุกพอร์ตเริ่มต้นเป็น shutdown ต้องสั่งก่อนใช้งาน) |
 | Interface config, Sub-interface config, VLAN interface config | `description <text>` | `description UPLINK` | ตั้งคำอธิบายพอร์ต (เช่น UPLINK-TO-SW2) |
@@ -353,7 +360,9 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Global config, Interface config, VLAN interface config, VLAN config | `interface vlan <vlan-id>` | `interface vlan 10` | สร้าง/เข้า VLAN interface (SVI) ให้ switch route ระหว่าง VLAN — VLAN ต้องถูกสร้างไว้ก่อน |
 | Global config | `no interface vlan <vlan-id>` | `no interface vlan 10` | ลบ VLAN interface |
 | Global config | `ip route <prefix> <next-hop>` | `ip route 172.16.0.0/24 192.168.1.1` | เพิ่ม static route แบบ prefix/ความยาว เช่น 172.16.0.0/24 ผ่าน next hop (default route = 0.0.0.0/0) |
+| Global config | `ip route <prefix> <interface>` | `ip route 172.16.0.0/24 1/1/1` | เพิ่ม static route แบบ exit interface เช่น 172.16.0.0/24 ออกทางพอร์ต 1/1/1 (ไม่ระบุ next hop): ARP หาปลายทางโดยตรงบนลิงก์นั้น และ route จะหายไปเมื่อพอร์ต down |
 | Global config | `no ip route <prefix> <next-hop>` | `no ip route 172.16.0.0/24 192.168.1.1` | ลบ static route |
+| Global config | `no ip route <prefix> <interface>` | `no ip route 172.16.0.0/24 1/1/1` | ลบ static route แบบ exit interface |
 | Interface config, VLAN interface config | `shutdown` | `shutdown` | ปิดพอร์ต/VLAN interface — ลิงก์ที่ต่อกับพอร์ตนี้จะ down |
 | Interface config, VLAN interface config | `no shutdown` | `no shutdown` | เปิดพอร์ต (พอร์ต AOS-CX เริ่มต้นเป็น shutdown) |
 | Interface config | `no routing` | `no routing` | เปลี่ยนพอร์ตจาก routed เป็น Layer 2 — ต้องทำก่อนใช้ vlan access / vlan trunk |

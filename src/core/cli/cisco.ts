@@ -8,7 +8,7 @@ import { arpTable, duplicateIps, fmtMacCisco, macOf, macTable } from '../l2table
 import { ipToString, isHostAddress, maskToPrefix, networkOf, parseIp, subnetsOverlap } from '../ip';
 import { NAME_RE, formatVlanList, getIface, parseVlanList, subName } from '../lab';
 import { PROFILES, shortPort } from '../profiles';
-import { l3Interfaces, ping, portLine, sviLineUp, trace, type PortLine } from '../network';
+import { l3Interfaces, ping, portLine, resolveStaticRoute, sviLineUp, trace, type PortLine } from '../network';
 import type { Device, DeviceKind, Iface, Lab, SubIf, Svi } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
@@ -90,7 +90,7 @@ export function ciscoRunningConfig(dev: Device): string[] {
     body.push('!');
   }
   if (dev.kind === 'cisco-switch' && dev.gateway) body.push(`ip default-gateway ${dev.gateway}`);
-  for (const r of dev.routes) body.push(`ip route ${r.net} ${r.mask} ${r.nextHop}`);
+  for (const r of dev.routes) body.push(`ip route ${r.net} ${r.mask}${r.iface !== undefined ? ` ${r.iface}` : ''}${r.nextHop !== undefined ? ` ${r.nextHop}` : ''}`);
   if (dev.routes.length) body.push('!');
   body.push('end');
   const size = body.join('\n').length;
@@ -261,15 +261,15 @@ interface RouteRow {
 function showIpRoute(lab: Lab, dev: Device): string[] {
   const up = l3Interfaces(lab, dev).filter((i) => i.up);
   const installed = dev.routes
-    .map((r) => ({ r, via: up.find((i) => parseIp(r.nextHop) !== null && networkOf(i.ip, i.mask) === networkOf(r.nextHop, i.mask)) }))
-    .filter((x) => x.via);
+    .map((r) => ({ r, res: resolveStaticRoute(lab, dev, r, up) }))
+    .filter((x): x is { r: (typeof dev.routes)[number]; res: Exclude<ReturnType<typeof resolveStaticRoute>, { fail: unknown }> } => !('fail' in x.res));
   const def = installed.find((x) => x.r.net === '0.0.0.0' && x.r.mask === '0.0.0.0');
   const out = [
     'Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP',
     '       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area',
     '       * - candidate default',
     '',
-    def ? `Gateway of last resort is ${def.r.nextHop} to network 0.0.0.0` : 'Gateway of last resort is not set',
+    def ? `Gateway of last resort is ${def.r.nextHop ?? '0.0.0.0'} to network 0.0.0.0` : 'Gateway of last resort is not set',
     '',
   ];
   const rows: RouteRow[] = [];
@@ -277,9 +277,11 @@ function showIpRoute(lab: Lab, dev: Device): string[] {
     rows.push({ net: networkOf(i.ip, i.mask)!, prefix: maskToPrefix(i.mask), code: 'C', tail: `is directly connected, ${i.name}` });
     rows.push({ net: parseIp(i.ip)!, prefix: 32, code: 'L', tail: `is directly connected, ${i.name}` });
   }
-  for (const { r } of installed) {
+  for (const { r, res } of installed) {
     const isDef = r.net === '0.0.0.0' && r.mask === '0.0.0.0';
-    rows.push({ net: parseIp(r.net)!, prefix: maskToPrefix(r.mask), code: isDef ? 'S*' : 'S', tail: `[1/0] via ${r.nextHop}` });
+    // exit-interface route without next hop prints as directly connected (as IOS does); with both, the exit interface follows the next hop
+    const tail = r.iface === undefined ? `[1/0] via ${r.nextHop}` : r.nextHop === undefined ? `is directly connected, ${res.out.name}` : `[1/0] via ${r.nextHop}, ${res.out.name}`;
+    rows.push({ net: parseIp(r.net)!, prefix: maskToPrefix(r.mask), code: isDef ? 'S*' : 'S', tail });
   }
   // default route is printed on its own, first; everything else is grouped by classful network (as IOS does)
   for (const r of rows.filter((x) => x.code === 'S*')) out.push(`S*    ${ipToString(r.net)}/${r.prefix} ${r.tail}`);
@@ -827,6 +829,30 @@ const specs: CommandSpec[] = [
     },
   }),
   cmd({
+    id: 'cisco.ip.route.iface', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'ip route <network> <route-mask> <interface>',
+    helpEn: 'Establish a static route out of an interface', descTh: tx('เพิ่ม static route แบบ exit interface (ไม่ระบุ next hop): router จะ ARP หาปลายทางโดยตรงบนลิงก์นั้น และ route จะหายไปเมื่อ interface down'), topic: 'IP',
+    example: 'ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1', verify: 'show ip route', verifyTh: tx('ต้องเห็นบรรทัด S ... is directly connected, <interface> เมื่อ interface up/up'),
+    run: (c) => {
+      const [net, mask, ifc] = c.args;
+      if (networkOf(net, mask) !== parseIp(net)) return { error: ['%Inconsistent address and mask'] };
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask));
+      c.dev.routes.push({ net, mask, iface: ifc });
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.ip.route.iface.nh', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'ip route <network> <route-mask> <interface> <next-hop>',
+    helpEn: 'Establish a static route out of an interface towards a next hop', descTh: tx('เพิ่ม static route ระบุทั้ง exit interface และ next hop'), topic: 'IP',
+    example: 'ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1 10.0.0.2', verify: 'show ip route', verifyTh: tx('ต้องเห็นบรรทัด S ... via <next-hop>, <interface> เมื่อ interface up/up'),
+    run: (c) => {
+      const [net, mask, ifc, nh] = c.args;
+      if (networkOf(net, mask) !== parseIp(net)) return { error: ['%Inconsistent address and mask'] };
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask));
+      c.dev.routes.push({ net, mask, iface: ifc, nextHop: nh });
+      return {};
+    },
+  }),
+  cmd({
     id: 'cisco.noip.route', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'no ip route <network> <route-mask> <next-hop>',
     helpEn: 'Establish static routes', descTh: tx('ลบ static route'), topic: 'IP',
     prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', nextHop: '10.0.0.2' }),
@@ -834,7 +860,33 @@ const specs: CommandSpec[] = [
     run: (c) => {
       const [net, mask, nh] = c.args;
       const before = c.dev.routes.length;
-      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask && r.nextHop === nh));
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask && r.iface === undefined && r.nextHop === nh));
+      if (c.dev.routes.length === before) return { error: ['%No matching route to delete'] };
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.noip.route.iface', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'no ip route <network> <route-mask> <interface>',
+    helpEn: 'Remove an exit-interface static route', descTh: tx('ลบ static route แบบ exit interface'), topic: 'IP',
+    prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', iface: 'GigabitEthernet0/1' }),
+    example: 'no ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1', verify: 'show ip route', verifyTh: tx('บรรทัด S ของ route นั้นต้องหายไป'),
+    run: (c) => {
+      const [net, mask, ifc] = c.args;
+      const before = c.dev.routes.length;
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask && r.iface === ifc && r.nextHop === undefined));
+      if (c.dev.routes.length === before) return { error: ['%No matching route to delete'] };
+      return {};
+    },
+  }),
+  cmd({
+    id: 'cisco.noip.route.iface.nh', vendor: 'cisco', deviceTypes: RT, modes: ['config'], syntax: 'no ip route <network> <route-mask> <interface> <next-hop>',
+    helpEn: 'Remove a static route that has both an exit interface and a next hop', descTh: tx('ลบ static route ที่ระบุทั้ง exit interface และ next hop'), topic: 'IP',
+    prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', iface: 'GigabitEthernet0/1', nextHop: '10.0.0.2' }),
+    example: 'no ip route 172.16.0.0 255.255.255.0 GigabitEthernet0/1 10.0.0.2', verify: 'show ip route', verifyTh: tx('บรรทัด S ของ route นั้นต้องหายไป'),
+    run: (c) => {
+      const [net, mask, ifc, nh] = c.args;
+      const before = c.dev.routes.length;
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === net && r.mask === mask && r.iface === ifc && r.nextHop === nh));
       if (c.dev.routes.length === before) return { error: ['%No matching route to delete'] };
       return {};
     },

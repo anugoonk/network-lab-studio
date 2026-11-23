@@ -8,7 +8,7 @@
 import { arpTable, fmtMacColon, macTable } from '../l2tables';
 import { ipToString, isHostAddress, maskToPrefix, networkOf, parseCidr, parseIp, subnetsOverlap } from '../ip';
 import { NAME_RE, formatVlanList, getIface, parseVlanList } from '../lab';
-import { TRACE_DEFAULT_MAX_TTL, allowsVlan, ping, portLine, sviLineUp, l3Interfaces, trace } from '../network';
+import { TRACE_DEFAULT_MAX_TTL, allowsVlan, ping, portLine, resolveStaticRoute, sviLineUp, l3Interfaces, trace } from '../network';
 import type { Device, Iface, Lab } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
@@ -55,7 +55,7 @@ export function arubaRunningConfig(dev: Device): string[] {
     if (v.description) out.push(`    description ${v.description}`);
     if (v.ip && v.mask) out.push(`    ip address ${v.ip}/${maskToPrefix(v.mask)}`);
   }
-  for (const r of dev.routes) out.push(`ip route ${r.net}/${maskToPrefix(r.mask)} ${r.nextHop}`);
+  for (const r of dev.routes) out.push(`ip route ${r.net}/${maskToPrefix(r.mask)} ${[r.iface, r.nextHop].filter((x) => x !== undefined).join(' ')}`);
   return out;
 }
 
@@ -188,10 +188,11 @@ function showIpRoute(lab: Lab, dev: Device): string[] {
     out.push(`${`${i.ip}/32`.padEnd(20)}${'-'.padEnd(17)}${ifName.padEnd(14)}${'L'.padEnd(13)}[0/0]`);
   }
   for (const r of dev.routes) {
-    const via = up.find((i) => networkOf(i.ip, i.mask) === networkOf(r.nextHop, i.mask));
-    if (!via) continue;
+    const res = resolveStaticRoute(lab, dev, r, up);
+    if ('fail' in res) continue;
+    const via = res.out;
     const ifName = via.kind === 'svi' ? `vlan${via.vlan}` : via.name;
-    out.push(`${`${r.net}/${maskToPrefix(r.mask)}`.padEnd(20)}${r.nextHop.padEnd(17)}${ifName.padEnd(14)}${'S'.padEnd(13)}[1/0]`);
+    out.push(`${`${r.net}/${maskToPrefix(r.mask)}`.padEnd(20)}${(r.nextHop ?? '-').padEnd(17)}${ifName.padEnd(14)}${'S'.padEnd(13)}[1/0]`);
   }
   return out;
 }
@@ -492,6 +493,18 @@ const specs: CommandSpec[] = [
     },
   }),
   cmd({
+    id: 'aruba.ip.route.iface', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'ip route <prefix> <interface>',
+    helpEn: 'Configure a static route out of an interface', descTh: tx('เพิ่ม static route แบบ exit interface เช่น 172.16.0.0/24 ออกทางพอร์ต 1/1/1 (ไม่ระบุ next hop): ARP หาปลายทางโดยตรงบนลิงก์นั้น และ route จะหายไปเมื่อพอร์ต down'), topic: 'IP',
+    example: 'ip route 172.16.0.0/24 1/1/1', verify: 'show ip route', verifyTh: tx('ต้องเห็นบรรทัด S เมื่อพอร์ตเป็น routed port และ up'),
+    run: (c) => {
+      const cidr = parseCidr(c.args[0])!;
+      if (networkOf(cidr.ip, cidr.mask) !== parseIp(cidr.ip)) return { error: [tx('Invalid prefix: host bits are set (ใช้ network address เช่น 172.16.0.0/24).')] };
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === cidr.ip && r.mask === cidr.mask));
+      c.dev.routes.push({ net: cidr.ip, mask: cidr.mask, iface: c.args[1] });
+      return {};
+    },
+  }),
+  cmd({
     id: 'aruba.noip.route', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'no ip route <prefix> <next-hop>',
     helpEn: 'Remove a static route', descTh: tx('ลบ static route'), topic: 'IP',
     prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', nextHop: '192.168.1.1' }),
@@ -499,7 +512,20 @@ const specs: CommandSpec[] = [
     run: (c) => {
       const cidr = parseCidr(c.args[0])!;
       const before = c.dev.routes.length;
-      c.dev.routes = c.dev.routes.filter((r) => !(r.net === cidr.ip && r.mask === cidr.mask && r.nextHop === c.args[1]));
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === cidr.ip && r.mask === cidr.mask && r.iface === undefined && r.nextHop === c.args[1]));
+      if (c.dev.routes.length === before) return { error: ['No matching static route to delete.'] };
+      return {};
+    },
+  }),
+  cmd({
+    id: 'aruba.noip.route.iface', vendor: 'aruba', deviceTypes: DT, modes: ['config'], syntax: 'no ip route <prefix> <interface>',
+    helpEn: 'Remove an exit-interface static route', descTh: tx('ลบ static route แบบ exit interface'), topic: 'IP',
+    prepare: (d) => d.routes.push({ net: '172.16.0.0', mask: '255.255.255.0', iface: '1/1/1' }),
+    example: 'no ip route 172.16.0.0/24 1/1/1', verify: 'show ip route', verifyTh: tx('บรรทัด S ของ route นั้นต้องหายไป'),
+    run: (c) => {
+      const cidr = parseCidr(c.args[0])!;
+      const before = c.dev.routes.length;
+      c.dev.routes = c.dev.routes.filter((r) => !(r.net === cidr.ip && r.mask === cidr.mask && r.iface === c.args[1]));
       if (c.dev.routes.length === before) return { error: ['No matching static route to delete.'] };
       return {};
     },
