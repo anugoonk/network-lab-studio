@@ -23,16 +23,17 @@
   --muted: #5f6e79; /* 5.0:1 on white */
   /* colour — meaning */
   --accent: #e8750a; /* orange: active place (tabs, menu), highlights */
+  --accent-text: #a64b00; /* the accent as TEXT on light surfaces: 5.8:1 on white (--accent itself is 3.0:1: fills, icons and large marks only) */
   --teal: #2f6f8f; /* primary actions, links */
   --teal-dark: #265a75;
   --primary: var(--teal);
   --primary-soft: #e3eef4;
   --pill: #5b9fc7;
-  --ok: #1a8f4c;
+  --ok: #157a3d; /* 5.4:1 on white, 4.7:1 on its tint */
   --bad: #c62828;
   --link-up: #2f6b86; /* stroke of a network link that is UP: kept at its original value, deliberately NOT --teal (#2f6f8f) */
   --link-down: #c62828; /* stroke of a network link that is DOWN: kept at its original value */
-  --warn: #b26a00;
+  --warn: #9c5d00; /* 5.3:1 on white, 4.7:1 on its tint */
   --focus: #1f6fd1; /* 4.9:1 on white */
   --focus-on-dark: #8cc4ff; /* 8.6:1 on --nav */
   /* spacing, radius, type */
@@ -225,7 +226,7 @@ h4 { font-size: var(--fs-base); }
 .guide-body { padding: 12px; overflow-y: auto; flex: 1; min-height: 0; font-size: 14px; line-height: 1.5; }
 .guide-title { margin: 0 0 10px; font-size: 16px; }
 .guide-block { margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid #e8edf1; }
-.guide-block h4 { margin: 0 0 4px; color: var(--accent); }
+.guide-block h4 { margin: 0 0 4px; color: var(--accent-text); }
 .guide-block p { margin: 4px 0; }
 .guide-block ul, .guide-block ol { margin: 4px 0; padding-left: 20px; }
 .guide-block li { margin: 2px 0; }
@@ -492,3 +493,41 @@ table.ports td, table.ports th { padding: 3px 5px; border-bottom: 1px solid #e8e
 /* the standalone Console panel wants a tall log (min-height 340px); inside the dock the log fills whatever height the dock has, so the input line stays in view */
 .console-dock .console-log { min-height: 0; max-height: none; }
 .right-tabs .tab-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: #8a5200; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+
+/* ── UI-05 (SR-WS-15): responsive tiers — plan §5. Boundaries are shared with src/ui/responsive.ts (tests/responsive.test.ts checks they agree).
+      ≥1280 unchanged · 1024–1279 rail + Inspector drawer + icon-only toolbar · 768–1023 + "⋯" menu, icon-only tabs · <768 + small-screen note ── */
+:root { --z-drawer: 20; --z-menu: 30; }
+.main { position: relative; }
+.compact-note { margin: var(--sp-1) var(--gutter) 0; padding: 6px 10px; background: #fff4d6; color: #3a2f00; border: 1px solid #e3c27f; border-radius: var(--r-md); font-size: var(--fs-sm); }
+
+@media (max-width: 1279px) {
+  /* every toolbar button keeps its name for screen readers (the text stays in the DOM) and gets a tooltip (title) */
+  .tb-btn { padding: 0 8px; }
+  .tb-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tb-select { max-width: 130px; }
+  /* left menu / Lab Guide / Challenge and the Inspector float over the canvas instead of squeezing it; the 56px rail stays */
+  .dock { width: var(--rail-w); position: relative; z-index: var(--z-drawer); }
+  .dock.expanded .menu { position: absolute; top: 0; bottom: 0; left: 0; width: var(--menu-w); max-width: calc(100vw - 2 * var(--gutter)); box-shadow: var(--shadow-2); }
+  .dock > .guide { position: absolute; top: 0; bottom: 0; left: calc(var(--rail-w) + var(--sp-2)); width: min(var(--guide-w), calc(100vw - var(--rail-w) - 3 * var(--gutter))); box-shadow: var(--shadow-2); }
+  .right { position: absolute; top: 0; right: 0; bottom: 0; z-index: var(--z-drawer); width: min(var(--right-w), calc(100% - var(--rail-w) - var(--sp-2))); box-shadow: var(--shadow-2); }
+}
+
+@media (max-width: 1023px) {
+  .brand-name, .topbar .tabs button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .topbar .tabs button { padding: 0 var(--sp-3); }
+  .toolbar { position: relative; }
+  .tb-more { position: relative; }
+  .tb-more-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: var(--z-menu); display: flex; flex-direction: column; gap: 2px; min-width: 250px; max-width: calc(100vw - 2 * var(--gutter)); padding: var(--sp-2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-2); }
+  .tb-more-menu .tb-btn { justify-content: flex-start; height: 34px; }
+  .tb-more-menu .tb-btn span { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }
+  .tb-more-menu .tb-select { width: 100%; max-width: none; height: 34px; margin: 2px 0; }
+}
+
+@media (max-width: 767px) {
+  .topbar { gap: var(--sp-2); padding: 0 var(--sp-2); }
+  .lab-title { max-width: 96px; }
+  .tb-group { padding: 0 var(--sp-1); }
+}
+
+/* the Inter-VLAN button gained an icon for the icon-only tiers; at >=1280px the toolbar stays exactly as it was (text only) */
+@media (min-width: 1280px) { .tb-btn[data-testid="btn-sample2"] .icon { display: none; } }

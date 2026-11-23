@@ -20,6 +20,8 @@ export const EN: Record<string, string> = {
   "ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer": "Show Cisco topology neighbor details; IPs come from up ports or SVIs, models are simulated, and there are no timers",
   "ไม่มี IP ที่ใช้งานได้จะไม่แสดง IP; แสดงเฉพาะ Router หรือ Switch ไม่อ้าง capability อื่น": "Omit IP when none is operational; show only Router or Switch, without claiming other capabilities",
   "มุมมอง": "View",
+  "เมนูไฟล์ Lab และตัวอย่าง": "Lab file and sample menu",
+  "เหมาะกับจอ ≥ {0}px — จอเล็กใช้ดู Lab และใช้ Console ได้ เพิ่มอุปกรณ์ด้วยการแตะการ์ดอุปกรณ์": "Best on screens ≥ {0}px — on a small screen you can view the Lab and use the Console; add a device by tapping its card",
   "ย้อนกลับ (Ctrl+Z)": "Undo (Ctrl+Z)",
   "ทำซ้ำ (Ctrl+Y)": "Redo (Ctrl+Y)",
   "เปิดโจทย์ Challenge": "Open a Challenge",

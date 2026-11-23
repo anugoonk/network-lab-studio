@@ -99,6 +99,7 @@ const PATHS: Record<string, ReactNode> = {
       <path d="M15 4v16" />
     </>
   ),
+  more: <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth="3" />,
   workspace: (
     <>
       <circle cx="6" cy="6" r="2.5" />

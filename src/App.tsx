@@ -1,5 +1,5 @@
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Canvas, fitLab } from './components/Canvas';
 import { CommandLibrary } from './components/CommandLibrary';
 import { ConsoleDock } from './components/ConsoleDock';
@@ -13,6 +13,7 @@ import { Palette } from './components/Palette';
 import { SAMPLES, type SampleKind } from './core/sample';
 import { flushWorkspace, useStore, type RightTab } from './store';
 import { getLang, switchLang, tx, type Lang } from './i18n';
+import { RECOMMENDED_MIN_WIDTH, useTier, usesDrawers, usesToolbarOverflow } from './ui/responsive';
 
 /** TH | EN — switching reloads the page (see i18n.ts); the Lab is saved first */
 function LangSwitch() {
@@ -59,6 +60,7 @@ function TopNav() {
             key={v}
             className={view === v ? 'active' : ''}
             aria-current={view === v ? 'page' : undefined}
+            title={label}
             onClick={() => setView(v)}
             data-testid={testId}
           >
@@ -99,6 +101,21 @@ function Toolbar() {
   const canRedo = useStore((s) => s.history.future.length > 0);
   const flow = useReactFlow();
   const fileRef = useRef<HTMLInputElement>(null);
+  // UI-05: from the narrow tier down the Lab-file group lives in a "⋯" menu (plan §5); wider, it stays inline
+  const overflow = usesToolbarOverflow(useTier());
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const menuOpen = overflow && moreOpen;
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [menuOpen]);
+  const closeMore = () => setMoreOpen(false);
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
@@ -107,43 +124,93 @@ function Toolbar() {
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  // the Lab-file controls: identical buttons, ids and handlers inline (wide / medium) and inside the "⋯" menu (narrow / compact)
+  const fileControls = (afterAction: () => void) => (
+    <>
+      <button className="tb-btn" onClick={() => { request({ kind: 'new' }); afterAction(); }} title={tx('Lab ใหม่')} data-testid="btn-new">
+        <Icon name="filePlus" size={16} />
+        <span>{tx('Lab ใหม่')}</span>
+      </button>
+      <button className="tb-btn" onClick={() => { request({ kind: 'sample', which: 'office' }); afterAction(); }} title={tx('เปิด Lab ตัวอย่าง')} data-testid="btn-sample">
+        <Icon name="flask" size={16} />
+        <span>{tx('เปิด Lab ตัวอย่าง')}</span>
+      </button>
+      <button className="tb-btn" onClick={() => { request({ kind: 'sample', which: 'intervlan' }); afterAction(); }} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">
+        <Icon name="nodes" size={16} />
+        <span>{tx('ตัวอย่าง: Inter-VLAN')}</span>
+      </button>
+      <select
+        className="tb-select"
+        value=""
+        onChange={(e) => {
+          if (!e.target.value) return;
+          request({ kind: 'sample', which: e.target.value as SampleKind });
+          afterAction();
+        }}
+        aria-label={tx('เปิดโจทย์ Challenge')}
+        title={tx('โจทย์ซ่อมเครือข่ายพร้อมปุ่ม Check')}
+        data-testid="select-challenge"
+      >
+        <option value="">{tx('โจทย์ Challenge ▾')}</option>
+        {(Object.keys(SAMPLES) as SampleKind[]).filter((k) => SAMPLES[k].challenge).map((k) => (
+          <option key={k} value={k}>{SAMPLES[k].title}</option>
+        ))}
+      </select>
+      <button className="tb-btn" onClick={() => { fileRef.current?.click(); afterAction(); }} title={tx('นำเข้า')} data-testid="btn-import">
+        <Icon name="upload" size={16} />
+        <span>{tx('นำเข้า')}</span>
+      </button>
+      <button className="tb-btn" onClick={() => { exportLab(); afterAction(); }} title={tx('ส่งออก')} data-testid="btn-export">
+        <Icon name="download" size={16} />
+        <span>{tx('ส่งออก')}</span>
+      </button>
+    </>
+  );
+
   return (
     <div className="toolbar" role="toolbar" aria-label={tx('แถบเครื่องมือ Lab')}>
-      <div className="tb-group" role="group" aria-label={tx('ไฟล์ Lab')}>
-        <button className="tb-btn" onClick={() => request({ kind: 'new' })} data-testid="btn-new">
-          <Icon name="filePlus" size={16} />
-          <span>{tx('Lab ใหม่')}</span>
-        </button>
-        <button className="tb-btn" onClick={() => request({ kind: 'sample', which: 'office' })} data-testid="btn-sample">
-          <Icon name="flask" size={16} />
-          <span>{tx('เปิด Lab ตัวอย่าง')}</span>
-        </button>
-        <button className="tb-btn" onClick={() => request({ kind: 'sample', which: 'intervlan' })} data-testid="btn-sample2" title="Trunk, router-on-a-stick, static route">
-          <span>{tx('ตัวอย่าง: Inter-VLAN')}</span>
-        </button>
-        <select
-          className="tb-select"
-          value=""
-          onChange={(e) => e.target.value && request({ kind: 'sample', which: e.target.value as SampleKind })}
-          aria-label={tx('เปิดโจทย์ Challenge')}
-          title={tx('โจทย์ซ่อมเครือข่ายพร้อมปุ่ม Check')}
-          data-testid="select-challenge"
+      {/* always mounted: the import button (inline or in the menu) opens it */}
+      <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} data-testid="import-file" />
+      {overflow ? (
+        <div
+          className="tb-group tb-more"
+          ref={moreRef}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && menuOpen) {
+              e.preventDefault();
+              closeMore();
+              moreBtnRef.current?.focus();
+            }
+          }}
+          onBlur={(e) => {
+            // focus moved to something outside the menu (Tab / Shift+Tab): close it; a click on empty menu padding (no target) keeps it open
+            const to = e.relatedTarget as Node | null;
+            if (menuOpen && to && !e.currentTarget.contains(to)) closeMore();
+          }}
         >
-          <option value="">{tx('โจทย์ Challenge ▾')}</option>
-          {(Object.keys(SAMPLES) as SampleKind[]).filter((k) => SAMPLES[k].challenge).map((k) => (
-            <option key={k} value={k}>{SAMPLES[k].title}</option>
-          ))}
-        </select>
-        <button className="tb-btn" onClick={() => fileRef.current?.click()} data-testid="btn-import">
-          <Icon name="upload" size={16} />
-          <span>{tx('นำเข้า')}</span>
-        </button>
-        <button className="tb-btn" onClick={exportLab} data-testid="btn-export">
-          <Icon name="download" size={16} />
-          <span>{tx('ส่งออก')}</span>
-        </button>
-        <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onFile(e.target.files?.[0])} data-testid="import-file" />
-      </div>
+          <button
+            ref={moreBtnRef}
+            className="tb-btn"
+            aria-expanded={menuOpen}
+            aria-controls="toolbar-more-menu"
+            title={tx('เมนูไฟล์ Lab และตัวอย่าง')}
+            onClick={() => setMoreOpen(!menuOpen)}
+            data-testid="btn-more"
+          >
+            <Icon name="more" size={16} />
+            <span>{tx('ไฟล์ Lab')}</span>
+          </button>
+          {menuOpen && (
+            <div id="toolbar-more-menu" className="tb-more-menu" role="group" aria-label={tx('ไฟล์ Lab')} data-testid="toolbar-more-menu">
+              {fileControls(() => { closeMore(); moreBtnRef.current?.focus(); })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="tb-group" role="group" aria-label={tx('ไฟล์ Lab')}>
+          {fileControls(() => undefined)}
+        </div>
+      )}
       <div className="tb-group" role="group" aria-label={tx('แก้ไข')}>
         <button className="tb-btn compactable" onClick={undo} disabled={!canUndo} title={tx('ย้อนกลับ (Ctrl+Z)')} data-testid="btn-undo">
           <Icon name="undo" size={16} />
@@ -322,7 +389,40 @@ function useDocumentTitle() {
 export default function App() {
   const view = useStore((s) => s.view);
   const rightOpen = useStore((s) => s.rightOpen);
+  const rightTab = useStore((s) => s.rightTab);
+  const tier = useTier();
+  const drawers = usesDrawers(tier);
   useDocumentTitle();
+  // UI-05: below the wide tier the side panels are drawers over the canvas, so they start closed instead of covering it
+  useEffect(() => {
+    if (drawers) useStore.setState({ rightOpen: false, leftPanel: null });
+  }, [drawers]);
+  // the Console tab only points at the bottom dock; as a drawer it would hide the very dock it opened, so choosing it closes the drawer
+  useEffect(() => {
+    if (drawers && rightOpen && rightTab === 'console') useStore.setState({ rightOpen: false, rightTab: 'details' }); // back to Details, so the toggle opens a usable drawer next time
+  }, [drawers, rightOpen, rightTab]);
+  // Esc closes the drawer that has keyboard focus and returns focus to the control that opens it
+  useEffect(() => {
+    if (!drawers) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const a = document.activeElement;
+      if (!a) return;
+      const st = useStore.getState();
+      if (st.rightOpen && a.closest('.right')) {
+        e.preventDefault();
+        useStore.setState({ rightOpen: false });
+        document.querySelector<HTMLElement>('[data-testid="toggle-right"]')?.focus();
+      } else if (st.leftPanel !== null && a.closest('.dock')) {
+        e.preventDefault();
+        useStore.setState({ leftPanel: null });
+        document.querySelector<HTMLElement>('[data-testid="toggle-left"]')?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawers]);
   useEffect(() => {
     // Ctrl/Cmd+Z = undo, Ctrl+Y or Ctrl/Cmd+Shift+Z = redo — but never inside a text field (it has its own undo)
     const onKey = (e: KeyboardEvent) => {
@@ -343,9 +443,14 @@ export default function App() {
   }, []);
   return (
     <ReactFlowProvider>
-      <div className="app">
+      <div className="app" data-tier={tier}>
         <TopNav />
         <Toolbar />
+        {tier === 'compact' && (
+          <p className="compact-note" role="note" data-testid="compact-note">
+            {tx('เหมาะกับจอ ≥ {0}px — จอเล็กใช้ดู Lab และใช้ Console ได้ เพิ่มอุปกรณ์ด้วยการแตะการ์ดอุปกรณ์', RECOMMENDED_MIN_WIDTH)}
+          </p>
+        )}
         {/* messages stack at the bottom so they never cover the toolbar buttons */}
         <div className="notice-stack">
           <RejectedLabsWarning />
