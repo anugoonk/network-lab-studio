@@ -12,7 +12,7 @@
    "tests/cdp.test.ts": 33,
    "tests/challenge.test.ts": 18,
    "tests/cli-batch2.test.ts": 15,
-   "tests/cli.test.ts": 310,
+   "tests/cli.test.ts": 322,
    "tests/command-library.test.ts": 19,
    "tests/device-capability.test.ts": 14,
    "tests/devices.test.ts": 13,
@@ -45,10 +45,11 @@
    "tests/samples.test.ts": 26,
    "tests/secret.test.ts": 9,
    "tests/share.test.ts": 16,
+   "tests/sr-net-12.test.ts": 40,
    "tests/traceroute.test.ts": 25,
    "tests/workspace.test.ts": 19
   },
-  "total": 1038
+  "total": 1090
  },
  "e2e": {
   "files": {
