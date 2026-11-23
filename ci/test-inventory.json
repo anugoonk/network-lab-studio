@@ -27,6 +27,7 @@
    "tests/i18n.test.ts": 7,
    "tests/l2tables.test.ts": 12,
    "tests/l3.test.ts": 44,
+   "tests/layout.test.ts": 10,
    "tests/legacy-ports.test.ts": 13,
    "tests/link-messages.test.ts": 7,
    "tests/native-vlan.test.ts": 12,
@@ -46,7 +47,7 @@
    "tests/traceroute.test.ts": 25,
    "tests/workspace.test.ts": 19
   },
-  "total": 983
+  "total": 993
  },
  "e2e": {
   "files": {
@@ -57,6 +58,7 @@
    "e2e/challenge.spec.ts": 2,
    "e2e/challenges-more.spec.ts": 5,
    "e2e/command-library.spec.ts": 13,
+   "e2e/console-dock.spec.ts": 22,
    "e2e/device-capability.spec.ts": 8,
    "e2e/device-palette.spec.ts": 10,
    "e2e/device-placement.spec.ts": 5,
@@ -78,6 +80,6 @@
    "e2e/undo.spec.ts": 4,
    "e2e/workspace-ui.spec.ts": 9
   },
-  "total": 165
+  "total": 187
  }
 }
