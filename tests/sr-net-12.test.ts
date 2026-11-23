@@ -399,6 +399,22 @@ describe('SR-NET-12 R-05 — recursive next-hop resolution (Cisco IOS)', () => {
     expect(Date.now() - t1).toBeLessThan(2500);
   });
 
+  it('running out of the lookup budget reports its own reason (budget), never the depth message', () => {
+    const b = p2p([]);
+    const routes: StaticRoute[] = [];
+    // layered table (imported Lab): 5 layers x 12 routes, each route's next hop is covered by all 12 routes of the next layer and the last layer is unresolvable.
+    // Every branch fails, so the fallback search would visit 12^4 chains; no loop and no level beyond 6, hence only the budget can stop it
+    for (let layer = 0; layer < 5; layer++) for (let i = 0; i < 12; i++) routes.push({ net: `10.${200 + layer}.0.0`, mask: maskOf(24), nextHop: layer < 4 ? `10.${201 + layer}.0.1` : '203.0.113.1' });
+    routes.push({ net: '172.30.0.0', mask: maskOf(16), nextHop: '10.200.0.5' });
+    b.lab = { ...b.lab, devices: b.lab.devices.map((d) => (d.id === b.ids.R1 ? { ...d, routes } : d)) };
+    const reasons = new Set(b.dv('R1').routes.map((r) => { const x = resolveStaticRoute(b.lab, b.dv('R1'), r); return 'fail' in x ? x.fail : 'ok'; }));
+    expect(reasons.has('budget')).toBe(true);
+    expect(reasons.has('depth')).toBe(false);
+    const why = b.ping('R1', '172.30.1.1').explanation.join(' ');
+    expect(why).toContain(String(MAX_ROUTE_LOOKUPS));
+    expect(why).not.toContain('more than ' + MAX_ROUTE_RECURSION + ' levels');
+  });
+
   it('a connected network wins a prefix-length tie at the second level (the static route of the same length is ignored)', () => {
     // r0 → next hop 10.9.9.1 (not connected) → B (10.9.9.0/24 via 10.0.12.2) → 10.0.12.2 is covered by the connected /30 on Gi0/1 AND by C = 10.0.12.0/30 out of Gi0/0
     const b = p2p([]);

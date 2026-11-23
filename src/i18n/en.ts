@@ -22,6 +22,7 @@ export const EN: Record<string, string> = {
   "มุมมอง": "View",
   "static route ต้องมี next hop หรือ interface อย่างน้อยหนึ่งอย่าง": "A static route needs a next hop, an interface, or both",
   "{0} มี static route ไป {1} แต่ interface {2} ไม่พร้อมใช้งาน (ไม่มี, shutdown หรือไม่มีลิงก์) จึงใช้ route นี้ไม่ได้": "{0} has a static route to {1} but interface {2} is not usable (missing, shut down or without a link), so the route is not installed",
+  "{0} มี static route ไป {1} แต่ next hop {2} ต้องค้นหา route ซ้อนกันเกิน {3} ครั้ง (ตาราง route ซับซ้อนผิดปกติ) จึงใช้ route นี้ไม่ได้": "{0} has a static route to {1} but resolving next hop {2} needed more than {3} nested route lookups (unusually complex route table), so the route is not installed",
   "{0} มี static route ไป {1} แต่ next hop {2} ต้อง resolve ผ่าน route อื่นเกิน {3} ระดับ จึงใช้ route นี้ไม่ได้": "{0} has a static route to {1} but next hop {2} needs more than {3} levels of recursive resolution, so the route is not installed",
   "{0} มี static route ไป {1} แต่ next hop {2} วนกลับมาที่ route เดิม (recursive routing loop) จึงใช้ route นี้ไม่ได้": "{0} has a static route to {1} but next hop {2} resolves back to a route already used (recursive routing loop), so the route is not installed",
   "ชื่อ interface ของ static route ไม่ถูกต้อง": "Invalid interface name in a static route",

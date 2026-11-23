@@ -472,8 +472,9 @@ export const MAX_ROUTE_RECURSION = 8;
  *  next-hop   — its next hop is not reachable over any connected subnet or other installed route
  *  loop       — resolving the next hop leads back to a route already used (including the route itself)
  *  depth      — resolving the next hop needs more than MAX_ROUTE_RECURSION levels
+ *  budget     — resolving the next hop used up MAX_ROUTE_LOOKUPS lookups (pathological table); NOT a depth problem
  */
-export type StaticRouteFail = 'iface-down' | 'next-hop' | 'loop' | 'depth';
+export type StaticRouteFail = 'iface-down' | 'next-hop' | 'loop' | 'depth' | 'budget';
 
 export interface StaticResolved {
   /** interface the packet leaves through */
@@ -489,12 +490,12 @@ const prefixOf = (r: StaticRoute) => maskToPrefix(r.mask);
 /**
  * Work limit of ONE resolution (resolveStaticRoute call): the number of next-hop lookups it may perform. Falling back to less specific
  * routes can explore many chains of nested routes; a real Lab needs a handful of lookups (at most 9 for a chain of 8 levels), so
- * running out means a pathological table and the route is refused as too deep — the cost is bounded instead of exponential.
+ * running out means a pathological table and the route is refused with its own reason ('budget') — the cost is bounded instead of exponential.
  */
 export const MAX_ROUTE_LOOKUPS = 200;
 
 function resolveHop(dev: Device, up: L3If[], nh: string, seen: StaticRoute[], budget: { left: number }): StaticResolved | { fail: StaticRouteFail } {
-  if (--budget.left < 0) return { fail: 'depth' };
+  if (--budget.left < 0) return { fail: 'budget' };
   let conn: L3If | null = null;
   for (const i of up) if (sameSubnet(i.ip, nh, i.mask) && (!conn || maskToPrefix(i.mask) > maskToPrefix(conn.mask))) conn = i;
   const connPrefix = conn ? maskToPrefix(conn.mask) : -1;
@@ -502,7 +503,7 @@ function resolveHop(dev: Device, up: L3If[], nh: string, seen: StaticRoute[], bu
   const statics = dev.routes.filter((r) => sameSubnet(r.net, nh, r.mask)).sort((x, y) => prefixOf(y) - prefixOf(x));
   let fail: StaticRouteFail | null = null; // why the most specific refused candidate was refused
   for (const st of statics) {
-    if (budget.left < 0) return { fail: fail ?? 'depth' }; // out of budget: stop exploring, keep the first reason
+    if (budget.left < 0) return { fail: fail ?? 'budget' }; // out of budget: stop exploring (resolveStaticRoute then reports the cut-short search as budget)
     if (conn && connPrefix >= prefixOf(st)) break; // longest prefix wins; a connected network wins a tie
     // the best remaining match is a route this resolution already went through: a recursive loop (also a route covering its own next hop)
     if (seen.includes(st)) return { fail: 'loop' };
@@ -533,7 +534,10 @@ export function resolveStaticRoute(lab: Lab, dev: Device, r: StaticRoute, up: L3
   if (r.nextHop === undefined) return { fail: 'next-hop' };
   const direct = up.find((i) => sameSubnet(i.ip, r.nextHop!, i.mask));
   if (direct) return { out: direct, nextHop: r.nextHop, depth: 0 };
-  return resolveHop(dev, up, r.nextHop, [r], { left: MAX_ROUTE_LOOKUPS });
+  const budget = { left: MAX_ROUTE_LOOKUPS };
+  const res = resolveHop(dev, up, r.nextHop, [r], budget);
+  // an exhausted budget means the search was cut short: whatever failure was seen first is not the true reason
+  return 'fail' in res && budget.left < 0 ? { fail: 'budget' } : res;
 }
 
 function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: string; kind: 'general' | 'noroute' } {
@@ -583,7 +587,9 @@ function selectRoute(lab: Lab, cur: Device, dstIp: string): Selected | { fail: s
             ? tx('{0} มี static route ไป {1} แต่ interface {2} ไม่พร้อมใช้งาน (ไม่มี, shutdown หรือไม่มีลิงก์) จึงใช้ route นี้ไม่ได้', cur.name, what, r.iface ?? '')
             : refused.why === 'loop'
               ? tx('{0} มี static route ไป {1} แต่ next hop {2} วนกลับมาที่ route เดิม (recursive routing loop) จึงใช้ route นี้ไม่ได้', cur.name, what, r.nextHop ?? '')
-              : tx('{0} มี static route ไป {1} แต่ next hop {2} ต้อง resolve ผ่าน route อื่นเกิน {3} ระดับ จึงใช้ route นี้ไม่ได้', cur.name, what, r.nextHop ?? '', MAX_ROUTE_RECURSION);
+              : refused.why === 'budget'
+                ? tx('{0} มี static route ไป {1} แต่ next hop {2} ต้องค้นหา route ซ้อนกันเกิน {3} ครั้ง (ตาราง route ซับซ้อนผิดปกติ) จึงใช้ route นี้ไม่ได้', cur.name, what, r.nextHop ?? '', MAX_ROUTE_LOOKUPS)
+                : tx('{0} มี static route ไป {1} แต่ next hop {2} ต้อง resolve ผ่าน route อื่นเกิน {3} ระดับ จึงใช้ route นี้ไม่ได้', cur.name, what, r.nextHop ?? '', MAX_ROUTE_RECURSION);
         return { fail, kind: 'noroute' };
       }
       return {
