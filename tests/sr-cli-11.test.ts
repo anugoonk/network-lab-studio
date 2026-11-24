@@ -568,6 +568,65 @@ describe('SR-CLI-11 persistence and compatibility', () => {
   });
 });
 
+describe('SR-CLI-11 high fix 01: every accepted username alias is redacted (OD-2026-11-24-SR-CLI-11-HIGH-FIX-01)', () => {
+  const CANARY = 'ZqCanary7Vw';
+  const aliases = ['u', 'us', 'use', 'user', 'usern', 'userna', 'usernam', 'username'];
+
+  it('the redactor masks the value after every alias of username, with full and abbreviated keywords; history, echo and export hold no clear text', () => {
+    for (const a of aliases) {
+      for (const kw of ['secret', 'sec', 'pass', 'password', 'secret 0', 'password 0', 'priv 15 sec', 'privilege 15 secret', 'privilege 7 password 0']) {
+        const line = `${a} u1 ${kw} ${CANARY}`;
+        expect(classifyLine('cisco', line).shown, line).not.toContain(CANARY);
+        const t = new T().conf();
+        const res = t.run(line);
+        expect(t.visible(), line).not.toContain(CANARY);
+        expect(res.echo ?? '', line).not.toContain(CANARY);
+        expect(t.dev.cli.history.join('|'), line).not.toContain(CANARY);
+      }
+    }
+  });
+
+  it('the single-letter form really is the username command (parser and redactor agree on the alias)', () => {
+    const t = new T().conf(`u bob secret ${CANARY}`, `us amy password ${CANARY}`);
+    expect(t.dev.security?.users?.map((u) => u.name)).toEqual(['bob', 'amy']);
+    expect(t.visible()).not.toContain(CANARY);
+    expect(t.dev.cli.history.filter((h) => h.startsWith('u '))).toEqual(['u bob secret ********']);
+  });
+
+  it('do-prefixed and no-prefixed forms are masked too (they are rejected, but their text must not be kept)', () => {
+    for (const l of ['do u u pass', 'do us u secret', 'no u u pass', 'do use u priv 15 sec']) {
+      const t = new T().conf();
+      t.run(`${l} ${CANARY}`);
+      expect(t.visible(), l).not.toContain(CANARY);
+    }
+  });
+
+  it('a rejected or malformed alias line does not disclose the value in output, hint, history or export', () => {
+    for (const l of ['u u privilege 99 secret', 'u bad/name pass', 'u u secret 5', 'u u pass 7', 'u u sceret', 'u u pwd']) {
+      const t = new T().conf();
+      const r = t.run(`${l} ${CANARY}`);
+      expect(r.ok, l).toBe(false);
+      expect(t.visible(), l).not.toContain(CANARY);
+    }
+  });
+
+  it('the exported, re-imported and serialized Lab holds no clear text', () => {
+    const t = new T().conf(`u carol privilege 15 secret ${CANARY}`, `us dave pass ${CANARY}`);
+    expect(serializeExport(t.lab)).not.toContain(CANARY);
+    expect(JSON.stringify(t.lab)).not.toContain(CANARY);
+    const back = parseImport(serializeExport(t.lab));
+    expect(back.ok && JSON.stringify(back.lab)).not.toContain(CANARY);
+  });
+
+  it('ordinary commands are not redacted; only an alias of username with 3+ words is, from the keyword on', () => {
+    for (const l of ['undebug all', 'ip route 10.0.0.0 255.0.0.0 10.1.1.1', 'description u u pass x', 'banner motd #u u pass x#', 'u', 'u u', 'show running-config', 'line vty 0 4', 'login local', 'hostname H1', 'interface gi0/0', 'uptime x y']) {
+      expect(classifyLine('cisco', l).masked, l).toBe(false);
+    }
+    expect(classifyLine('cisco', `u bob privilege 15 secret ${CANARY}`).shown).toBe('u bob privilege 15 secret ********');
+    expect(classifyLine('cisco', 'u bob nopassword').shown).toBe('u bob nopassword');
+  });
+});
+
 describe('SR-CLI-11 review fixes', () => {
   it('abbreviated password / username commands are masked in the history, transcript and files', () => {
     const t = new T().conf('line vty 0 4');

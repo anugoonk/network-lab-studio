@@ -99,7 +99,8 @@ function findSpans(t: Tok[]): Span[] {
 
   if ('enable'.startsWith(first) && n >= 3) spans.push(toEnd(i + 2));
 
-  if (first.length >= 2 && 'username'.startsWith(first) && n >= 3) {
+  // every prefix of `username` the parser accepts, the one-letter `u` included (only `username` starts with u)
+  if ('username'.startsWith(first) && n >= 3) {
     let k = i + 2;
     for (;;) {
       const w = lc(t[k]);
