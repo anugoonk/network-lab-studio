@@ -39,7 +39,7 @@ export function filterCommands(specs: readonly CommandSpec[], f: LibraryFilters)
   });
 }
 
-const MODE_ORDER: CliMode[] = ['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'pc'];
+const MODE_ORDER: CliMode[] = ['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'config-line', 'pc'];
 const MODE_NAME: Record<CliMode, string> = {
   user: 'User EXEC',
   priv: 'Privileged EXEC / Manager',
@@ -48,6 +48,7 @@ const MODE_NAME: Record<CliMode, string> = {
   'config-subif': 'Sub-interface config',
   'config-svi': 'VLAN interface (SVI) config',
   'config-vlan': 'VLAN config',
+  'config-line': 'Line config (console / VTY)',
   pc: 'PC terminal',
 };
 

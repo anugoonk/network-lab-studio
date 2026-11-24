@@ -27,6 +27,22 @@ npm run e2e                      # ทดสอบ flow หลักผ่าน
                                  # ถ้ามี server ค้างที่พอร์ต 4173 จะหยุดพร้อมข้อความ error (กันทดสอบกับโค้ดเก่า); ตั้ง PW_REUSE_SERVER=1 ถ้าตั้งใจใช้ server ที่เปิดเอง
 ```
 
+## Cisco management: line console/vty, username, banner, erase, reload (SR-CLI-11)
+
+เฉพาะ Cisco IOS (router และ switch) — Aruba และ PC ปฏิเสธคำสั่งเหล่านี้
+
+- `line console 0`, `line vty 0 4`, `line vty 0 15` → prompt `(config-line)#`: `password`, `login`, `login local`, `no login`, `transport input all|ssh|telnet|none` (เฉพาะ vty), `exec-timeout <นาที> [<วินาที>]` (ค่าเริ่มต้น 10 0 ไม่แสดง)
+- `username <ชื่อ> [privilege 0-15] secret|password …`, `no username <ชื่อ>` (สูงสุด 50 ผู้ใช้)
+- `banner motd|login <ตัวคั่น>ข้อความ<ตัวคั่น>` (บรรทัดเดียว, ไม่เกิน 500 ตัวอักษร, เป็นข้อความธรรมดาเสมอ ไม่ใช่ HTML) และ `no banner motd|login`
+- `erase startup-config` / `write erase` (ถามยืนยัน) ลบเฉพาะ startup-config — running-config ไม่เปลี่ยน
+- `reload` (ถามยืนยัน) **จำลองระดับ session**: กลับ User EXEC และล้างสถานะชั่วคราว แต่ running-config ไม่ถูกทิ้งและ **ไม่มีการ replay startup-config** (อุปกรณ์จริงจะทิ้งค่าที่ยังไม่ `write memory`) ข้อความผลลัพธ์บอกข้อนี้ทุกครั้ง
+
+**รหัสผ่านและความปลอดภัย** — เป็นการตั้งค่าเพื่อฝึกเท่านั้น simulator **ไม่ถามและไม่ตรวจ** username/password ของ line:
+- ไม่เก็บรหัสผ่านที่พิมพ์ไว้ในรูป clear text เลย (Lab, ประวัติคำสั่ง, transcript, ไฟล์ export, localStorage): `secret` เก็บเป็น type 5 (MD5-crypt) ส่วน `password` เก็บเป็นค่าที่แปลงแล้วและแสดงเป็น `password 7 <token>` — **token นี้เป็นค่าจำลอง ไม่ใช่ Cisco type 7 จริง** และไม่ใช่การเข้ารหัสที่ปลอดภัย (Lab ทั้งหมดอยู่ในเบราว์เซอร์ของผู้เรียน อย่าใช้รหัสผ่านจริงใด ๆ)
+- ค่าใหม่ที่เก็บ: `Device.mgmt` (line, banner) และ `Device.security.users` — เป็นฟิลด์ optional, `SCHEMA_VERSION` ยังเป็น 1, Lab ที่ไม่ได้ตั้งค่าเหล่านี้ไม่เปลี่ยนเลย
+- **Downgrade:** build เก่า (ก่อน SR-CLI-11) เปิด Lab ได้ แต่ **ทิ้งการตั้งค่า line / username / banner เงียบ ๆ** เมื่อโหลด (และบันทึกซ้ำโดยไม่มีค่าเหล่านั้น) — สำรองไฟล์ export ก่อน rollback ถ้าต้องการเก็บค่าเหล่านี้
+- ขณะอยู่ใน `config-line` Lab จะถูกบันทึกเป็น global config (build เก่าไม่รู้จัก mode นี้)
+
 ## Cisco CDP topology view (CERT-Q4a)
 
 `show cdp neighbors` and `show cdp neighbors detail` are available in Cisco privileged EXEC (`enable`) and through the existing `do` command in configuration modes. They support the simulated Cisco router, ISP router and Catalyst 2960 only. The syntax and field structure follow the [Cisco IOS command reference](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/cdp/command/cdp-cr-book/cdp-cr-a1.html); this is a documented simulator subset, not complete IOS compatibility.
@@ -183,7 +199,7 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 
 - DTP (การเจรจา trunk อัตโนมัติ — Cisco `dynamic auto` ถือเป็น access), VTP, Spanning Tree (การต่อ loop ไม่ทำให้ค้าง แต่ไม่มี STP block พอร์ตให้), LACP/port-channel
 - IPv6, DHCP, DNS, dynamic routing (RIP/OSPF/EIGRP), metric/administrative distance ของ route (static แสดงเป็น [1/0] คงที่), ACL, NAT, VRF (ARP/MAC table รองรับแล้วแบบ steady-state ดูหัวข้อ "ตาราง ARP / MAC…" ด้านล่าง; ไม่มีการจำลอง ARP แบบ on-demand/aging)
-- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `reload`, `enable secret` / `line console` / `banner`
+- `ip routing` บน Cisco L2 switch (ตามของจริง Catalyst 2960 ไม่ route), `reload` / `erase` บน Aruba (ใช้ได้เฉพาะ Cisco IOS ดูหัวข้อ "Cisco management" ด้านล่าง) — บน Cisco ไม่มี startup-config replay และ `enable secret` / `line` / `username` / `banner` เป็นการตั้งค่าเท่านั้น ไม่บังคับ login จริง
 - Cisco `show interfaces` / `show interfaces <name>` / `show interfaces vlan <id>` **มีแล้ว แต่แสดงเฉพาะสิ่งที่ simulator จำลอง** (สถานะ line/protocol พร้อม `(connected)`/`(notconnect)`/`(disabled)` บน Catalyst, ชนิด hardware + MAC, description, IPv4, VLAN ของ sub-interface) — ไม่มี MTU/bandwidth/counter/queue; PC `ipconfig /all` ก็เช่นกัน (ไม่มี DNS/WINS/NetBIOS, DHCP = No เสมอ)
 - Aruba AOS-CX `no vlan access` — ยังไม่มี (ยังยืนยันพฤติกรรมกับเอกสารทางการไม่ได้) ใช้ `vlan access 1` แทน
 - `traceroute` (Cisco / Aruba) และ `tracert` (PC) **มีแล้ว แต่เป็นแบบจำลองอย่างง่าย**: hop คืออุปกรณ์ที่ทำ L3 forwarding จริงบนเส้นทางเดียวกับที่ ping ใช้ (switch ที่แค่ bridge ไม่นับเป็น hop) ส่วน IP ของ hop คือ interface ที่ router ใช้ตอบกลับหาต้นทาง; `!N` = router ไม่มี route, `*` = คำตอบกลับไม่ถึงต้นทาง — engine ไม่ได้ลด TTL หรือส่ง probe จริงทีละตัว แต่คำนวณผลของ probe ที่ TTL = 1, 2, … จากเส้นทางเดียว; **ไม่แสดงเวลา** (ไม่มีโมเดล latency), ไม่จำลอง UDP/ICMP probe ที่ต่างกัน, rate-limit ของ ICMP หรือ `!H`; Cisco ยังไม่มี extended traceroute (กำหนด hop สูงสุดได้เฉพาะ PC `tracert -h N` และ Aruba `traceroute <ip> maxttl N`); รูปแบบบรรทัดหัวของ Aruba และข้อความ error ตอนส่งออกไม่ได้ของ PC ยังไม่ได้เทียบกับของจริง
@@ -229,9 +245,9 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC | `enable` | `enable` | เข้า Privileged EXEC mode (prompt เปลี่ยนจาก > เป็น #) |
 | Privileged EXEC | `disable` | `disable` | กลับไป User EXEC mode |
 | Privileged EXEC | `configure terminal` | `configure terminal` | เข้า Global Configuration mode เพื่อแก้ config |
-| User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
-| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
-| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
+| User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config, Line config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config, Line config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config, Line config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
 | Privileged EXEC | `show cdp neighbors` | `show cdp neighbors` | ดูเพื่อนบ้าน Cisco จากสายและพอร์ตที่ up ใน topology; ไม่จำลอง CDP advertisements หรือ holdtime |
 | Privileged EXEC | `show cdp neighbors detail` | `show cdp neighbors detail` | ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer |
 | Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown) |
@@ -266,6 +282,43 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Sub-interface config | `encapsulation dot1Q <vlan-id>` | `encapsulation dot1Q 10` | กำหนดให้ sub-interface รับ-ส่งเฟรม tagged VLAN นี้ (router-on-a-stick) — ต้องทำก่อนตั้ง IP |
 | Interface config, Sub-interface config | `ip address <ip-address> <subnet-mask>` | `ip address 10.0.0.1 255.255.255.0` | ตั้ง IPv4 และ subnet mask ให้ routed interface หรือ sub-interface |
 | Interface config, Sub-interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก interface หรือ sub-interface |
+| Global config, Line config | `line console 0` | `line console 0` | เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง |
+| Global config, Line config | `line vty 0 4` | `line vty 0 4` | เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง |
+| Global config, Line config | `line vty 0 15` | `line vty 0 15` | เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง |
+| Line config | `password <secret>` | `password cisco` | ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง) |
+| Line config | `password 0 <secret>` | `password 0 cisco` | ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง) |
+| Line config | `password 7 <token>` | `password 7 mERrhx5rVt7rPNoS4wqbXKX7m0` | ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง) |
+| Line config | `no password` | `no password` | ลบรหัสผ่านของ line |
+| Line config | `login` | `login` | ตั้ง login บน line — เก็บการตั้งค่าเท่านั้น simulator ไม่ถามรหัสผ่านจริง |
+| Line config | `login local` | `login local` | ตั้ง login local บน line — เก็บการตั้งค่าเท่านั้น simulator ไม่ตรวจ username จริง |
+| Line config | `no login` | `no login` | ลบ login ของ line |
+| Line config | `transport input all` | `transport input all` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `transport input ssh` | `transport input ssh` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `transport input telnet` | `transport input telnet` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `transport input none` | `transport input none` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `exec-timeout <minutes>` | `exec-timeout 5` | ตั้ง exec-timeout ของ line (นาที [วินาที]; 0 0 = ไม่หมดเวลา) — เก็บการตั้งค่าเท่านั้น |
+| Line config | `exec-timeout <minutes> <seconds>` | `exec-timeout 5 30` | ตั้ง exec-timeout ของ line (นาที [วินาที]; 0 0 = ไม่หมดเวลา) — เก็บการตั้งค่าเท่านั้น |
+| Line config | `no exec-timeout` | `no exec-timeout` | คืน exec-timeout เป็นค่าเริ่มต้น |
+| Global config | `username <username> secret <secret>` | `username admin secret cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> secret 0 <secret>` | `username admin secret 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> secret 5 <type5-hash>` | `username admin secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> password <secret>` | `username admin password cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> password 0 <secret>` | `username admin password 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> password 7 <token>` | `username admin password 7 mERrhx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> secret <secret>` | `username admin privilege 15 secret cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> secret 0 <secret>` | `username admin privilege 15 secret 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> secret 5 <type5-hash>` | `username admin privilege 15 secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> password <secret>` | `username admin privilege 15 password cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> password 0 <secret>` | `username admin privilege 15 password 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> password 7 <token>` | `username admin privilege 15 password 7 mERrhx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `no username <username>` | `no username admin` | ลบ local user |
+| Global config | `banner motd <text>` | `banner motd #Authorized access only#` | ตั้ง banner motd/login รูปแบบ <ตัวคั่น>ข้อความ<ตัวคั่น> บรรทัดเดียว — เป็นข้อความธรรมดา ไม่ใช่ HTML |
+| Global config | `no banner motd` | `no banner motd` | ลบ banner |
+| Global config | `banner login <text>` | `banner login #Authorized access only#` | ตั้ง banner motd/login รูปแบบ <ตัวคั่น>ข้อความ<ตัวคั่น> บรรทัดเดียว — เป็นข้อความธรรมดา ไม่ใช่ HTML |
+| Global config | `no banner login` | `no banner login` | ลบ banner |
+| Privileged EXEC | `erase startup-config` | `erase startup-config` | ลบ startup-config (ถามยืนยัน) — running-config ไม่เปลี่ยน; simulator ไม่ replay startup-config |
+| Privileged EXEC | `write erase` | `write erase` | เหมือน erase startup-config |
+| Privileged EXEC | `reload` | `reload` | จำลอง reload (ถามยืนยัน) — รีเซ็ตเฉพาะ session กลับ User EXEC; running-config ไม่ถูกทิ้ง และไม่ replay startup-config |
 
 ### Cisco IOS — Layer 2 Switch (Cisco Catalyst 2960-24TT (simulated), Cisco IOS 15.0(2)SE)
 
@@ -274,9 +327,9 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | User EXEC | `enable` | `enable` | เข้า Privileged EXEC mode (prompt เปลี่ยนจาก > เป็น #) |
 | Privileged EXEC | `disable` | `disable` | กลับไป User EXEC mode |
 | Privileged EXEC | `configure terminal` | `configure terminal` | เข้า Global Configuration mode เพื่อแก้ config |
-| User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
-| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
-| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
+| User EXEC, Privileged EXEC, Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config, Line config | `exit` | `exit` | ถอยออกหนึ่งระดับ (config-if → config → priv → user) |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config, Line config | `end` | `end` | กลับ Privileged EXEC ทันทีจากทุกระดับของ config |
+| Global config, Interface config, Sub-interface config, VLAN interface config, VLAN config, Line config | `do <command>` | `do show running-config` | รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode |
 | Privileged EXEC | `show cdp neighbors` | `show cdp neighbors` | ดูเพื่อนบ้าน Cisco จากสายและพอร์ตที่ up ใน topology; ไม่จำลอง CDP advertisements หรือ holdtime |
 | Privileged EXEC | `show cdp neighbors detail` | `show cdp neighbors detail` | ดูรายละเอียดเพื่อนบ้าน Cisco จาก topology; IP มาจากพอร์ตหรือ SVI ที่ up และรุ่นจาก model จำลอง ไม่มี timer |
 | Privileged EXEC | `show running-config` | `show running-config` | ดู configuration ปัจจุบัน (hostname, VLAN, interface, trunk, IP, route, shutdown) |
@@ -327,6 +380,43 @@ PC-01> ping 192.168.1.110            → Reply (กู้คืนแล้ว)
 | Interface config | `no switchport trunk native vlan` | `no switchport trunk native vlan` | คืนค่า native VLAN เป็น 1 |
 | VLAN interface config | `ip address <ip-address> <subnet-mask>` | `ip address 192.168.10.2 255.255.255.0` | ตั้ง IP จัดการให้ SVI (L2 switch ใช้เป็น management address ไม่ใช่ gateway ของ VLAN) |
 | VLAN interface config | `no ip address` | `no ip address` | ลบ IP ออกจาก SVI |
+| Global config, Line config | `line console 0` | `line console 0` | เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง |
+| Global config, Line config | `line vty 0 4` | `line vty 0 4` | เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง |
+| Global config, Line config | `line vty 0 15` | `line vty 0 15` | เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง |
+| Line config | `password <secret>` | `password cisco` | ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง) |
+| Line config | `password 0 <secret>` | `password 0 cisco` | ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง) |
+| Line config | `password 7 <token>` | `password 7 mERrhx5rVt7rPNoS4wqbXKX7m0` | ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง) |
+| Line config | `no password` | `no password` | ลบรหัสผ่านของ line |
+| Line config | `login` | `login` | ตั้ง login บน line — เก็บการตั้งค่าเท่านั้น simulator ไม่ถามรหัสผ่านจริง |
+| Line config | `login local` | `login local` | ตั้ง login local บน line — เก็บการตั้งค่าเท่านั้น simulator ไม่ตรวจ username จริง |
+| Line config | `no login` | `no login` | ลบ login ของ line |
+| Line config | `transport input all` | `transport input all` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `transport input ssh` | `transport input ssh` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `transport input telnet` | `transport input telnet` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `transport input none` | `transport input none` | กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น |
+| Line config | `exec-timeout <minutes>` | `exec-timeout 5` | ตั้ง exec-timeout ของ line (นาที [วินาที]; 0 0 = ไม่หมดเวลา) — เก็บการตั้งค่าเท่านั้น |
+| Line config | `exec-timeout <minutes> <seconds>` | `exec-timeout 5 30` | ตั้ง exec-timeout ของ line (นาที [วินาที]; 0 0 = ไม่หมดเวลา) — เก็บการตั้งค่าเท่านั้น |
+| Line config | `no exec-timeout` | `no exec-timeout` | คืน exec-timeout เป็นค่าเริ่มต้น |
+| Global config | `username <username> secret <secret>` | `username admin secret cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> secret 0 <secret>` | `username admin secret 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> secret 5 <type5-hash>` | `username admin secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> password <secret>` | `username admin password cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> password 0 <secret>` | `username admin password 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> password 7 <token>` | `username admin password 7 mERrhx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> secret <secret>` | `username admin privilege 15 secret cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> secret 0 <secret>` | `username admin privilege 15 secret 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> secret 5 <type5-hash>` | `username admin privilege 15 secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> password <secret>` | `username admin privilege 15 password cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> password 0 <secret>` | `username admin privilege 15 password 0 cisco` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `username <username> privilege <level> password 7 <token>` | `username admin privilege 15 password 7 mERrhx5rVt7rPNoS4wqbXKX7m0` | สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง |
+| Global config | `no username <username>` | `no username admin` | ลบ local user |
+| Global config | `banner motd <text>` | `banner motd #Authorized access only#` | ตั้ง banner motd/login รูปแบบ <ตัวคั่น>ข้อความ<ตัวคั่น> บรรทัดเดียว — เป็นข้อความธรรมดา ไม่ใช่ HTML |
+| Global config | `no banner motd` | `no banner motd` | ลบ banner |
+| Global config | `banner login <text>` | `banner login #Authorized access only#` | ตั้ง banner motd/login รูปแบบ <ตัวคั่น>ข้อความ<ตัวคั่น> บรรทัดเดียว — เป็นข้อความธรรมดา ไม่ใช่ HTML |
+| Global config | `no banner login` | `no banner login` | ลบ banner |
+| Privileged EXEC | `erase startup-config` | `erase startup-config` | ลบ startup-config (ถามยืนยัน) — running-config ไม่เปลี่ยน; simulator ไม่ replay startup-config |
+| Privileged EXEC | `write erase` | `write erase` | เหมือน erase startup-config |
+| Privileged EXEC | `reload` | `reload` | จำลอง reload (ถามยืนยัน) — รีเซ็ตเฉพาะ session กลับ User EXEC; running-config ไม่ถูกทิ้ง และไม่ replay startup-config |
 
 ### Aruba AOS-CX — Access Switch, L3-capable (Aruba CX 6100 24G (simulated), ArubaOS-CX 10.10)
 

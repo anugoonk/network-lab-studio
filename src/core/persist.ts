@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { isValidMask, parseIp } from './ip';
 import { NAME_RE } from './lab';
+import { BANNER_MAX, MAX_USERS, USER_RE } from './mgmt';
 import { PROFILES } from './profiles';
 import { TYPE5_RE } from './secret';
-import type { CliMode, DeviceKind, Lab } from './types';
+import type { CliMode, Device, DeviceKind, Lab } from './types';
 import { tx } from '../i18n';
 import { sanitizeLab, sanitizeUntrusted } from './cli/redact';
 
@@ -59,6 +60,29 @@ const routeSchema = z
   })
   .refine((r) => r.nextHop !== undefined || r.iface !== undefined, tx('static route ต้องมี next hop หรือ interface อย่างน้อยหนึ่งอย่าง'));
 
+const type5 = z.string().regex(TYPE5_RE, tx('credential ต้องเป็นรูปแบบ type 5 ($1$...)'));
+const userSchema = z
+  .object({
+    name: z.string().regex(USER_RE, tx('ชื่อ username ไม่ถูกต้อง')),
+    privilege: z.number().int().min(0).max(15).optional(),
+    secret: type5.optional(),
+    password: type5.optional(),
+  })
+  .refine((u) => u.secret !== undefined || u.password !== undefined, tx('username ต้องมี secret หรือ password'));
+const lineSchema = z.object({
+  password: type5.optional(),
+  login: z.enum(['login', 'local']).optional(),
+  transport: z.enum(['all', 'ssh', 'telnet', 'none']).optional(),
+  execTimeout: z.object({ min: z.number().int().min(0).max(35791), sec: z.number().int().min(0).max(2147483) }).optional(),
+});
+const bannerText = z.string().min(1).max(BANNER_MAX).regex(/^[^\u0000-\u001f\u007f]*$/, tx('banner ห้ามมีอักขระควบคุม'));
+const mgmtSchema = z.object({
+  console: lineSchema.optional(),
+  vty04: lineSchema.optional(),
+  vty015: lineSchema.optional(),
+  banners: z.object({ motd: bannerText.optional(), login: bannerText.optional() }).optional(),
+});
+
 const deviceSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(Object.keys(PROFILES) as [DeviceKind, ...DeviceKind[]]),
@@ -81,7 +105,14 @@ const deviceSchema = z.object({
   }),
   startupConfig: z.string().nullable(),
   // optional (CERT-P0-1a): Labs without it load exactly as before; only a type-5 hash is accepted, never clear text
-  security: z.object({ enableSecret: z.string().regex(TYPE5_RE, tx('enable secret ต้องเป็นรูปแบบ type 5 ($1$...)')).optional() }).optional(),
+  security: z
+    .object({
+      enableSecret: z.string().regex(TYPE5_RE, tx('enable secret ต้องเป็นรูปแบบ type 5 ($1$...)')).optional(),
+      users: z.array(userSchema).max(MAX_USERS).optional(),
+    })
+    .optional(),
+  // optional (SR-CLI-11): Labs without it load exactly as before
+  mgmt: mgmtSchema.optional(),
 });
 
 const endpointSchema = z.object({ deviceId: z.string(), port: z.string() });
@@ -168,6 +199,7 @@ function crossCheck(lab: Lab): string[] {
     if (!p.isRouter && d.subifs.length) errs.push(tx('{0}: sub-interface ใช้ได้เฉพาะ router', d.name));
     if (!p.isSwitch && d.svis.length) errs.push(tx('{0}: SVI ใช้ได้เฉพาะ switch', d.name));
     if (d.security?.enableSecret && p.vendor !== 'cisco') errs.push(tx('{0}: enable secret ใช้ได้เฉพาะอุปกรณ์ Cisco IOS', d.name));
+    if ((d.security?.users || d.mgmt) && p.vendor !== 'cisco') errs.push(tx('{0}: username, line และ banner ใช้ได้เฉพาะอุปกรณ์ Cisco IOS', d.name));
     if (!p.canForward && d.routes.length) errs.push(tx('{0}: อุปกรณ์ชนิดนี้ไม่รองรับ static route', d.name));
     const seen = new Set<string>();
     for (const s of d.subifs) {
@@ -239,17 +271,28 @@ function acceptLab(lab: Lab): ParseResult {
   return clean.count ? { ok: true, lab: clean.lab, masked: clean.count } : { ok: true, lab };
 }
 
-/** The Lab without transient console state (a pending credential prompt), for storage and export files. */
+/**
+ * One device without transient console state: a pending prompt, and a line-configuration mode. `config-line` is not a
+ * mode an older build knows (it would reject the whole Lab), so a device saved while in it is saved in global config.
+ */
+function withoutTransientDevice(d: Device): Device {
+  if (!d.cli.pending && d.cli.mode !== 'config-line' && d.cli.ctxLine === undefined) return d;
+  const cli = { ...d.cli };
+  delete cli.pending;
+  delete cli.ctxLine;
+  if (cli.mode === 'config-line') cli.mode = 'config';
+  return { ...d, cli };
+}
+
+/** The Lab without transient console state (a pending prompt, the line-configuration mode), for storage and export files. */
 export function withoutTransient(lab: Lab): Lab {
-  if (!lab.devices.some((d) => d.cli.pending)) return lab;
+  const transient = (d: Device) => withoutTransientDevice(d) !== d;
+  const start = lab.challenge?.start;
+  if (!lab.devices.some(transient) && !start?.devices.some(transient)) return lab;
   return {
     ...lab,
-    devices: lab.devices.map((d) => {
-      if (!d.cli.pending) return d;
-      const cli = { ...d.cli };
-      delete cli.pending;
-      return { ...d, cli };
-    }),
+    devices: lab.devices.map(withoutTransientDevice),
+    ...(lab.challenge && start ? { challenge: { ...lab.challenge, start: { ...start, devices: start.devices.map(withoutTransientDevice) } } } : {}),
   };
 }
 

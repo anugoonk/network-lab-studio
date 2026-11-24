@@ -2,7 +2,7 @@
 import { isValidMask, parseIp } from '../ip';
 import { parseVlanList, subName } from '../lab';
 import { PROFILES } from '../profiles';
-import type { CliMode, Device, DeviceKind, Lab, Vendor } from '../types';
+import type { CliMode, Device, DeviceKind, Lab, LineId, Vendor } from '../types';
 import { tx } from '../../i18n';
 
 export type PType = 'ifrange' | 'vlan' | 'vlanlist' | 'iface' | 'word' | 'text' | 'ip' | 'mask' | 'rmask' | 'cidr';
@@ -29,6 +29,8 @@ export interface RunResult {
   mode?: CliMode;
   ctxIface?: string | null;
   ctxVlan?: number | null;
+  /** `line console 0` / `line vty …`: the line config-line mode edits */
+  ctxLine?: LineId;
   /** set together with `mode`/`ctxIface` when entering `interface range` (leaving it is the default) */
   ctxRange?: string[];
   clear?: boolean;
@@ -77,6 +79,11 @@ const PARAM_TYPES: Record<string, PType> = {
   command: 'text',
   'port-range': 'text',
   'if-range': 'ifrange',
+  username: 'word',
+  level: 'word',
+  token: 'word',
+  minutes: 'word',
+  seconds: 'word',
 };
 
 export const PARAM_HELP: Record<string, string> = {
@@ -100,6 +107,11 @@ export const PARAM_HELP: Record<string, string> = {
   command: 'Command to run',
   'port-range': 'Interface range, e.g. fa0/1 - 4',
   'if-range': 'Interface range, e.g. 1/1/1-1/1/4 or 1/1/1,1/1/3',
+  username: 'User name',
+  level: 'Privilege level (0-15)',
+  token: 'Token as printed by show running-config (password 7 <token>)',
+  minutes: 'Timeout in minutes',
+  seconds: 'Timeout in seconds',
 };
 
 export function parseSyntax(syntax: string): Tok[] {
@@ -263,6 +275,7 @@ export const MODE_LABEL: Record<Vendor, Partial<Record<CliMode, string>>> = {
     'config-subif': 'Sub-interface config (R1(config-subif)#)',
     'config-svi': 'VLAN interface config (SW1(config-if)#)',
     'config-vlan': 'VLAN config (SW1(config-vlan)#)',
+    'config-line': 'Line config (R1(config-line)#)',
   },
   aruba: {
     priv: 'Manager (SW2#)',
@@ -285,6 +298,7 @@ export const MODE_PATH: Record<Vendor, Partial<Record<CliMode, string>>> = {
     'config-subif': tx('enable → configure terminal → interface <พอร์ต>.<เลข เช่น gi0/0.10>'),
     'config-svi': 'enable → configure terminal → interface vlan <id>',
     'config-vlan': 'enable → configure terminal → vlan <id>',
+    'config-line': 'enable → configure terminal → line console 0 | line vty 0 4',
   },
   aruba: {
     priv: tx('โหมดเริ่มต้นหลังเปิดอุปกรณ์ (prompt ลงท้ายด้วย #)'),

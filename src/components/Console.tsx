@@ -78,7 +78,7 @@ export function Console() {
   const isPc = PROFILES[device.kind].isHost;
   const vendor = PROFILES[device.kind].vendor;
   // waiting for a credential (enable secret): hidden input, no history, no help or completion
-  const secret = !!device.cli.pending;
+  const secret = device.cli.pending?.kind === 'enable';
 
   const submit = () => {
     exec(device.id, value);

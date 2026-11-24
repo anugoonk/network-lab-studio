@@ -21,7 +21,7 @@ export type DeviceKind =
   | 'rack'
   | 'ups';
 export type Vendor = 'cisco' | 'aruba' | 'pc' | 'generic';
-export type CliMode = 'user' | 'priv' | 'config' | 'config-if' | 'config-subif' | 'config-svi' | 'config-vlan' | 'pc';
+export type CliMode = 'user' | 'priv' | 'config' | 'config-if' | 'config-subif' | 'config-svi' | 'config-vlan' | 'config-line' | 'pc';
 
 export interface Iface {
   name: string;
@@ -90,18 +90,50 @@ export interface Cli {
   ctxVlan: number | null;
   /** `interface range …`: every port the interface-level commands apply to (ctxIface is the first one) */
   ctxRange?: string[];
+  /** `line console 0` / `line vty …` (SR-CLI-11): the line the config-line mode is editing. Transient: never saved. */
+  ctxLine?: LineId;
   history: string[];
   /**
    * The console is waiting for a credential, not a command (CERT-P0-1a: the enable secret after `enable`).
    * Transient: never saved to storage or export files and dropped when a Lab is loaded. Holds no secret.
    */
-  pending?: { kind: 'enable'; attempts: number };
+  pending?: { kind: 'enable' | 'confirm'; attempts: number; /** kind 'confirm' (erase / reload): what the answer confirms */ action?: 'erase' | 'reload' };
 }
 
 /** Device access security (CERT-P0-1a). Absent = no secrets configured = original behaviour. */
 export interface DeviceSecurity {
   /** `enable secret`: Cisco type-5 string "$1$<salt>$<hash>" (MD5-crypt). The clear-text secret is never stored. */
   enableSecret?: string;
+  /** `username …` (SR-CLI-11). Credentials are stored only as type-5 strings; never clear text. */
+  users?: LocalUser[];
+}
+
+/** A local user. `secret` = `username … secret` (type 5). `password` = `username … password`: the same derived string, printed as `password 7 <token>` (simulated, NOT real type 7). */
+export interface LocalUser {
+  name: string;
+  privilege?: number;
+  secret?: string;
+  password?: string;
+}
+
+/** Lines of SR-CLI-11: the console and the two VTY ranges the simulator accepts. */
+export type LineId = 'console' | 'vty04' | 'vty015';
+
+export interface LineConfig {
+  /** line `password`: derived type-5 string (printed as `password 7 <token>`); never clear text */
+  password?: string;
+  login?: 'login' | 'local';
+  /** vty only */
+  transport?: 'all' | 'ssh' | 'telnet' | 'none';
+  execTimeout?: { min: number; sec: number };
+}
+
+/** Management configuration (SR-CLI-11, Cisco IOS only). Absent = nothing configured = original behaviour. Older builds drop it silently on load. */
+export interface DeviceMgmt {
+  console?: LineConfig;
+  vty04?: LineConfig;
+  vty015?: LineConfig;
+  banners?: { motd?: string; login?: string };
 }
 
 export interface Device {
@@ -119,6 +151,7 @@ export interface Device {
   cli: Cli;
   startupConfig: string | null;
   security?: DeviceSecurity;
+  mgmt?: DeviceMgmt;
 }
 
 export interface Endpoint {

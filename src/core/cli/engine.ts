@@ -9,6 +9,7 @@ import { allAddresses } from '../network';
 import { getDevice } from '../lab';
 import { cdpMismatchLog } from '../trunkcheck';
 import { verifyType5 } from '../secret';
+import { ciscoRunningConfig } from './cisco';
 import type { Device, Lab, Vendor } from '../types';
 import { SPECS } from './registry';
 import { classifyLine, scrubText } from './redact';
@@ -39,6 +40,8 @@ export interface ExecResult {
 
 /** prompt shown while the console waits for a credential instead of a command */
 export const PASSWORD_PROMPT = 'Password:';
+/** prompt shown while the console waits for `erase` / `reload` to be confirmed (Enter, y or yes confirms; anything else cancels) */
+export const CONFIRM_PROMPT = { erase: 'Continue? [confirm]', reload: 'Proceed with reload? [confirm]' } as const;
 /** Simulator setting: wrong answers allowed at the enable prompt. Cisco's documentation consulted does not state the count. */
 export const ENABLE_ATTEMPTS = 3;
 /** Simulator wording (the exact IOS message could not be confirmed in Cisco's documentation); contains no input */
@@ -56,7 +59,7 @@ export function redactLine(vendor: Vendor, line: string): string {
 
 export function promptFor(dev: Device): string {
   const v = PROFILES[dev.kind].vendor;
-  if (dev.cli.pending) return PASSWORD_PROMPT;
+  if (dev.cli.pending) return dev.cli.pending.kind === 'confirm' ? CONFIRM_PROMPT[dev.cli.pending.action ?? 'reload'] : PASSWORD_PROMPT;
   const n = dev.name;
   const m = dev.cli.mode;
   const range = m === 'config-if' && dev.cli.ctxRange && dev.cli.ctxRange.length > 1 ? dev.cli.ctxRange : undefined;
@@ -70,6 +73,7 @@ export function promptFor(dev: Device): string {
       'config-subif': `${n}(config-subif)#`,
       'config-svi': `${n}(config-if)#`,
       'config-vlan': `${n}(config-vlan)#`,
+      'config-line': `${n}(config-line)#`,
     };
     return t[m] ?? `${n}#`;
   }
@@ -353,6 +357,8 @@ function runOne(lab: Lab, dev: Device, line: string): One {
     dev.cli.ctxIface = saved.ctxIface;
     dev.cli.ctxVlan = saved.ctxVlan;
     dev.cli.ctxRange = saved.ctxRange;
+    if (saved.ctxLine !== undefined) dev.cli.ctxLine = saved.ctxLine;
+    else delete dev.cli.ctxLine;
     return inner;
   }
   const range = dev.cli.mode === 'config-if' ? dev.cli.ctxRange : undefined;
@@ -385,6 +391,8 @@ function runOne(lab: Lab, dev: Device, line: string): One {
   if (res.error) return { ok: false, output: res.error };
   if (res.mode !== undefined || res.ctxIface !== undefined || res.ctxVlan !== undefined) dev.cli.ctxRange = res.ctxRange;
   if (res.mode) dev.cli.mode = res.mode;
+  if (res.mode && res.mode !== 'config-line') delete dev.cli.ctxLine;
+  if (res.ctxLine !== undefined) dev.cli.ctxLine = res.ctxLine;
   if (res.ctxIface !== undefined) dev.cli.ctxIface = res.ctxIface;
   if (res.ctxVlan !== undefined) dev.cli.ctxVlan = res.ctxVlan;
   return { ok: true, output: res.lines ?? [], clear: res.clear };
@@ -402,6 +410,7 @@ function pushHistory(dev: Device, line: string) {
 function answerPrompt(lab: Lab, deviceId: string, rawLine: string): ExecResult {
   const work = structuredClone(lab);
   const dev = getDevice(work, deviceId)!;
+  if (dev.cli.pending?.kind === 'confirm') return answerConfirm(work, dev, rawLine);
   const attempts = (dev.cli.pending?.attempts ?? 0) + 1;
   const stored = dev.security?.enableSecret;
   const base = { prompt: PASSWORD_PROMPT, echo: '', secretInput: true } as const;
@@ -418,6 +427,40 @@ function answerPrompt(lab: Lab, deviceId: string, rawLine: string): ExecResult {
   return {
     ...base, lab: work, output: [ENABLE_DENIED], ok: false,
     hintTh: tx('ใส่ enable secret ผิด {0} ครั้ง — ยังอยู่ใน User EXEC (พิมพ์ enable เพื่อลองใหม่)', String(ENABLE_ATTEMPTS)),
+  };
+}
+
+/** Answer to `erase` / `reload`: Enter, y or yes confirms, anything else cancels. Not a credential — shown and kept like a command answer, but not added to the history. */
+function answerConfirm(work: Lab, dev: Device, rawLine: string): ExecResult {
+  const pending = { action: dev.cli.pending?.action ?? 'reload' };
+  const prompt = CONFIRM_PROMPT[pending.action];
+  const answer = rawLine.trim().toLowerCase();
+  delete dev.cli.pending;
+  // only a recognised answer is echoed: text typed here is never a credential, but nothing unexpected is kept either
+  const shownAnswer = ["", "y", "yes", "n", "no"].includes(answer) ? answer : "";
+  if (answer !== '' && answer !== 'y' && answer !== 'yes') return { lab: work, output: [], ok: true, prompt, echo: shownAnswer };
+  if (pending.action === 'erase') {
+    dev.startupConfig = null;
+    return { lab: work, output: ['[OK]', 'Erase of nvram: complete'], ok: true, prompt, echo: shownAnswer };
+  }
+  const unsaved = dev.startupConfig !== ciscoRunningConfig(dev).join('\n');
+  dev.cli.mode = 'user';
+  dev.cli.ctxIface = null;
+  dev.cli.ctxVlan = null;
+  delete dev.cli.ctxRange;
+  delete dev.cli.ctxLine;
+  const motd = dev.mgmt?.banners?.motd;
+  return {
+    lab: work,
+    ok: true,
+    prompt,
+    echo: shownAnswer,
+    output: [
+      '*** System reloading (simulated) ***',
+      'Simulator: only this console session was reset (back to User EXEC).',
+      'Simulator: the running-config was NOT discarded and the startup-config was not re-applied' + (unsaved ? ' — unsaved changes are kept here, a real device would lose them.' : '.'),
+      ...(motd !== undefined ? ['', motd] : []),
+    ],
   };
 }
 

@@ -9,11 +9,12 @@ import { ipToString, isHostAddress, maskToPrefix, networkOf, parseIp, subnetsOve
 import { NAME_RE, formatVlanList, getIface, parseVlanList, subName } from '../lab';
 import { PROFILES, shortPort } from '../profiles';
 import { l3Interfaces, ping, portLine, resolveStaticRoute, sviLineUp, trace, type PortLine } from '../network';
-import type { Device, DeviceKind, Iface, Lab, SubIf, Svi } from '../types';
+import type { Device, DeviceKind, Iface, Lab, LineId, SubIf, Svi } from '../types';
 import { cmd, curTarget, enterInterfaceRange, overlapWith, type CommandSpec, type Ctx, type RunResult } from './spec';
 import { tx } from '../../i18n';
 import { showCdpNeighbors } from './cdp';
 import { TYPE5_RE, hashType5 } from '../secret';
+import { BANNER_MAX, CRED_MAX, EXEC_DEFAULT, MAX_USERS, USER_RE, derive, editBanner, editLine, parseBanner, removeUser, renderMgmt, renderUsers, setUser, type5FromToken } from '../mgmt';
 
 /** Simulator bound for a typed secret (Cisco's documentation consulted gives no length limit for `enable secret`). */
 const SECRET_MAX = 64;
@@ -77,6 +78,8 @@ export function ciscoRunningConfig(dev: Device): string[] {
   const p = PROFILES[dev.kind];
   const body: string[] = ['!', `version ${p.isRouter ? '15.4' : '15.0'}`, '!', `hostname ${dev.name}`, '!'];
   if (dev.security?.enableSecret) body.push(`enable secret 5 ${dev.security.enableSecret}`, '!');
+  const users = renderUsers(dev);
+  if (users.length) body.push(...users, '!');
   if (p.isSwitch) {
     for (const v of dev.vlans.filter((x) => x.id !== 1)) body.push(`vlan ${v.id}`, ` name ${v.name}`, '!');
   }
@@ -92,6 +95,7 @@ export function ciscoRunningConfig(dev: Device): string[] {
   if (dev.kind === 'cisco-switch' && dev.gateway) body.push(`ip default-gateway ${dev.gateway}`);
   for (const r of dev.routes) body.push(`ip route ${r.net} ${r.mask}${r.iface !== undefined ? ` ${r.iface}` : ''}${r.nextHop !== undefined ? ` ${r.nextHop}` : ''}`);
   if (dev.routes.length) body.push('!');
+  body.push(...renderMgmt(dev));
   body.push('end');
   const size = body.join('\n').length;
   return ['Building configuration...', '', `Current configuration : ${size} bytes`, ...body];
@@ -437,6 +441,8 @@ function exitCmd(c: Ctx): RunResult {
     case 'config-svi':
     case 'config-vlan':
       return { mode: 'config', ctxIface: null, ctxVlan: null };
+    case 'config-line':
+      return { mode: 'config' };
     case 'config':
       return { mode: 'priv' };
     case 'priv':
@@ -512,19 +518,19 @@ const specs: CommandSpec[] = [
     run: () => ({ mode: 'config', lines: ['Enter configuration commands, one per line.  End with CNTL/Z.'] }),
   }),
   cmd({
-    id: 'cisco.exit', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan'], syntax: 'exit',
+    id: 'cisco.exit', vendor: 'cisco', deviceTypes: BOTH, modes: ['user', 'priv', 'config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'config-line'], syntax: 'exit',
     helpEn: 'Exit from the EXEC / current configuration level', descTh: tx('ถอยออกหนึ่งระดับ (config-if → config → priv → user)'), topic: 'Mode',
     example: 'exit', verify: tx('(ดู prompt)'), verifyTh: tx('prompt ต้องย้อนกลับหนึ่งระดับ'),
     run: exitCmd,
   }),
   cmd({
-    id: 'cisco.end', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-subif', 'config-svi', 'config-vlan'], syntax: 'end',
+    id: 'cisco.end', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'config-line'], syntax: 'end',
     helpEn: 'Exit from configure mode', descTh: tx('กลับ Privileged EXEC ทันทีจากทุกระดับของ config'), topic: 'Mode',
     example: 'end', verify: 'show running-config', verifyTh: tx('prompt ต้องลงท้ายด้วย #'),
     run: () => ({ mode: 'priv', ctxIface: null, ctxVlan: null }),
   }),
   cmd({
-    id: 'cisco.do', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-subif', 'config-svi', 'config-vlan'], syntax: 'do <command>',
+    id: 'cisco.do', vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-if', 'config-subif', 'config-svi', 'config-vlan', 'config-line'], syntax: 'do <command>',
     helpEn: 'To run exec commands in config mode', descTh: tx('รันคำสั่ง EXEC (เช่น show) โดยไม่ต้องออกจาก config mode'), topic: 'Troubleshooting',
     example: 'do show running-config', verify: tx('(ผลลัพธ์แสดงทันที)'), verifyTh: tx('ต้องเห็นผล show โดย prompt ไม่เปลี่ยน'),
     special: 'do',
@@ -1147,5 +1153,249 @@ const specs: CommandSpec[] = [
     },
   }),
 ];
+
+// ───────── SR-CLI-11: management (line console/vty, username, banner, erase, reload) ─────────
+// Configuration only: nothing here enforces a login, and `reload` is a session-level simulation (the running-config is kept).
+
+const LINE_MODES: CommandSpec['modes'] = ['config-line'];
+
+/** a typed clear-text credential, checked and derived; the caller stores the result only */
+function deriveCredential(clear: string): { hash: string } | { error: string[] } {
+  if (clear === HISTORY_MASK) return { error: [tx('% ค่า ******** มาจากประวัติคำสั่งที่ถูกซ่อนไว้ ใช้เป็น secret ไม่ได้ — พิมพ์ secret ใหม่')] };
+  if (clear.length > CRED_MAX) return { error: [tx('% secret ยาวเกิน {0} ตัวอักษร (ขีดจำกัดของ simulator)', String(CRED_MAX))] };
+  return { hash: derive(clear) };
+}
+
+/** the stored type-5 string for a credential given as clear text (enc '' / '0'), a type-5 hash (5) or a `password 7` token (7) */
+function credentialFor(enc: '' | '0' | '5' | '7', value: string): { hash: string } | { error: string[] } {
+  if (enc === '5') return TYPE5_RE.test(value) ? { hash: value } : { error: [tx('% hash type 5 ไม่ถูกต้อง (ต้องเป็น $1$<salt>$<22 ตัวอักษร>)')] };
+  if (enc === '7') {
+    const h = type5FromToken(value);
+    return h ? { hash: h } : { error: ['% Invalid password 7 token (use the token printed by show running-config).'] };
+  }
+  return deriveCredential(value);
+}
+
+const lineId = (c: Ctx): LineId => c.dev.cli.ctxLine ?? 'console';
+
+const PW_ENC: { enc: '' | '0' | '7'; syntax: string }[] = [
+  { enc: '', syntax: 'password <secret>' },
+  { enc: '0', syntax: 'password 0 <secret>' },
+  { enc: '7', syntax: 'password 7 <token>' },
+];
+
+const linePasswordSpecs: CommandSpec[] = PW_ENC.map(({ enc, syntax }) =>
+  cmd({
+    id: `cisco.line.password${enc ? `.${enc}` : ''}`, vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax,
+    helpEn: enc === '0' ? 'Set the line password given as clear text (0)' : enc === '7' ? 'Set the line password from a password 7 token' : 'Set the line password (stored only as a derived hash)',
+    topic: 'Config',
+    descTh: tx('ตั้งรหัสผ่านของ line — เก็บเป็นค่าที่แปลงแล้วเท่านั้น แสดงใน running-config เป็น password 7 <token> (จำลอง ไม่ใช่ type 7 จริง)'),
+    example: enc === '7' ? 'password 7 mERrhx5rVt7rPNoS4wqbXKX7m0' : enc === '0' ? 'password 0 cisco' : 'password cisco', verify: 'show running-config',
+    verifyTh: tx('running-config ต้องมี password 7 <token> ใต้ line ที่เลือก — ไม่เห็นรหัสที่พิมพ์'),
+    run: (c) => {
+      const r = credentialFor(enc, c.args[0]);
+      if ('error' in r) return r;
+      editLine(c.dev, lineId(c), (l) => { l.password = r.hash; });
+      return {};
+    },
+  }),
+);
+
+function lineEntry(id: LineId, syntax: string): CommandSpec {
+  return cmd({
+    id: `cisco.line.${id}`, vendor: 'cisco', deviceTypes: BOTH, modes: ['config', 'config-line'], syntax,
+    helpEn: id === 'console' ? 'Configure the console line' : 'Configure virtual terminal lines', topic: 'Config',
+    descTh: tx('เข้า Line Configuration ของ console หรือ VTY (ตั้ง password, login, transport, exec-timeout) — จำลองการตั้งค่าเท่านั้น ไม่บังคับ login จริง'),
+    example: syntax, verify: 'show running-config', verifyTh: tx('prompt เป็น (config-line)# และเมื่อมีการตั้งค่า จะเห็นบล็อก line ใน running-config'),
+    run: () => ({ mode: 'config-line', ctxLine: id, ctxIface: null, ctxVlan: null }),
+  });
+}
+
+/** user lines: `username <name> [privilege <n>] secret|password [0|5|7] <value>` */
+function userSpecs(): CommandSpec[] {
+  const out: CommandSpec[] = [];
+  for (const priv of [false, true]) {
+    for (const kind of ['secret', 'password'] as const) {
+      const encs: ('' | '0' | '5' | '7')[] = kind === 'secret' ? ['', '0', '5'] : ['', '0', '7'];
+      for (const enc of encs) {
+        const argName = enc === '5' ? 'type5-hash' : enc === '7' ? 'token' : 'secret';
+        const syntax = `username <username> ${priv ? 'privilege <level> ' : ''}${kind}${enc ? ` ${enc}` : ''} <${argName}>`;
+        const sample = enc === '5' ? '$1$mERr$hx5rVt7rPNoS4wqbXKX7m0' : enc === '7' ? 'mERrhx5rVt7rPNoS4wqbXKX7m0' : 'cisco';
+        out.push(cmd({
+          id: `cisco.username.${kind}${enc ? `.${enc}` : ''}${priv ? '.priv' : ''}`, vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax,
+          helpEn: kind === 'secret' ? 'Create or replace a local user (secret stored as a type 5 hash)' : 'Create or replace a local user (password stored as a derived hash)',
+          topic: 'Config',
+          descTh: tx('สร้าง/แทนที่ local user (privilege 0-15 ถ้าระบุ) — เก็บเฉพาะค่าที่แปลงแล้ว ไม่มีรหัสจริงใน config; ไม่ได้บังคับ login จริง'),
+          example: `username admin ${priv ? 'privilege 15 ' : ''}${kind}${enc ? ` ${enc}` : ''} ${sample}`, verify: 'show running-config',
+          verifyTh: tx('running-config ต้องมีบรรทัด username … secret 5 $1$… หรือ password 7 <token> — ไม่เห็นรหัสที่พิมพ์'),
+          run: (c) => {
+            const name = c.args[0];
+            if (!USER_RE.test(name)) return { error: ['% Invalid username (use A-Z, a-z, 0-9, . _ @ -, up to 32 characters).'] };
+            let privilege: number | undefined;
+            if (priv) {
+              if (!/^\d{1,2}$/.test(c.args[1]) || Number(c.args[1]) > 15) return { error: ['% Invalid privilege level (0-15).'] };
+              privilege = Number(c.args[1]);
+            }
+            const r = credentialFor(enc, c.args[priv ? 2 : 1]);
+            if ('error' in r) return r;
+            if (!c.dev.security?.users?.some((u) => u.name === name) && (c.dev.security?.users?.length ?? 0) >= MAX_USERS) {
+              return { error: [`% Too many usernames (max ${MAX_USERS}).`] };
+            }
+            setUser(c.dev, { name, ...(privilege !== undefined ? { privilege } : {}), [kind]: r.hash });
+            return {};
+          },
+        }));
+      }
+    }
+  }
+  return out;
+}
+
+const TRANSPORTS = ['all', 'ssh', 'telnet', 'none'] as const;
+const BANNERS = ['motd', 'login'] as const;
+const BANNER_ERR: Record<string, string> = {
+  delimiter: '% Banner delimiter must be a character other than a letter, digit or space.',
+  unterminated: '% Banner text must end with the same delimiter (single-line banners only).',
+  trailing: '% Nothing may follow the closing banner delimiter.',
+  empty: '% Banner text is empty (use "no banner" to remove it).',
+  long: `% Banner longer than ${BANNER_MAX} characters (simulator limit).`,
+  control: '% Banner text may not contain control characters.',
+};
+
+function eraseCmd(c: Ctx): RunResult {
+  c.dev.cli.pending = { kind: 'confirm', attempts: 0, action: 'erase' };
+  return { lines: ['Erasing the nvram filesystem will remove all configuration files!'] };
+}
+
+function setExecTimeout(c: Ctx, minArg: string, secArg: string): RunResult {
+  if (!/^\d{1,5}$/.test(minArg) || Number(minArg) > 35791) return { error: ['% Invalid minutes (0-35791).'] };
+  if (!/^\d{1,7}$/.test(secArg) || Number(secArg) > 2147483) return { error: ['% Invalid seconds (0-2147483).'] };
+  const min = Number(minArg);
+  const sec = Number(secArg);
+  editLine(c.dev, lineId(c), (l) => { l.execTimeout = min === EXEC_DEFAULT.min && sec === EXEC_DEFAULT.sec ? undefined : { min, sec }; });
+  return {};
+}
+
+const mgmtSpecs: CommandSpec[] = [
+  lineEntry('console', 'line console 0'),
+  lineEntry('vty04', 'line vty 0 4'),
+  lineEntry('vty015', 'line vty 0 15'),
+  ...linePasswordSpecs,
+  cmd({
+    id: 'cisco.line.no.password', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'no password',
+    helpEn: 'Remove the line password', topic: 'Config', descTh: tx('ลบรหัสผ่านของ line'),
+    example: 'no password', verify: 'show running-config', verifyTh: tx('บรรทัด password ใต้ line ต้องหายไป'),
+    run: (c) => { editLine(c.dev, lineId(c), (l) => { delete l.password; }); return {}; },
+  }),
+  cmd({
+    id: 'cisco.line.login', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'login',
+    helpEn: 'Enable password checking on the line (configuration only)', topic: 'Config',
+    descTh: tx('ตั้ง login บน line — เก็บการตั้งค่าเท่านั้น simulator ไม่ถามรหัสผ่านจริง'),
+    example: 'login', verify: 'show running-config', verifyTh: tx('ต้องเห็น login ใต้ line ใน running-config'),
+    run: (c) => { editLine(c.dev, lineId(c), (l) => { l.login = 'login'; }); return {}; },
+  }),
+  cmd({
+    id: 'cisco.line.login.local', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'login local',
+    helpEn: 'Use the local username database (configuration only)', topic: 'Config',
+    descTh: tx('ตั้ง login local บน line — เก็บการตั้งค่าเท่านั้น simulator ไม่ตรวจ username จริง'),
+    example: 'login local', verify: 'show running-config', verifyTh: tx('ต้องเห็น login local ใต้ line ใน running-config'),
+    run: (c) => { editLine(c.dev, lineId(c), (l) => { l.login = 'local'; }); return {}; },
+  }),
+  cmd({
+    id: 'cisco.line.no.login', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'no login',
+    helpEn: 'Remove the login setting of the line', topic: 'Config', descTh: tx('ลบ login ของ line'),
+    example: 'no login', verify: 'show running-config', verifyTh: tx('บรรทัด login ใต้ line ต้องหายไป'),
+    run: (c) => { editLine(c.dev, lineId(c), (l) => { delete l.login; }); return {}; },
+  }),
+  ...TRANSPORTS.map((t) => cmd({
+    id: `cisco.line.transport.${t}`, vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: `transport input ${t}`,
+    helpEn: `Allowed protocols on the line: ${t}`, topic: 'Config',
+    descTh: tx('กำหนดโปรโตคอลที่ VTY รับ (all / ssh / telnet / none) — ใช้ได้เฉพาะ line vty; เก็บการตั้งค่าเท่านั้น'),
+    example: `transport input ${t}`, prepare: (d) => { d.cli.ctxLine = 'vty04'; }, verify: 'show running-config',
+    verifyTh: tx('ต้องเห็น transport input ใต้ line vty ใน running-config'),
+    run: (c) => {
+      if (lineId(c) === 'console') return { error: ['% transport input is only available on vty lines.'] };
+      editLine(c.dev, lineId(c), (l) => { l.transport = t; });
+      return {};
+    },
+  })),
+  cmd({
+    id: 'cisco.line.exectimeout', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'exec-timeout <minutes>',
+    helpEn: 'Set the EXEC timeout in minutes', topic: 'Config',
+    descTh: tx('ตั้ง exec-timeout ของ line (นาที [วินาที]; 0 0 = ไม่หมดเวลา) — เก็บการตั้งค่าเท่านั้น'),
+    example: 'exec-timeout 5', verify: 'show running-config', verifyTh: tx('ต้องเห็น exec-timeout <นาที> <วินาที> ใต้ line (ค่าเริ่มต้น 10 0 ไม่แสดง)'),
+    run: (c) => setExecTimeout(c, c.args[0], '0'),
+  }),
+  cmd({
+    id: 'cisco.line.exectimeout.sec', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'exec-timeout <minutes> <seconds>',
+    helpEn: 'Set the EXEC timeout in minutes and seconds', topic: 'Config',
+    descTh: tx('ตั้ง exec-timeout ของ line (นาที [วินาที]; 0 0 = ไม่หมดเวลา) — เก็บการตั้งค่าเท่านั้น'),
+    example: 'exec-timeout 5 30', verify: 'show running-config', verifyTh: tx('ต้องเห็น exec-timeout <นาที> <วินาที> ใต้ line (ค่าเริ่มต้น 10 0 ไม่แสดง)'),
+    run: (c) => setExecTimeout(c, c.args[0], c.args[1]),
+  }),
+  cmd({
+    id: 'cisco.line.no.exectimeout', vendor: 'cisco', deviceTypes: BOTH, modes: LINE_MODES, syntax: 'no exec-timeout',
+    helpEn: 'Return the EXEC timeout to its default (10 minutes)', topic: 'Config', descTh: tx('คืน exec-timeout เป็นค่าเริ่มต้น'),
+    example: 'no exec-timeout', verify: 'show running-config', verifyTh: tx('บรรทัด exec-timeout ต้องหายไป'),
+    run: (c) => { editLine(c.dev, lineId(c), (l) => { delete l.execTimeout; }); return {}; },
+  }),
+
+  ...userSpecs(),
+  cmd({
+    id: 'cisco.no.username', vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: 'no username <username>',
+    helpEn: 'Remove a local user', topic: 'Config', descTh: tx('ลบ local user'),
+    example: 'no username admin', prepare: (d) => { d.security = { users: [{ name: 'admin', secret: hashType5('cisco') }] }; },
+    verify: 'show running-config', verifyTh: tx('บรรทัด username ของผู้ใช้นั้นต้องหายไป'),
+    run: (c) => (removeUser(c.dev, c.args[0]) ? {} : { error: [`% Username "${c.args[0]}" does not exist.`] }),
+  }),
+
+  ...BANNERS.flatMap((kind) => [
+    cmd({
+      id: `cisco.banner.${kind}`, vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: `banner ${kind} <text>`,
+      helpEn: kind === 'motd' ? 'Set the message-of-the-day banner (delimiter text delimiter)' : 'Set the login banner (delimiter text delimiter)', topic: 'Config',
+      descTh: tx('ตั้ง banner motd/login รูปแบบ <ตัวคั่น>ข้อความ<ตัวคั่น> บรรทัดเดียว — เป็นข้อความธรรมดา ไม่ใช่ HTML'),
+      example: `banner ${kind} #Authorized access only#`, verify: 'show running-config', verifyTh: tx('ต้องเห็น banner ใน running-config (แสดงตัวคั่นเป็น ^C)'),
+      run: (c) => {
+        const r = parseBanner(c.args[0]);
+        if ('error' in r) return { error: [BANNER_ERR[r.error]] };
+        editBanner(c.dev, kind, r.text);
+        return {};
+      },
+    }),
+    cmd({
+      id: `cisco.no.banner.${kind}`, vendor: 'cisco', deviceTypes: BOTH, modes: ['config'], syntax: `no banner ${kind}`,
+      helpEn: `Remove the ${kind} banner`, topic: 'Config', descTh: tx('ลบ banner'),
+      example: `no banner ${kind}`, verify: 'show running-config', verifyTh: tx('บรรทัด banner ต้องหายไป'),
+      run: (c) => { editBanner(c.dev, kind, null); return {}; },
+    }),
+  ]),
+
+  cmd({
+    id: 'cisco.erase', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'erase startup-config',
+    helpEn: 'Erase the startup configuration', topic: 'Config',
+    descTh: tx('ลบ startup-config (ถามยืนยัน) — running-config ไม่เปลี่ยน; simulator ไม่ replay startup-config'),
+    example: 'erase startup-config', verify: 'show startup-config', verifyTh: tx('หลังยืนยัน ต้องเห็น startup-config is not present'),
+    run: eraseCmd,
+  }),
+  cmd({
+    id: 'cisco.write.erase', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'write erase',
+    helpEn: 'Erase the startup configuration (same as erase startup-config)', topic: 'Config',
+    descTh: tx('เหมือน erase startup-config'),
+    example: 'write erase', verify: 'show startup-config', verifyTh: tx('หลังยืนยัน ต้องเห็น startup-config is not present'),
+    run: eraseCmd,
+  }),
+  cmd({
+    id: 'cisco.reload', vendor: 'cisco', deviceTypes: BOTH, modes: ['priv'], syntax: 'reload',
+    helpEn: 'Halt and perform a cold restart (simulated)', topic: 'Mode',
+    descTh: tx('จำลอง reload (ถามยืนยัน) — รีเซ็ตเฉพาะ session กลับ User EXEC; running-config ไม่ถูกทิ้ง และไม่ replay startup-config'),
+    example: 'reload', verify: 'show running-config', verifyTh: tx('หลังยืนยัน prompt ต้องกลับเป็น > และ running-config ยังอยู่'),
+    run: (c) => {
+      c.dev.cli.pending = { kind: 'confirm', attempts: 0, action: 'reload' };
+      return {};
+    },
+  }),
+];
+
+specs.push(...mgmtSpecs);
 
 export const CISCO_SPECS = specs;

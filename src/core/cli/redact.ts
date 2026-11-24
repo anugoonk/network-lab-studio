@@ -99,7 +99,7 @@ function findSpans(t: Tok[]): Span[] {
 
   if ('enable'.startsWith(first) && n >= 3) spans.push(toEnd(i + 2));
 
-  if (first.length >= 4 && 'username'.startsWith(first) && n >= 3) {
+  if (first.length >= 2 && 'username'.startsWith(first) && n >= 3) {
     let k = i + 2;
     for (;;) {
       const w = lc(t[k]);
@@ -117,7 +117,9 @@ function findSpans(t: Tok[]): Span[] {
     }
   }
 
-  if (first.length >= 4 && 'password'.startsWith(first) && n >= 2) spans.push(toEnd(i + 1));
+  if ('password'.startsWith(first) && n >= 2) spans.push(toEnd(i + 1)); // also abbreviations: p, pa, pas (the parser accepts any unique prefix)
+  // a mistyped keyword (`pasword x`, `passwrd x`) in line mode: masked too, so the value is not kept in the history
+  else if (/^[a-z]{5,9}$/.test(first) && editDistance(first, 'password') <= 2 && n >= 2) spans.push(toEnd(i + 1));
 
   if (first === 'net' && n >= 4 && lc(t[i + 1]) === 'user') spans.push(toEnd(i + 3));
 
